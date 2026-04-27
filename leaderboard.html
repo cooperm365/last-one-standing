@@ -3,269 +3,271 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Leaderboard - Last One Standing</title>
-  <link rel="stylesheet" href="css/style.css"/>
+  <title>Leaderboard - Bar Rank</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
   <style>
-    .lb-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0.9rem 1rem;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.15s;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#111110; --bg2:#1a1a18; --bg3:#222220;
+      --border:rgba(255,255,255,0.07);
+      --gold:#f0a500; --gold-dim:#a87300; --gold-bg:rgba(240,165,0,0.1);
+      --text:#f0ede8; --muted:#888780; --dim:#444441;
+      --green:#3ecf8e; --silver:#C0C0C0; --bronze:#cd7f32;
     }
-    .lb-row:last-child { border-bottom: none; }
-    .lb-row:hover { background: var(--bg3); }
+    html, body { height: 100%; }
+    body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; display:flex; flex-direction:column; min-height:100vh; }
 
-    .lb-rank {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px;
-      min-width: 36px;
-      text-align: center;
-      color: var(--text-dim);
-    }
-    .lb-rank.top1 { color: #FFD700; }
-    .lb-rank.top2 { color: #C0C0C0; }
-    .lb-rank.top3 { color: #cd7f32; }
+    .top-bar { background:var(--bg2); border-bottom:1px solid var(--border); padding:14px 32px; display:flex; align-items:center; gap:20px; flex-shrink:0; flex-wrap:wrap; }
+    .logo-mark { width:42px; height:42px; background:var(--gold); border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:17px; color:#111; flex-shrink:0; }
+    .title-block { flex:1; min-width:200px; }
+    .title-main { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:1px; color:var(--text); line-height:1; }
+    .title-sub { font-size:12px; color:var(--gold); margin-top:2px; }
 
-    .lb-avatar {
-      width: 38px; height: 38px;
-      border-radius: 50%;
-      background: var(--bg3);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 600;
-      font-size: 15px;
-      color: var(--text-muted);
-      flex-shrink: 0;
-    }
-    .lb-avatar.top1 { background: rgba(255,215,0,0.15); color: #FFD700; }
-    .lb-avatar.top2 { background: rgba(192,192,192,0.15); color: #C0C0C0; }
-    .lb-avatar.top3 { background: rgba(205,127,50,0.15); color: #cd7f32; }
+    .prizes { display:flex; gap:8px; }
+    .prize-badge { background:rgba(240,165,0,0.08); border:1px solid var(--gold-dim); border-radius:6px; padding:5px 12px; text-align:center; }
+    .prize-pos { font-size:10px; color:var(--gold-dim); text-transform:uppercase; letter-spacing:0.5px; }
+    .prize-val { font-size:13px; font-weight:600; color:var(--gold); }
 
-    .lb-name { flex: 1; font-weight: 500; }
-    .lb-meta { font-size: 12px; color: var(--text-muted); }
+    .live-badge { display:flex; align-items:center; gap:6px; background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:6px 14px; }
+    .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 1.5s infinite; flex-shrink:0; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+    .live-text { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+    .live-countdown { font-family:'Bebas Neue',sans-serif; font-size:15px; color:var(--text); letter-spacing:1px; margin-left:4px; }
 
-    .lb-pts {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 24px;
-      color: var(--gold);
-      min-width: 60px;
-      text-align: right;
-    }
+    .period-bar { display:flex; gap:6px; }
+    .period-btn { padding:5px 12px; border-radius:999px; font-size:12px; font-weight:500; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--muted); transition:all 0.15s; font-family:'DM Sans',sans-serif; }
+    .period-btn.active, .period-btn:hover { border-color:var(--gold-dim); color:var(--gold); background:var(--gold-bg); }
 
-    .lb-pts-label {
-      font-size: 10px;
-      color: var(--text-dim);
-      text-align: right;
-      text-transform: uppercase;
-    }
+    .main { flex:1; padding:24px 32px; display:flex; flex-direction:column; gap:16px; }
 
-    .period-bar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 1.5rem;
-      flex-wrap: wrap;
-    }
-    .period-btn {
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-muted);
-      transition: all 0.15s;
-      font-family: 'DM Sans', sans-serif;
-    }
-    .period-btn.active, .period-btn:hover {
-      border-color: var(--gold-dim);
-      color: var(--gold);
-      background: var(--gold-bg);
-    }
+    .podium { display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:12px; align-items:end; }
+    .pod-card { border-radius:10px; padding:16px 14px; text-align:center; border:1px solid var(--border); background:var(--bg2); }
+    .pod-card.first { background:rgba(240,165,0,0.06); border-color:var(--gold-dim); padding:22px 14px; }
+    .pod-card.empty { opacity:0.25; }
+    .pod-medal { font-size:20px; margin-bottom:8px; }
+    .pod-card.first .pod-medal { font-size:28px; }
+    .pod-avatar { width:46px; height:46px; border-radius:50%; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:16px; background:var(--bg3); color:var(--muted); }
+    .pod-card.first .pod-avatar { width:56px; height:56px; font-size:20px; background:rgba(240,165,0,0.18); color:var(--gold); }
+    .pod-card.second .pod-avatar { background:rgba(192,192,192,0.12); color:var(--silver); }
+    .pod-card.third .pod-avatar { background:rgba(205,127,50,0.12); color:var(--bronze); }
+    .pod-name { font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px; }
+    .pod-card.first .pod-name { font-size:17px; }
+    .pod-pts { font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--gold); line-height:1; }
+    .pod-card.first .pod-pts { font-size:44px; }
+    .pod-card.second .pod-pts { color:var(--silver); }
+    .pod-card.third .pod-pts { color:var(--bronze); }
+    .pod-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+    .pod-checkins { font-size:11px; color:var(--dim); margin-top:4px; }
 
-    .my-highlight { background: rgba(240,165,0,0.05) !important; }
-    .my-highlight .lb-name::after {
-      content: ' (you)';
-      font-size: 12px;
-      color: var(--gold);
-      font-weight: 400;
-    }
+    .rest-list { display:flex; flex-direction:column; gap:6px; }
+    .lb-row { display:flex; align-items:center; gap:12px; padding:11px 16px; background:var(--bg2); border-radius:8px; border:1px solid var(--border); }
+    .lb-row.me { background:rgba(240,165,0,0.06); border-color:var(--gold-dim); }
+    .lb-rank { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--dim); min-width:30px; text-align:center; }
+    .lb-avatar { width:34px; height:34px; border-radius:50%; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--muted); flex-shrink:0; }
+    .lb-name { flex:1; font-size:15px; font-weight:500; }
+    .lb-name .you { font-size:11px; color:var(--gold); font-weight:400; margin-left:6px; }
+    .lb-meta { font-size:11px; color:var(--dim); }
+    .lb-pts { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--gold); }
+    .lb-pts-lbl { font-size:10px; color:var(--dim); text-transform:uppercase; text-align:right; }
 
-    .refresh-note {
-      font-size: 12px;
-      color: var(--text-dim);
-      text-align: center;
-      margin-top: 1rem;
-    }
+    .lb-empty { text-align:center; padding:3rem; color:var(--muted); font-size:15px; }
+    .spinner { width:22px; height:22px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.7s linear infinite; display:inline-block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .bottom-bar { background:var(--bg2); border-top:2px solid var(--gold-dim); padding:18px 32px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; gap:16px; }
+    .cta-text { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:1px; color:var(--text); line-height:1.1; }
+    .cta-text span { color:var(--gold); }
+    .cta-sub { font-size:14px; color:var(--muted); margin-top:4px; }
+    .cta-arrow { font-family:'Bebas Neue',sans-serif; font-size:52px; color:var(--gold); flex-shrink:0; }
   </style>
 </head>
 <body>
-<div class="page-wide">
 
-  <div class="header">
-    <div class="logo-mark">LOS</div>
+  <div class="top-bar">
+    <div class="logo-mark">BR</div>
+    <div class="title-block">
+      <div class="title-main">Leaderboard Legends — CJ's Tavern</div>
+      <div class="title-sub" id="season-sub">Loading...</div>
+    </div>
+    <div class="prizes" id="prizes-row" style="display:none">
+      <div class="prize-badge"><div class="prize-pos">1st</div><div class="prize-val" id="prize-1"></div></div>
+      <div class="prize-badge"><div class="prize-pos">2nd</div><div class="prize-val" id="prize-2"></div></div>
+      <div class="prize-badge"><div class="prize-pos">3rd</div><div class="prize-val" id="prize-3"></div></div>
+    </div>
+    <div class="period-bar">
+      <button class="period-btn active" onclick="setPeriod('week',this)">This week</button>
+      <button class="period-btn" onclick="setPeriod('month',this)">This month</button>
+      <button class="period-btn" onclick="setPeriod('alltime',this)">All time</button>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span class="live-text">Live</span>
+      <span class="live-countdown" id="countdown">—</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="lb-loading" style="text-align:center;padding:3rem"><span class="spinner"></span></div>
+    <div id="lb-empty" class="lb-empty" style="display:none">No check-ins yet — be the first on the board!</div>
+    <div class="podium" id="podium" style="display:none">
+      <div class="pod-card second" id="pod-2">
+        <div class="pod-medal">🥈</div>
+        <div class="pod-avatar" id="pod-2-av"></div>
+        <div class="pod-name" id="pod-2-name">—</div>
+        <div class="pod-pts" id="pod-2-pts">—</div>
+        <div class="pod-label">points</div>
+        <div class="pod-checkins" id="pod-2-ci"></div>
+      </div>
+      <div class="pod-card first" id="pod-1">
+        <div class="pod-medal">🥇</div>
+        <div class="pod-avatar" id="pod-1-av"></div>
+        <div class="pod-name" id="pod-1-name">—</div>
+        <div class="pod-pts" id="pod-1-pts">—</div>
+        <div class="pod-label">points</div>
+        <div class="pod-checkins" id="pod-1-ci"></div>
+      </div>
+      <div class="pod-card third" id="pod-3">
+        <div class="pod-medal">🥉</div>
+        <div class="pod-avatar" id="pod-3-av"></div>
+        <div class="pod-name" id="pod-3-name">—</div>
+        <div class="pod-pts" id="pod-3-pts">—</div>
+        <div class="pod-label">points</div>
+        <div class="pod-checkins" id="pod-3-ci"></div>
+      </div>
+    </div>
+    <div class="rest-list" id="lb-rest" style="display:none"></div>
+  </div>
+
+  <div class="bottom-bar">
     <div>
-      <div class="site-name">Last One Standing</div>
-      <div class="site-sub">Live Leaderboard</div>
+      <div class="cta-text">Not on the board? <span>Scan any game QR code to join.</span></div>
+      <div class="cta-sub">No app needed — takes 10 seconds. Every game earns points.</div>
     </div>
-    <div style="margin-left:auto">
-      <a href="my-points.html" class="btn btn-outline btn-sm">My Points</a>
-    </div>
+    <div class="cta-arrow">→</div>
   </div>
-
-  <div class="period-bar">
-    <button class="period-btn active" data-period="week" onclick="setPeriod('week', this)">This week</button>
-    <button class="period-btn" data-period="month" onclick="setPeriod('month', this)">This month</button>
-    <button class="period-btn" data-period="alltime" onclick="setPeriod('alltime', this)">All time</button>
-  </div>
-
-  <div id="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.5rem">
-    <div class="card" style="text-align:center;padding:1rem">
-      <div id="stat-players" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)">—</div>
-      <div class="points-label">players</div>
-    </div>
-    <div class="card" style="text-align:center;padding:1rem">
-      <div id="stat-checkins" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)">—</div>
-      <div class="points-label">check-ins</div>
-    </div>
-    <div class="card" style="text-align:center;padding:1rem">
-      <div id="stat-top" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold)">—</div>
-      <div class="points-label">top score</div>
-    </div>
-  </div>
-
-  <div class="section-title">Rankings</div>
-
-  <div id="lb-loading" style="text-align:center;padding:2rem;color:var(--text-muted)">
-    <span class="spinner"></span>
-  </div>
-
-  <div id="lb-empty" style="display:none" class="card">
-    <p style="color:var(--text-muted);text-align:center">No check-ins yet in this period.</p>
-  </div>
-
-  <div id="lb-list" class="card" style="display:none;padding:0;overflow:hidden"></div>
-
-  <p class="refresh-note">Updates every 30 seconds</p>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/config.js"></script>
 <script>
 const sb = getSupabase();
 let currentPeriod = 'week';
-const myPhone = localStorage.getItem('los_phone');
+const myPhone = localStorage.getItem('br_phone');
 
-function getPeriodStart(period) {
-  const now = new Date();
-  if (period === 'week') {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 7);
-    return d.toISOString();
-  }
-  if (period === 'month') {
-    const d = new Date(now);
-    d.setMonth(d.getMonth() - 1);
-    return d.toISOString();
-  }
-  return null; // alltime
+const PRIZES = { p1: '$50 Gift Card', p2: 'Free Round (up to 6)', p3: "CJ's Tavern Tee" };
+const SEASON_END = new Date('2025-05-08T23:59:59');
+
+function initPrizes() {
+  document.getElementById('prize-1').textContent = PRIZES.p1;
+  document.getElementById('prize-2').textContent = PRIZES.p2;
+  document.getElementById('prize-3').textContent = PRIZES.p3;
+  document.getElementById('prizes-row').style.display = 'flex';
+}
+
+function updateCountdown() {
+  const diff = SEASON_END - new Date();
+  if (diff <= 0) { document.getElementById('countdown').textContent = 'ENDED'; return; }
+  const d = Math.floor(diff/86400000);
+  const h = Math.floor((diff%86400000)/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  const s = Math.floor((diff%60000)/1000);
+  document.getElementById('countdown').textContent = d > 0
+    ? `${d}D ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
+    : `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const daysLeft = d === 1 ? '1 day left' : d > 0 ? `${d} days left` : 'Final hours!';
+  document.getElementById('season-sub').textContent = `Bar Rank · Season ends ${SEASON_END.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${daysLeft}`;
+}
+
+function initials(name) { return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+
+function setPod(num, row) {
+  if (!row) { document.getElementById(`pod-${num}`).classList.add('empty'); return; }
+  document.getElementById(`pod-${num}-av`).textContent = initials(row.name);
+  document.getElementById(`pod-${num}-name`).textContent = row.name;
+  document.getElementById(`pod-${num}-pts`).textContent = row.pts;
+  document.getElementById(`pod-${num}-ci`).textContent = `${row.checkins} check-in${row.checkins!==1?'s':''}`;
+}
+
+function getPeriodStart(p) {
+  if (p==='week') { const d=new Date(); d.setDate(d.getDate()-7); return d.toISOString(); }
+  if (p==='month') { const d=new Date(); d.setMonth(d.getMonth()-1); return d.toISOString(); }
+  return null;
 }
 
 async function load() {
-  document.getElementById('lb-loading').style.display = 'block';
-  document.getElementById('lb-list').style.display = 'none';
-  document.getElementById('lb-empty').style.display = 'none';
-
   const since = getPeriodStart(currentPeriod);
-
-  // Fetch checkins in period
-  let q = sb.from('checkins').select('player_id, points_earned, event_id');
+  let q = sb.from('checkins').select('player_id, points_earned');
   if (since) q = q.gte('scanned_at', since);
   const { data: checkins } = await q;
-
-  // Fetch bonus points in period
   let bq = sb.from('bonus_points').select('player_id, points');
   if (since) bq = bq.gte('awarded_at', since);
   const { data: bonuses } = await bq;
 
-  // Aggregate by player
-  const playerTotals = {};
-  const playerCheckins = {};
-  (checkins || []).forEach(c => {
-    playerTotals[c.player_id] = (playerTotals[c.player_id] || 0) + c.points_earned;
-    playerCheckins[c.player_id] = (playerCheckins[c.player_id] || 0) + 1;
-  });
-  (bonuses || []).forEach(b => {
-    playerTotals[b.player_id] = (playerTotals[b.player_id] || 0) + b.points;
-  });
+  const totals={}, cins={};
+  (checkins||[]).forEach(c=>{ totals[c.player_id]=(totals[c.player_id]||0)+c.points_earned; cins[c.player_id]=(cins[c.player_id]||0)+1; });
+  (bonuses||[]).forEach(b=>{ totals[b.player_id]=(totals[b.player_id]||0)+b.points; });
 
-  const playerIds = Object.keys(playerTotals);
-  if (!playerIds.length) {
-    document.getElementById('lb-loading').style.display = 'none';
+  const ids = Object.keys(totals);
+  document.getElementById('lb-loading').style.display = 'none';
+
+  if (!ids.length) {
     document.getElementById('lb-empty').style.display = 'block';
-    document.getElementById('stat-players').textContent = '0';
-    document.getElementById('stat-checkins').textContent = '0';
-    document.getElementById('stat-top').textContent = '0';
+    document.getElementById('podium').style.display = 'none';
+    document.getElementById('lb-rest').style.display = 'none';
     return;
   }
 
-  // Fetch player names
-  const { data: players } = await sb.from('players').select('id, name, phone').in('id', playerIds);
-  const playerMap = {};
-  (players || []).forEach(p => { playerMap[p.id] = p; });
+  const { data: players } = await sb.from('players').select('id, name, phone').in('id', ids);
+  const pm = {};
+  (players||[]).forEach(p=>{ pm[p.id]=p; });
 
-  // Build sorted list
-  const rows = playerIds
-    .map(id => ({ id, name: playerMap[id]?.name || '?', phone: playerMap[id]?.phone, pts: playerTotals[id], checkins: playerCheckins[id] || 0 }))
-    .sort((a, b) => b.pts - a.pts);
+  const rows = ids
+    .map(id=>({ id, name:pm[id]?.name||'?', phone:pm[id]?.phone, pts:totals[id], checkins:cins[id]||0 }))
+    .sort((a,b)=>b.pts-a.pts);
 
-  // Stats
-  const totalCheckins = Object.values(playerCheckins).reduce((a, b) => a + b, 0);
-  document.getElementById('stat-players').textContent = rows.length;
-  document.getElementById('stat-checkins').textContent = totalCheckins;
-  document.getElementById('stat-top').textContent = rows[0]?.pts || 0;
+  setPod(1, rows[0]); setPod(2, rows[1]); setPod(3, rows[2]);
+  document.getElementById('podium').style.display = 'grid';
 
-  // Render
-  const list = document.getElementById('lb-list');
-  list.innerHTML = '';
-  rows.forEach((row, i) => {
-    const rank = i + 1;
-    const cls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
-    const isMe = myPhone && row.phone === myPhone;
-    const initials = row.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
-    const div = document.createElement('div');
-    div.className = 'lb-row' + (isMe ? ' my-highlight' : '');
-    div.innerHTML = `
-      <div class="lb-rank ${cls}">${medal}</div>
-      <div class="lb-avatar ${cls}">${initials}</div>
-      <div style="flex:1">
-        <div class="lb-name">${esc(row.name)}</div>
-        <div class="lb-meta">${row.checkins} check-in${row.checkins !== 1 ? 's' : ''}</div>
-      </div>
-      <div>
-        <div class="lb-pts">${row.pts}</div>
-        <div class="lb-pts-label">pts</div>
+  const rest = rows.slice(3);
+  const restEl = document.getElementById('lb-rest');
+  if (rest.length) {
+    restEl.innerHTML = rest.map((row,i) => {
+      const rank = i+4;
+      const isMe = myPhone && row.phone === myPhone;
+      return `<div class="lb-row${isMe?' me':''}">
+        <div class="lb-rank">${rank}</div>
+        <div class="lb-avatar">${initials(row.name)}</div>
+        <div style="flex:1">
+          <div class="lb-name">${esc(row.name)}${isMe?'<span class="you">(you)</span>':''}</div>
+          <div class="lb-meta">${row.checkins} check-in${row.checkins!==1?'s':''}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="lb-pts">${row.pts}</div>
+          <div class="lb-pts-lbl">pts</div>
+        </div>
       </div>`;
-    list.appendChild(div);
-  });
-
-  document.getElementById('lb-loading').style.display = 'none';
-  document.getElementById('lb-list').style.display = 'block';
+    }).join('');
+    restEl.style.display = 'flex';
+  } else {
+    restEl.style.display = 'none';
+  }
 }
 
 function setPeriod(p, btn) {
   currentPeriod = p;
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  document.getElementById('lb-loading').style.display = 'block';
+  document.getElementById('podium').style.display = 'none';
+  document.getElementById('lb-rest').style.display = 'none';
   load();
 }
 
-function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+initPrizes();
+updateCountdown();
+setInterval(updateCountdown, 1000);
 load();
 setInterval(load, 30000);
 </script>
