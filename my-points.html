@@ -648,17 +648,31 @@ function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 
 // Auto-load
 const saved = localStorage.getItem('br_phone');
-if (saved) {
-  document.getElementById('lookup-phone').value = saved;
-  lookup();
-}
-
-// Handle direct QR scan links (e.g. someone scans while not in the app)
 const urlParams = new URLSearchParams(location.search);
 const directEventId = urlParams.get('event');
-if (directEventId && saved) {
-  // They have the app open already — open check-in panel directly
-  window.addEventListener('load', () => setTimeout(() => openCheckinPanel(directEventId), 800));
+
+if (saved) {
+  document.getElementById('lookup-phone').value = saved;
+  // If there's an event param, open the checkin panel after dashboard loads
+  if (directEventId) {
+    lookupThenCheckin(saved, directEventId);
+  } else {
+    lookup();
+  }
+}
+
+async function lookupThenCheckin(phone, eventId) {
+  const digits = phone.replace(/\D/g, '');
+  const { data: player } = await sb.from('players').select('*').eq('phone', digits).single();
+  if (!player) {
+    // Phone not found — show lookup form
+    document.getElementById('lookup-form').style.display = 'block';
+    return;
+  }
+  currentPlayer = player;
+  await showDashboard(player);
+  // Now dashboard is loaded, open the checkin panel
+  openCheckinPanel(eventId);
 }
 </script>
 </body>
