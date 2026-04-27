@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Check In - Last One Standing</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="logo-mark">LOS</div>
+    <div>
+      <div class="site-name">Last One Standing</div>
+      <div class="site-sub">Who's top of the board tonight?</div>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div id="loading" class="card" style="text-align:center;padding:2rem">
+    <span class="spinner"></span>
+    <p style="margin-top:1rem;color:var(--text-muted);font-size:14px">Loading event...</p>
+  </div>
+
+  <!-- Event not found -->
+  <div id="not-found" style="display:none">
+    <div class="card">
+      <p style="color:var(--red)">Event not found or no longer active.</p>
+      <p style="color:var(--text-muted);font-size:14px;margin-top:0.5rem">Ask a staff member for help.</p>
+    </div>
+  </div>
+
+  <!-- Main check-in form -->
+  <div id="main" style="display:none">
+
+    <!-- Event info -->
+    <div class="card card-gold" style="text-align:center;margin-bottom:1.5rem">
+      <div id="event-type-badge" style="margin-bottom:0.5rem"></div>
+      <div id="event-name" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px"></div>
+      <div style="margin-top:0.75rem">
+        <span class="points-big" id="event-points"></span>
+        <span class="points-label" style="margin-left:6px">points</span>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:0.25rem">just for showing up</div>
+    </div>
+
+    <!-- Messages -->
+    <div id="msg" class="msg"></div>
+
+    <!-- Already checked in -->
+    <div id="already-in" style="display:none">
+      <div class="card" style="text-align:center">
+        <div style="font-size:32px;margin-bottom:0.5rem">✓</div>
+        <div style="font-weight:600;margin-bottom:0.25rem">Already checked in!</div>
+        <div style="color:var(--text-muted);font-size:14px">You already scanned this event.</div>
+        <hr class="divider"/>
+        <a href="my-points.html" class="btn btn-outline btn-sm">View my points</a>
+      </div>
+    </div>
+
+    <!-- Visit cap reached -->
+    <div id="cap-reached" style="display:none">
+      <div class="card" style="text-align:center">
+        <div style="font-size:32px;margin-bottom:0.5rem">🎯</div>
+        <div style="font-weight:600;margin-bottom:0.25rem">3 scans used tonight</div>
+        <div style="color:var(--text-muted);font-size:14px">You've hit the max of 3 check-ins per visit. Come back tomorrow!</div>
+        <hr class="divider"/>
+        <a href="my-points.html" class="btn btn-outline btn-sm">View my points</a>
+      </div>
+    </div>
+
+    <!-- New player form -->
+    <div id="form-new" style="display:none">
+      <div class="card">
+        <p style="font-size:14px;color:var(--text-muted);margin-bottom:1rem">First time? Enter your details to claim your points.</p>
+        <label>Your name</label>
+        <input type="text" id="new-name" placeholder="e.g. Jamie" autocomplete="name"/>
+        <label>Mobile number</label>
+        <input type="tel" id="new-phone" placeholder="e.g. 07700 900000" autocomplete="tel"/>
+        <div id="new-msg" class="msg"></div>
+        <button class="btn btn-primary" onclick="submitNewPlayer()">Claim <span id="new-pts"></span> points</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-dim);text-align:center;margin-top:0.75rem">
+        Already have an account? <a href="#" onclick="showReturning()" style="color:var(--gold)">Sign in</a>
+      </p>
+    </div>
+
+    <!-- Returning player form -->
+    <div id="form-returning" style="display:none">
+      <div class="card">
+        <p style="font-size:14px;color:var(--text-muted);margin-bottom:1rem">Enter your mobile to check in.</p>
+        <label>Mobile number</label>
+        <input type="tel" id="ret-phone" placeholder="e.g. 07700 900000" autocomplete="tel"/>
+        <div id="ret-msg" class="msg"></div>
+        <button class="btn btn-primary" onclick="submitReturning()">Claim <span id="ret-pts"></span> points</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-dim);text-align:center;margin-top:0.75rem">
+        New here? <a href="#" onclick="showNew()" style="color:var(--gold)">Create account</a>
+      </p>
+    </div>
+
+    <!-- Success state -->
+    <div id="success" style="display:none">
+      <div class="card" style="text-align:center">
+        <div style="font-size:40px;margin-bottom:0.5rem">🎉</div>
+        <div style="font-weight:600;font-size:18px;margin-bottom:0.25rem">Points claimed!</div>
+        <div class="points-big" id="success-pts" style="margin:0.5rem 0"></div>
+        <div class="points-label">points earned</div>
+        <hr class="divider"/>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:0.5rem">
+          <span style="font-size:13px;color:var(--text-muted)">Scans used tonight:</span>
+          <div class="scan-dots" id="success-dots"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim)" id="success-remaining"></div>
+        <hr class="divider"/>
+        <a href="my-points.html" class="btn btn-outline" style="margin-top:0.5rem">View my points & rank</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script>
+const sb = getSupabase();
+let eventData = null;
+
+// --- Init ---
+async function init() {
+  const params = new URLSearchParams(location.search);
+  const eventId = params.get('event');
+  if (!eventId) { show('not-found'); hide('loading'); return; }
+
+  const { data, error } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
+  if (error || !data) { show('not-found'); hide('loading'); return; }
+
+  eventData = data;
+  document.getElementById('event-name').textContent = data.name;
+  document.getElementById('event-points').textContent = data.points_value;
+  document.getElementById('new-pts').textContent = data.points_value;
+  document.getElementById('ret-pts').textContent = data.points_value;
+
+  const typeLabels = {
+    darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia', bingo:'🎰 Bingo',
+    live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event'
+  };
+  document.getElementById('event-type-badge').innerHTML =
+    `<span class="badge badge-gold">${typeLabels[data.type] || data.type}</span>`;
+
+  hide('loading');
+  show('main');
+
+  // Check if returning player phone stored in localStorage
+  const savedPhone = localStorage.getItem('los_phone');
+  if (savedPhone) {
+    document.getElementById('ret-phone').value = savedPhone;
+    showReturning();
+  } else {
+    showNew();
+  }
+}
+
+// --- Scan validation ---
+async function getVisitScans(playerId) {
+  const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+  const { data } = await sb
+    .from('checkins')
+    .select('id, scanned_at')
+    .eq('player_id', playerId)
+    .gte('scanned_at', windowStart)
+    .order('scanned_at', { ascending: false });
+  return data || [];
+}
+
+async function hasScannedThisEvent(playerId, eventId) {
+  const { data } = await sb
+    .from('checkins')
+    .select('id')
+    .eq('player_id', playerId)
+    .eq('event_id', eventId)
+    .single();
+  return !!data;
+}
+
+async function doCheckin(player) {
+  // 1. Already scanned this specific event?
+  const alreadyScanned = await hasScannedThisEvent(player.id, eventData.id);
+  if (alreadyScanned) { show('already-in'); hide('form-new'); hide('form-returning'); return; }
+
+  // 2. Rolling 8-hour cap check
+  const visitScans = await getVisitScans(player.id);
+  if (visitScans.length >= MAX_SCANS_PER_VISIT) {
+    show('cap-reached'); hide('form-new'); hide('form-returning'); return;
+  }
+
+  // 3. Record check-in
+  const { error } = await sb.from('checkins').insert({
+    player_id: player.id,
+    event_id: eventData.id,
+    points_earned: eventData.points_value
+  });
+  if (error) { showMsg('ret-msg', 'Something went wrong. Please try again.', 'error'); return; }
+
+  // 4. Update player total points
+  await sb.from('players').update({
+    total_points: (player.total_points || 0) + eventData.points_value
+  }).eq('id', player.id);
+
+  localStorage.setItem('los_phone', player.phone);
+
+  // 5. Show success
+  const newScanCount = visitScans.length + 1;
+  const remaining = MAX_SCANS_PER_VISIT - newScanCount;
+  document.getElementById('success-pts').textContent = eventData.points_value;
+  document.getElementById('success-remaining').textContent =
+    remaining > 0 ? `${remaining} scan${remaining > 1 ? 's' : ''} left tonight` : 'No more scans tonight — come back tomorrow!';
+
+  const dotsEl = document.getElementById('success-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < MAX_SCANS_PER_VISIT; i++) {
+    const d = document.createElement('div');
+    d.className = 'scan-dot' + (i < newScanCount ? ' used' : '');
+    dotsEl.appendChild(d);
+  }
+
+  hide('form-new'); hide('form-returning');
+  show('success');
+}
+
+// --- New player ---
+async function submitNewPlayer() {
+  const name = document.getElementById('new-name').value.trim();
+  const phone = normalizePhone(document.getElementById('new-phone').value.trim());
+  if (!name) { showMsg('new-msg', 'Please enter your name.', 'error'); return; }
+  if (!phone) { showMsg('new-msg', 'Please enter a valid mobile number.', 'error'); return; }
+
+  // Check if phone already registered
+  const { data: existing } = await sb.from('players').select('*').eq('phone', phone).single();
+  if (existing) {
+    // Silently treat as returning
+    await doCheckin(existing);
+    return;
+  }
+
+  const { data: newPlayer, error } = await sb.from('players').insert({ name, phone, total_points: 0 }).select().single();
+  if (error) { showMsg('new-msg', 'Could not create account. Try again.', 'error'); return; }
+  await doCheckin(newPlayer);
+}
+
+// --- Returning player ---
+async function submitReturning() {
+  const phone = normalizePhone(document.getElementById('ret-phone').value.trim());
+  if (!phone) { showMsg('ret-msg', 'Please enter your mobile number.', 'error'); return; }
+
+  const { data: player } = await sb.from('players').select('*').eq('phone', phone).single();
+  if (!player) { showMsg('ret-msg', "We don't recognise that number. Are you new?", 'error'); return; }
+  await doCheckin(player);
+}
+
+// --- UI helpers ---
+function show(id) { document.getElementById(id).style.display = 'block'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+function showNew() { show('form-new'); hide('form-returning'); }
+function showReturning() { show('form-returning'); hide('form-new'); }
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = `msg show msg-${type}`;
+}
+
+function normalizePhone(raw) {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length < 10) return null;
+  return digits;
+}
+
+init();
+</script>
+</body>
+</html>

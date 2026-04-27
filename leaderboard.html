@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leaderboard - Last One Standing</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .lb-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row:hover { background: var(--bg3); }
+
+    .lb-rank {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      min-width: 36px;
+      text-align: center;
+      color: var(--text-dim);
+    }
+    .lb-rank.top1 { color: #FFD700; }
+    .lb-rank.top2 { color: #C0C0C0; }
+    .lb-rank.top3 { color: #cd7f32; }
+
+    .lb-avatar {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--bg3);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .lb-avatar.top1 { background: rgba(255,215,0,0.15); color: #FFD700; }
+    .lb-avatar.top2 { background: rgba(192,192,192,0.15); color: #C0C0C0; }
+    .lb-avatar.top3 { background: rgba(205,127,50,0.15); color: #cd7f32; }
+
+    .lb-name { flex: 1; font-weight: 500; }
+    .lb-meta { font-size: 12px; color: var(--text-muted); }
+
+    .lb-pts {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 24px;
+      color: var(--gold);
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .lb-pts-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-align: right;
+      text-transform: uppercase;
+    }
+
+    .period-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .period-btn {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .period-btn.active, .period-btn:hover {
+      border-color: var(--gold-dim);
+      color: var(--gold);
+      background: var(--gold-bg);
+    }
+
+    .my-highlight { background: rgba(240,165,0,0.05) !important; }
+    .my-highlight .lb-name::after {
+      content: ' (you)';
+      font-size: 12px;
+      color: var(--gold);
+      font-weight: 400;
+    }
+
+    .refresh-note {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+<div class="page-wide">
+
+  <div class="header">
+    <div class="logo-mark">LOS</div>
+    <div>
+      <div class="site-name">Last One Standing</div>
+      <div class="site-sub">Live Leaderboard</div>
+    </div>
+    <div style="margin-left:auto">
+      <a href="my-points.html" class="btn btn-outline btn-sm">My Points</a>
+    </div>
+  </div>
+
+  <div class="period-bar">
+    <button class="period-btn active" data-period="week" onclick="setPeriod('week', this)">This week</button>
+    <button class="period-btn" data-period="month" onclick="setPeriod('month', this)">This month</button>
+    <button class="period-btn" data-period="alltime" onclick="setPeriod('alltime', this)">All time</button>
+  </div>
+
+  <div id="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.5rem">
+    <div class="card" style="text-align:center;padding:1rem">
+      <div id="stat-players" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)">—</div>
+      <div class="points-label">players</div>
+    </div>
+    <div class="card" style="text-align:center;padding:1rem">
+      <div id="stat-checkins" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)">—</div>
+      <div class="points-label">check-ins</div>
+    </div>
+    <div class="card" style="text-align:center;padding:1rem">
+      <div id="stat-top" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold)">—</div>
+      <div class="points-label">top score</div>
+    </div>
+  </div>
+
+  <div class="section-title">Rankings</div>
+
+  <div id="lb-loading" style="text-align:center;padding:2rem;color:var(--text-muted)">
+    <span class="spinner"></span>
+  </div>
+
+  <div id="lb-empty" style="display:none" class="card">
+    <p style="color:var(--text-muted);text-align:center">No check-ins yet in this period.</p>
+  </div>
+
+  <div id="lb-list" class="card" style="display:none;padding:0;overflow:hidden"></div>
+
+  <p class="refresh-note">Updates every 30 seconds</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script>
+const sb = getSupabase();
+let currentPeriod = 'week';
+const myPhone = localStorage.getItem('los_phone');
+
+function getPeriodStart(period) {
+  const now = new Date();
+  if (period === 'week') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 7);
+    return d.toISOString();
+  }
+  if (period === 'month') {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString();
+  }
+  return null; // alltime
+}
+
+async function load() {
+  document.getElementById('lb-loading').style.display = 'block';
+  document.getElementById('lb-list').style.display = 'none';
+  document.getElementById('lb-empty').style.display = 'none';
+
+  const since = getPeriodStart(currentPeriod);
+
+  // Fetch checkins in period
+  let q = sb.from('checkins').select('player_id, points_earned, event_id');
+  if (since) q = q.gte('scanned_at', since);
+  const { data: checkins } = await q;
+
+  // Fetch bonus points in period
+  let bq = sb.from('bonus_points').select('player_id, points');
+  if (since) bq = bq.gte('awarded_at', since);
+  const { data: bonuses } = await bq;
+
+  // Aggregate by player
+  const playerTotals = {};
+  const playerCheckins = {};
+  (checkins || []).forEach(c => {
+    playerTotals[c.player_id] = (playerTotals[c.player_id] || 0) + c.points_earned;
+    playerCheckins[c.player_id] = (playerCheckins[c.player_id] || 0) + 1;
+  });
+  (bonuses || []).forEach(b => {
+    playerTotals[b.player_id] = (playerTotals[b.player_id] || 0) + b.points;
+  });
+
+  const playerIds = Object.keys(playerTotals);
+  if (!playerIds.length) {
+    document.getElementById('lb-loading').style.display = 'none';
+    document.getElementById('lb-empty').style.display = 'block';
+    document.getElementById('stat-players').textContent = '0';
+    document.getElementById('stat-checkins').textContent = '0';
+    document.getElementById('stat-top').textContent = '0';
+    return;
+  }
+
+  // Fetch player names
+  const { data: players } = await sb.from('players').select('id, name, phone').in('id', playerIds);
+  const playerMap = {};
+  (players || []).forEach(p => { playerMap[p.id] = p; });
+
+  // Build sorted list
+  const rows = playerIds
+    .map(id => ({ id, name: playerMap[id]?.name || '?', phone: playerMap[id]?.phone, pts: playerTotals[id], checkins: playerCheckins[id] || 0 }))
+    .sort((a, b) => b.pts - a.pts);
+
+  // Stats
+  const totalCheckins = Object.values(playerCheckins).reduce((a, b) => a + b, 0);
+  document.getElementById('stat-players').textContent = rows.length;
+  document.getElementById('stat-checkins').textContent = totalCheckins;
+  document.getElementById('stat-top').textContent = rows[0]?.pts || 0;
+
+  // Render
+  const list = document.getElementById('lb-list');
+  list.innerHTML = '';
+  rows.forEach((row, i) => {
+    const rank = i + 1;
+    const cls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+    const isMe = myPhone && row.phone === myPhone;
+    const initials = row.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+    const div = document.createElement('div');
+    div.className = 'lb-row' + (isMe ? ' my-highlight' : '');
+    div.innerHTML = `
+      <div class="lb-rank ${cls}">${medal}</div>
+      <div class="lb-avatar ${cls}">${initials}</div>
+      <div style="flex:1">
+        <div class="lb-name">${esc(row.name)}</div>
+        <div class="lb-meta">${row.checkins} check-in${row.checkins !== 1 ? 's' : ''}</div>
+      </div>
+      <div>
+        <div class="lb-pts">${row.pts}</div>
+        <div class="lb-pts-label">pts</div>
+      </div>`;
+    list.appendChild(div);
+  });
+
+  document.getElementById('lb-loading').style.display = 'none';
+  document.getElementById('lb-list').style.display = 'block';
+}
+
+function setPeriod(p, btn) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  load();
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>
