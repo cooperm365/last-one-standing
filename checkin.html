@@ -181,12 +181,17 @@ async function init() {
   const eventId = params.get('event');
   if (!eventId) { show('not-found'); hide('loading'); return; }
 
-  // If player already has the app, redirect to my-points with event param
-  // so the full in-app flow handles it
+  // If player has the app and exists in DB, redirect to my-points in-app flow
   const savedPhone = localStorage.getItem('br_phone');
   if (savedPhone) {
-    window.location.replace(`my-points.html?event=${eventId}`);
-    return;
+    const { data: existingPlayer } = await sb.from('players').select('id').eq('phone', savedPhone.replace(/\D/g,'')).single();
+    if (existingPlayer) {
+      window.location.replace(`my-points.html?event=${eventId}`);
+      return;
+    } else {
+      // Phone saved but player deleted — clear it and continue normally
+      localStorage.removeItem('br_phone');
+    }
   }
 
   const { data, error } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
