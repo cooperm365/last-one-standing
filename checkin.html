@@ -181,6 +181,14 @@ async function init() {
   const eventId = params.get('event');
   if (!eventId) { show('not-found'); hide('loading'); return; }
 
+  // If player already has the app, redirect to my-points with event param
+  // so the full in-app flow handles it
+  const savedPhone = localStorage.getItem('br_phone');
+  if (savedPhone) {
+    window.location.replace(`my-points.html?event=${eventId}`);
+    return;
+  }
+
   const { data, error } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
   if (error || !data) { show('not-found'); hide('loading'); return; }
 
