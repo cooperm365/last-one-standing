@@ -130,7 +130,7 @@
         </div>
 
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">
-          If you leave early, your points won't count. Stay at the table and play!
+          Need to step away? No problem — just come back to this link and your timer will resume. Stay for the full 15 minutes to lock in your points.
         </div>
 
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:0.5rem">
@@ -200,8 +200,39 @@ async function init() {
   hide('loading');
   show('main');
 
+  // Check if this player already has a pending or completed checkin for this event
   const savedPhone = localStorage.getItem('br_phone');
   if (savedPhone) {
+    const phone = savedPhone.replace(/\D/g, '');
+    const { data: player } = await sb.from('players').select('*').eq('phone', phone).single();
+    if (player) {
+      // Check for existing checkin on this event
+      const { data: existing } = await sb.from('checkins')
+        .select('*').eq('player_id', player.id).eq('event_id', eventId).single();
+
+      if (existing) {
+        if (!existing.pending) {
+          // Already fully confirmed — show success screen
+          const visitScans = await getVisitScans(player.id);
+          showSuccessScreen(existing.points_earned, visitScans.length);
+          return;
+        } else {
+          // Has a pending checkin — resume the timer
+          const confirmAt = new Date(existing.points_confirm_at);
+          const remaining = confirmAt - new Date();
+          if (remaining <= 0) {
+            // Timer already expired while they were away — confirm now
+            await confirmCheckin(existing.id, player);
+          } else {
+            // Resume timer from where it left off
+            const visitScans = await getVisitScans(player.id);
+            showPendingScreen(existing.points_earned, confirmAt, visitScans.length);
+            startTimer(confirmAt, player, existing.id);
+          }
+          return;
+        }
+      }
+    }
     document.getElementById('ret-phone').value = savedPhone;
     showReturning();
   } else {
@@ -232,7 +263,6 @@ async function doCheckin(player) {
     show('cap-reached'); hide('form-new'); hide('form-returning'); return;
   }
 
-  // Insert as pending — points_confirm_at is 15 minutes from now
   const confirmAt = new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
   const { data: checkin, error } = await sb.from('checkins').insert({
     player_id: player.id,
@@ -246,23 +276,47 @@ async function doCheckin(player) {
 
   localStorage.setItem('br_phone', player.phone);
 
-  // Show pending screen with countdown
-  const newScanCount = visitScans.length + 1;
-  document.getElementById('pending-pts').textContent = eventData.points_value;
-  document.getElementById('confirm-time').textContent = confirmAt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+  hide('form-new'); hide('form-returning');
+  showPendingScreen(eventData.points_value, confirmAt, visitScans.length + 1);
+  startTimer(confirmAt, player, checkin.id);
+}
 
+function showPendingScreen(pts, confirmAt, scanCount) {
+  document.getElementById('pending-pts').textContent = pts;
+  document.getElementById('confirm-time').textContent = confirmAt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
   const dotsEl = document.getElementById('pending-dots');
   dotsEl.innerHTML = '';
   for (let i = 0; i < MAX_SCANS_PER_VISIT; i++) {
     const d = document.createElement('div');
-    d.className = 'scan-dot' + (i < newScanCount ? ' used' : '');
+    d.className = 'scan-dot' + (i < scanCount ? ' used' : '');
     dotsEl.appendChild(d);
   }
-
-  hide('form-new'); hide('form-returning');
   show('pending');
+}
 
-  startTimer(confirmAt, player, checkin.id);
+function showSuccessScreen(pts, scanCount) {
+  document.getElementById('success-pts').textContent = pts;
+  const remaining = MAX_SCANS_PER_VISIT - scanCount;
+  document.getElementById('success-remaining').textContent =
+    remaining > 0 ? `${remaining} scan${remaining !== 1 ? 's' : ''} left tonight` : 'No more scans tonight — come back tomorrow!';
+  const dotsEl = document.getElementById('success-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < MAX_SCANS_PER_VISIT; i++) {
+    const d = document.createElement('div');
+    d.className = 'scan-dot' + (i < scanCount ? ' used' : '');
+    dotsEl.appendChild(d);
+  }
+  hide('pending');
+  show('success');
+}
+
+async function confirmCheckin(checkinId, player) {
+  // Server cron may have already confirmed — just check and show success
+  const { data } = await sb.from('checkins').select('pending').eq('id', checkinId).single();
+  if (data && !data.pending) {
+    const visitScans = await getVisitScans(player.id);
+    showSuccessScreen(eventData.points_value, visitScans.length);
+  }
 }
 
 function startTimer(confirmAt, player, checkinId) {
@@ -271,44 +325,35 @@ function startTimer(confirmAt, player, checkinId) {
   const display = document.getElementById('timer-display');
   const totalMs = LOCK_MINUTES * 60 * 1000;
 
-  timerInterval = setInterval(async () => {
+  // Set initial ring position based on actual time remaining
+  const initialRemaining = confirmAt - new Date();
+  arc.style.strokeDashoffset = circumference * (1 - Math.min(1, initialRemaining / totalMs));
+
+  // Visual countdown — purely cosmetic, server confirms independently via cron
+  timerInterval = setInterval(() => {
     const remaining = confirmAt - new Date();
-
     if (remaining <= 0) {
+      arc.style.strokeDashoffset = circumference;
+      display.textContent = '0:00';
       clearInterval(timerInterval);
-      // Confirm the points
-      await sb.from('checkins').update({ pending: false }).eq('id', checkinId);
-      await sb.from('players').update({
-        total_points: (player.total_points || 0) + eventData.points_value
-      }).eq('id', player.id);
-
-      // Show success
-      document.getElementById('success-pts').textContent = eventData.points_value;
-      const visitScans = await getVisitScans(player.id);
-      const remaining2 = MAX_SCANS_PER_VISIT - visitScans.length;
-      document.getElementById('success-remaining').textContent =
-        remaining2 > 0 ? `${remaining2} scan${remaining2 !== 1 ? 's' : ''} left tonight` : 'No more scans tonight — come back tomorrow!';
-      const dotsEl2 = document.getElementById('success-dots');
-      dotsEl2.innerHTML = '';
-      for (let i = 0; i < MAX_SCANS_PER_VISIT; i++) {
-        const d = document.createElement('div');
-        d.className = 'scan-dot' + (i < visitScans.length ? ' used' : '');
-        dotsEl2.appendChild(d);
-      }
-      hide('pending');
-      show('success');
       return;
     }
-
-    // Update ring
-    const pct = remaining / totalMs;
-    arc.style.strokeDashoffset = circumference * (1 - pct);
-
-    // Update display
+    arc.style.strokeDashoffset = circumference * (1 - remaining / totalMs);
     const mins = Math.floor(remaining / 60000);
     const secs = Math.floor((remaining % 60000) / 1000);
     display.textContent = `${mins}:${String(secs).padStart(2,'0')}`;
   }, 1000);
+
+  // Poll server every 15 seconds — catches confirmation whether app was open or not
+  const pollInterval = setInterval(async () => {
+    const { data } = await sb.from('checkins').select('pending').eq('id', checkinId).single();
+    if (data && !data.pending) {
+      clearInterval(pollInterval);
+      clearInterval(timerInterval);
+      const visitScans = await getVisitScans(player.id);
+      showSuccessScreen(eventData.points_value, visitScans.length);
+    }
+  }, 15000);
 }
 
 async function submitNewPlayer() {
