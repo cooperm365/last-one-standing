@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Score - Last One Standing</title>
+  <title>My Score - Bar Rank</title>
   <link rel="stylesheet" href="css/style.css"/>
   <style>
     .history-row {
@@ -35,9 +35,9 @@
 <div class="page">
 
   <div class="header">
-    <div class="logo-mark">LOS</div>
+    <div class="logo-mark">BR</div>
     <div>
-      <div class="site-name">Last One Standing</div>
+      <div class="site-name">Bar Rank</div>
       <div class="site-sub">My Score</div>
     </div>
     <div style="margin-left:auto">
@@ -126,7 +126,7 @@ async function lookup() {
   if (!player) {
     showMsg('lookup-msg', "We don't have that number. Have you checked in at an event yet?", 'error'); return;
   }
-  localStorage.setItem('los_phone', phone);
+  localStorage.setItem('br_phone', phone);
   await showDashboard(player);
 }
 
@@ -149,13 +149,25 @@ async function showDashboard(player) {
     .eq('player_id', player.id)
     .order('awarded_at', { ascending: false });
 
-  const checkinPts = (checkins || []).reduce((s, c) => s + c.points_earned, 0);
+  const checkinPts = (checkins || []).filter(c => !c.pending).reduce((s, c) => s + c.points_earned, 0);
+  const pendingPts = (checkins || []).filter(c => c.pending).reduce((s, c) => s + c.points_earned, 0);
   const bonusPts = (bonuses || []).reduce((s, b) => s + b.points, 0);
   const total = checkinPts + bonusPts;
 
   document.getElementById('player-total').textContent = total;
-  document.getElementById('stat-visits').textContent = (checkins || []).length;
+  document.getElementById('stat-visits').textContent = (checkins || []).filter(c => !c.pending).length;
   document.getElementById('stat-bonus').textContent = bonusPts;
+
+  // Show pending points notice if any
+  if (pendingPts > 0) {
+    const pendingCheckins = (checkins || []).filter(c => c.pending);
+    const earliest = pendingCheckins.reduce((a, b) => new Date(a.points_confirm_at) < new Date(b.points_confirm_at) ? a : b);
+    const confirmsAt = new Date(earliest.points_confirm_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    const notice = document.createElement('div');
+    notice.style.cssText = 'background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.3);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem';
+    notice.innerHTML = `<div style="font-size:13px;font-weight:600;color:#f0a500">⏱ ${pendingPts} points pending</div><div style="font-size:12px;color:#888780;margin-top:3px">Confirms at ${confirmsAt} — stay and play!</div>`;
+    document.getElementById('dashboard').insertBefore(notice, document.getElementById('tonight-card'));
+  }
 
   // Compute rank (alltime)
   const { data: allPlayers } = await sb.from('players').select('id, total_points').order('total_points', { ascending: false });
@@ -181,18 +193,21 @@ async function showDashboard(player) {
   document.getElementById('history-loading').style.display = 'none';
   const allHistory = [
     ...(checkins || []).map(c => ({
-      type: 'checkin',
+      type: c.pending ? 'pending' : 'checkin',
       label: c.events?.name || 'Event',
-      icon: typeIcons[c.events?.type] || '⭐',
+      icon: c.pending ? '⏱' : (typeIcons[c.events?.type] || '⭐'),
       pts: c.points_earned,
-      date: c.scanned_at
+      date: c.scanned_at,
+      pending: c.pending,
+      confirmAt: c.points_confirm_at
     })),
     ...(bonuses || []).map(b => ({
       type: 'bonus',
       label: b.reason || 'Bonus points',
       icon: '🏆',
       pts: b.points,
-      date: b.awarded_at
+      date: b.awarded_at,
+      pending: false
     }))
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -205,23 +220,23 @@ async function showDashboard(player) {
   list.innerHTML = '';
   allHistory.forEach(item => {
     const d = new Date(item.date);
-    const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    const row = document.createElement('div');
-    row.className = 'history-row';
+    const dateStr = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+    const ptsColor = item.pending ? 'color:#888780' : (item.type === 'bonus' ? 'color:var(--green)' : '');
+    const ptsLabel = item.pending ? `<div style="font-size:10px;color:#888780;text-align:right">pending</div>` : '';
     row.innerHTML = `
       <div class="history-icon">${item.icon}</div>
       <div style="flex:1">
-        <div style="font-size:14px;font-weight:500">${esc(item.label)}</div>
+        <div style="font-size:14px;font-weight:500;${item.pending?'color:#888780':''}">${esc(item.label)}${item.pending?' <span style="font-size:11px;color:#888780">(pending)</span>':''}</div>
         <div style="font-size:12px;color:var(--text-muted)">${dateStr}</div>
       </div>
-      <div class="history-pts ${item.type === 'bonus' ? 'history-bonus' : ''}">+${item.pts}</div>`;
+      <div style="text-align:right"><div class="history-pts ${item.type==='bonus'?'history-bonus':''}" style="${ptsColor}">+${item.pts}</div>${ptsLabel}</div>`;
     list.appendChild(row);
   });
   list.style.display = 'block';
 }
 
 function switchPlayer() {
-  localStorage.removeItem('los_phone');
+  localStorage.removeItem('br_phone');
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('lookup-form').style.display = 'block';
   document.getElementById('lookup-phone').value = '';
@@ -237,7 +252,7 @@ function esc(s) {
 }
 
 // Auto-load if phone saved
-const saved = localStorage.getItem('los_phone');
+const saved = localStorage.getItem('br_phone');
 if (saved) {
   document.getElementById('lookup-phone').value = saved;
   lookup();
