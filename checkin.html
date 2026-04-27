@@ -1,18 +1,19 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Check In - Last One Standing</title>
+  <title>Check In - Bar Rank</title>
   <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
 <div class="page">
 
   <div class="header">
-    <div class="logo-mark">LOS</div>
+    <div class="logo-mark">BR</div>
     <div>
-      <div class="site-name">Last One Standing</div>
+      <div class="site-name">Bar Rank</div>
       <div class="site-sub">Who's top of the board tonight?</div>
     </div>
   </div>
@@ -114,6 +115,10 @@
         </div>
         <div style="font-size:12px;color:var(--text-dim)" id="success-remaining"></div>
         <hr class="divider"/>
+        <div style="background:var(--gold-bg);border:1px solid rgba(240,165,0,0.25);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;text-align:left">
+          <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:0.25rem">🏆 Want more points?</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Bonus points are awarded for wins and top performances. Play hard — staff are watching the leaderboard.</div>
+        </div>
         <a href="my-points.html" class="btn btn-outline" style="margin-top:0.5rem">View my points & rank</a>
       </div>
     </div>
@@ -153,7 +158,7 @@ async function init() {
   show('main');
 
   // Check if returning player phone stored in localStorage
-  const savedPhone = localStorage.getItem('los_phone');
+  const savedPhone = localStorage.getItem('br_phone');
   if (savedPhone) {
     document.getElementById('ret-phone').value = savedPhone;
     showReturning();
@@ -208,7 +213,7 @@ async function doCheckin(player) {
     total_points: (player.total_points || 0) + eventData.points_value
   }).eq('id', player.id);
 
-  localStorage.setItem('los_phone', player.phone);
+  localStorage.setItem('br_phone', player.phone);
 
   // 5. Show success
   const newScanCount = visitScans.length + 1;
