@@ -1,3 +1,6 @@
+Here you go — select all of this and copy it:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -102,42 +105,31 @@
       </p>
     </div>
 
-    <!-- Pending / countdown state -->
     <div id="pending" style="display:none">
       <div class="card" style="text-align:center">
         <div style="font-weight:600;font-size:17px;margin-bottom:0.25rem">You're checked in!</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem">Stay and play — your points land in:</div>
-
         <div class="timer-ring">
           <svg width="120" height="120" viewBox="0 0 120 120">
             <circle class="timer-track" cx="60" cy="60" r="52"/>
-            <circle class="timer-fill" id="timer-arc" cx="60" cy="60" r="52"
-              stroke-dasharray="326.7" stroke-dashoffset="0"/>
+            <circle class="timer-fill" id="timer-arc" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="0"/>
           </svg>
           <div class="timer-text">
             <div class="timer-mins" id="timer-display">15:00</div>
             <div class="timer-label">remaining</div>
           </div>
         </div>
-
         <div class="pending-badge">
-          <div style="font-size:13px;color:var(--gold);font-weight:600">
-            <span id="pending-pts"></span> points pending
-          </div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:3px">
-            Confirmed at <span id="confirm-time"></span>
-          </div>
+          <div style="font-size:13px;color:var(--gold);font-weight:600"><span id="pending-pts"></span> points pending</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:3px">Confirmed at <span id="confirm-time"></span></div>
         </div>
-
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">
-          Need to step away? No problem — just come back to this link and your timer will resume. Stay for the full 15 minutes to lock in your points.
+          Need to step away? No problem — come back to this link and your timer resumes. Stay 15 minutes to lock in your points.
         </div>
-
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:0.5rem">
           <span style="font-size:13px;color:var(--text-muted)">Scans used tonight:</span>
           <div class="scan-dots" id="pending-dots"></div>
         </div>
-
         <hr class="divider"/>
         <div style="background:var(--gold-bg);border:1px solid rgba(240,165,0,0.25);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;text-align:left">
           <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:0.25rem">🏆 Want more points?</div>
@@ -147,7 +139,6 @@
       </div>
     </div>
 
-    <!-- Points confirmed state -->
     <div id="success" style="display:none">
       <div class="card" style="text-align:center">
         <div style="font-size:40px;margin-bottom:0.5rem">🎉</div>
@@ -181,15 +172,13 @@ async function init() {
   const eventId = params.get('event');
   if (!eventId) { show('not-found'); hide('loading'); return; }
 
-  // If player has the app and exists in DB, redirect to my-points in-app flow
   const savedPhone = localStorage.getItem('br_phone');
   if (savedPhone) {
     const { data: existingPlayer } = await sb.from('players').select('id').eq('phone', savedPhone.replace(/\D/g,'')).single();
     if (existingPlayer) {
-      window.location.replace(`my-points.html?event=${eventId}`);
+      window.location.replace('my-points.html?event=' + eventId);
       return;
     } else {
-      // Phone saved but player deleted — clear it and continue normally
       localStorage.removeItem('br_phone');
     }
   }
@@ -208,56 +197,17 @@ async function init() {
     live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event'
   };
   document.getElementById('event-type-badge').innerHTML =
-    `<span class="badge badge-gold">${typeLabels[data.type] || data.type}</span>`;
+    '<span class="badge badge-gold">' + (typeLabels[data.type] || data.type) + '</span>';
 
   hide('loading');
   show('main');
-
-  // Check if this player already has a pending or completed checkin for this event
-  const savedPhone = localStorage.getItem('br_phone');
-  if (savedPhone) {
-    const phone = savedPhone.replace(/\D/g, '');
-    const { data: player } = await sb.from('players').select('*').eq('phone', phone).single();
-    if (player) {
-      // Check for existing checkin on this event
-      const { data: existing } = await sb.from('checkins')
-        .select('*').eq('player_id', player.id).eq('event_id', eventId).single();
-
-      if (existing) {
-        if (!existing.pending) {
-          // Already fully confirmed — show success screen
-          const visitScans = await getVisitScans(player.id);
-          showSuccessScreen(existing.points_earned, visitScans.length);
-          return;
-        } else {
-          // Has a pending checkin — resume the timer
-          const confirmAt = new Date(existing.points_confirm_at);
-          const remaining = confirmAt - new Date();
-          if (remaining <= 0) {
-            // Timer already expired while they were away — confirm now
-            await confirmCheckin(existing.id, player);
-          } else {
-            // Resume timer from where it left off
-            const visitScans = await getVisitScans(player.id);
-            showPendingScreen(existing.points_earned, confirmAt, visitScans.length);
-            startTimer(confirmAt, player, existing.id);
-          }
-          return;
-        }
-      }
-    }
-    document.getElementById('ret-phone').value = savedPhone;
-    showReturning();
-  } else {
-    showNew();
-  }
+  showNew();
 }
 
 async function getVisitScans(playerId) {
   const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
   const { data } = await sb.from('checkins').select('id, scanned_at')
-    .eq('player_id', playerId).gte('scanned_at', windowStart)
-    .order('scanned_at', { ascending: false });
+    .eq('player_id', playerId).gte('scanned_at', windowStart);
   return data || [];
 }
 
@@ -288,7 +238,6 @@ async function doCheckin(player) {
   if (error) { showMsg('ret-msg', 'Something went wrong. Please try again.', 'error'); return; }
 
   localStorage.setItem('br_phone', player.phone);
-
   hide('form-new'); hide('form-returning');
   showPendingScreen(eventData.points_value, confirmAt, visitScans.length + 1);
   startTimer(confirmAt, player, checkin.id);
@@ -311,7 +260,7 @@ function showSuccessScreen(pts, scanCount) {
   document.getElementById('success-pts').textContent = pts;
   const remaining = MAX_SCANS_PER_VISIT - scanCount;
   document.getElementById('success-remaining').textContent =
-    remaining > 0 ? `${remaining} scan${remaining !== 1 ? 's' : ''} left tonight` : 'No more scans tonight — come back tomorrow!';
+    remaining > 0 ? remaining + ' scan' + (remaining !== 1 ? 's' : '') + ' left tonight' : 'No more scans tonight — come back tomorrow!';
   const dotsEl = document.getElementById('success-dots');
   dotsEl.innerHTML = '';
   for (let i = 0; i < MAX_SCANS_PER_VISIT; i++) {
@@ -324,7 +273,6 @@ function showSuccessScreen(pts, scanCount) {
 }
 
 async function confirmCheckin(checkinId, player) {
-  // Server cron may have already confirmed — just check and show success
   const { data } = await sb.from('checkins').select('pending').eq('id', checkinId).single();
   if (data && !data.pending) {
     const visitScans = await getVisitScans(player.id);
@@ -338,11 +286,9 @@ function startTimer(confirmAt, player, checkinId) {
   const display = document.getElementById('timer-display');
   const totalMs = LOCK_MINUTES * 60 * 1000;
 
-  // Set initial ring position based on actual time remaining
   const initialRemaining = confirmAt - new Date();
   arc.style.strokeDashoffset = circumference * (1 - Math.min(1, initialRemaining / totalMs));
 
-  // Visual countdown — purely cosmetic, server confirms independently via cron
   timerInterval = setInterval(() => {
     const remaining = confirmAt - new Date();
     if (remaining <= 0) {
@@ -352,12 +298,9 @@ function startTimer(confirmAt, player, checkinId) {
       return;
     }
     arc.style.strokeDashoffset = circumference * (1 - remaining / totalMs);
-    const mins = Math.floor(remaining / 60000);
-    const secs = Math.floor((remaining % 60000) / 1000);
-    display.textContent = `${mins}:${String(secs).padStart(2,'0')}`;
+    display.textContent = Math.floor(remaining/60000) + ':' + String(Math.floor((remaining%60000)/1000)).padStart(2,'0');
   }, 1000);
 
-  // Poll server every 15 seconds — catches confirmation whether app was open or not
   const pollInterval = setInterval(async () => {
     const { data } = await sb.from('checkins').select('pending').eq('id', checkinId).single();
     if (data && !data.pending) {
@@ -374,10 +317,8 @@ async function submitNewPlayer() {
   const phone = normalizePhone(document.getElementById('new-phone').value.trim());
   if (!name) { showMsg('new-msg', 'Please enter your name.', 'error'); return; }
   if (!phone) { showMsg('new-msg', 'Please enter a valid mobile number.', 'error'); return; }
-
   const { data: existing } = await sb.from('players').select('*').eq('phone', phone).single();
   if (existing) { await doCheckin(existing); return; }
-
   const { data: newPlayer, error } = await sb.from('players').insert({ name, phone, total_points: 0 }).select().single();
   if (error) { showMsg('new-msg', 'Could not create account. Try again.', 'error'); return; }
   await doCheckin(newPlayer);
@@ -399,7 +340,7 @@ function showReturning() { show('form-returning'); hide('form-new'); }
 function showMsg(id, text, type) {
   const el = document.getElementById(id);
   el.textContent = text;
-  el.className = `msg show msg-${type}`;
+  el.className = 'msg show msg-' + type;
 }
 
 function normalizePhone(raw) {
@@ -412,3 +353,4 @@ init();
 </script>
 </body>
 </html>
+```
