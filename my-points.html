@@ -344,21 +344,29 @@ async function openCheckinPanel(eventId) {
   ciHideAll();
   clearInterval(ciTimerInterval);
   clearInterval(ciPollInterval);
+  ciEventData = null;
+
+  // Show panel immediately with loading state
+  document.getElementById('ci-panel-title').textContent = 'Loading...';
+  openPanel('panel-checkin');
 
   // Load event
-  const { data: ev } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
-  if (!ev) {
-    alert('Event not found or no longer active.');
+  const { data: ev, error } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
+  if (error || !ev) {
+    document.getElementById('ci-panel-title').textContent = 'Not found';
+    const errDiv = document.createElement('div');
+    errDiv.className = 'card';
+    errDiv.innerHTML = '<p style="color:var(--red)">Event not found or no longer active.</p><p style="color:var(--text-muted);font-size:14px;margin-top:0.5rem">Ask a staff member for help.</p>';
+    document.querySelector('#panel-checkin .panel-body').prepend(errDiv);
     return;
   }
+
   ciEventData = ev;
   document.getElementById('ci-event-name').textContent = ev.name;
   document.getElementById('ci-event-pts').textContent = ev.points_value;
   document.getElementById('ci-new-pts').textContent = ev.points_value;
   document.getElementById('ci-badge').innerHTML = `<span class="badge badge-gold">${typeLabels[ev.type] || ev.type}</span>`;
   document.getElementById('ci-panel-title').textContent = ev.name;
-
-  openPanel('panel-checkin');
 
   // If player is already logged in, skip the form and go straight to checkin
   if (currentPlayer) {
@@ -663,16 +671,24 @@ if (saved) {
 
 async function lookupThenCheckin(phone, eventId) {
   const digits = phone.replace(/\D/g, '');
-  const { data: player } = await sb.from('players').select('*').eq('phone', digits).single();
-  if (!player) {
-    // Phone not found — show lookup form
+  try {
+    const { data: player, error } = await sb.from('players').select('*').eq('phone', digits).single();
+    if (error || !player) {
+      // Player not found — clear stale phone and show lookup form
+      localStorage.removeItem('br_phone');
+      document.getElementById('lookup-form').style.display = 'block';
+      document.getElementById('dashboard').style.display = 'none';
+      return;
+    }
+    currentPlayer = player;
+    await showDashboard(player);
+    openCheckinPanel(eventId);
+  } catch(e) {
+    // Something went wrong — just show the lookup form
+    localStorage.removeItem('br_phone');
     document.getElementById('lookup-form').style.display = 'block';
-    return;
+    document.getElementById('dashboard').style.display = 'none';
   }
-  currentPlayer = player;
-  await showDashboard(player);
-  // Now dashboard is loaded, open the checkin panel
-  openCheckinPanel(eventId);
 }
 </script>
 </body>
