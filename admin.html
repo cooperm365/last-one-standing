@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin - Last One Standing</title>
+  <title>Admin - Bar Rank</title>
   <link rel="stylesheet" href="css/style.css"/>
   <style>
     .tab-bar { display:flex; gap:4px; margin-bottom:1.5rem; border-bottom:1px solid var(--border); }
@@ -13,12 +13,19 @@
     .tab.active { color:var(--gold); border-bottom-color:var(--gold); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
-    .event-row { display:flex; align-items:center; gap:10px; padding:0.75rem 0; border-bottom:1px solid var(--border); }
+
+    .event-row {
+      display:flex; align-items:center; gap:10px;
+      padding:0.75rem 0; border-bottom:1px solid var(--border);
+    }
     .event-row:last-child { border-bottom:none; }
+
     table { width:100%; border-collapse:collapse; font-size:13px; }
-    th { text-align:left; color:var(--text-muted); font-weight:500; padding:0.5rem 0.5rem 0.75rem; border-bottom:1px solid var(--border); }
+    th { text-align:left; color:var(--text-muted); font-weight:500; padding:0.5rem 0.5rem 0.75rem;
+         border-bottom:1px solid var(--border); }
     td { padding:0.6rem 0.5rem; border-bottom:1px solid var(--border); vertical-align:middle; }
     tr:last-child td { border-bottom:none; }
+
     #qr-output { text-align:center; margin-top:1rem; }
     #qr-output canvas { border-radius:8px; }
     .qr-url { font-size:11px; color:var(--text-muted); word-break:break-all; margin-top:0.5rem; }
@@ -26,10 +33,12 @@
 </head>
 <body>
 <div class="page-wide">
+
+  <!-- Login gate -->
   <div id="login-gate">
     <div class="header">
-      <div class="logo-mark">LOS</div>
-      <div><div class="site-name">Last One Standing</div><div class="site-sub">Admin</div></div>
+      <div class="logo-mark">BR</div>
+      <div><div class="site-name">Bar Rank</div><div class="site-sub">Admin</div></div>
     </div>
     <div class="card" style="max-width:360px">
       <label>Admin password</label>
@@ -38,21 +47,28 @@
       <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
     </div>
   </div>
+
+  <!-- Admin dashboard -->
   <div id="admin-dashboard" style="display:none">
+
     <div class="header">
-      <div class="logo-mark">LOS</div>
-      <div><div class="site-name">Last One Standing</div><div class="site-sub">Admin Panel</div></div>
+      <div class="logo-mark">BR</div>
+      <div><div class="site-name">Bar Rank</div><div class="site-sub">Admin Panel</div></div>
       <div style="margin-left:auto;display:flex;gap:8px">
         <a href="leaderboard.html" class="btn btn-outline btn-sm" target="_blank">Leaderboard ↗</a>
         <button class="btn btn-outline btn-sm" onclick="signOut()">Sign out</button>
       </div>
     </div>
+
     <div class="tab-bar">
       <button class="tab active" onclick="switchTab('events', this)">Events & QR</button>
       <button class="tab" onclick="switchTab('bonus', this)">Award Bonus</button>
       <button class="tab" onclick="switchTab('players', this)">Players</button>
     </div>
+
+    <!-- EVENTS TAB -->
     <div class="tab-panel active" id="tab-events">
+
       <div class="section-title">Create Event</div>
       <div class="card" style="margin-bottom:1.5rem">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -79,43 +95,75 @@
         <button class="btn btn-primary" onclick="submitNewEvent()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">
           Create event + generate QR
         </button>
+
         <div id="qr-output"></div>
       </div>
+
       <div class="section-title">Active Events</div>
       <div class="card" style="padding:0 1rem">
         <div id="events-loading" style="padding:1rem 0;color:var(--text-muted);font-size:14px">Loading...</div>
         <div id="events-list"></div>
       </div>
+
     </div>
+
+    <!-- BONUS TAB -->
     <div class="tab-panel" id="tab-bonus">
       <div class="section-title">Award Bonus Points</div>
       <div class="card" style="margin-bottom:1.5rem">
         <label>Player phone number</label>
         <input type="tel" id="bonus-phone" placeholder="07700 900000"/>
-        <div id="bonus-player-info" style="display:none;margin-bottom:1rem"></div>
+        <div id="bonus-player-info" style="display:none;margin-bottom:1rem" class="card" style="background:var(--bg3)"></div>
         <button class="btn btn-outline btn-sm" onclick="lookupBonusPlayer()" style="margin-bottom:1rem">Find player</button>
+
         <label>Bonus points</label>
         <input type="text" id="bonus-pts" placeholder="e.g. 25" style="width:150px"/>
+
         <label>Reason (optional)</label>
         <input type="text" id="bonus-reason" placeholder="e.g. Won darts tournament"/>
+
         <label>Event (optional)</label>
-        <select id="bonus-event"><option value="">— No specific event —</option></select>
+        <select id="bonus-event">
+          <option value="">— No specific event —</option>
+        </select>
+
         <div id="bonus-msg" class="msg"></div>
-        <button class="btn btn-primary" onclick="awardBonus()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">Award bonus points</button>
+        <button class="btn btn-primary" onclick="awardBonus()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">
+          Award bonus points
+        </button>
       </div>
     </div>
+
+    <!-- PLAYERS TAB -->
     <div class="tab-panel" id="tab-players">
+
+      <div class="section-title">Activity Stats</div>
+      <div id="activity-stats" class="card" style="padding:0 1rem;margin-bottom:1.5rem">
+        <div id="activity-loading" style="padding:1rem 0;color:var(--text-muted);font-size:14px">Loading...</div>
+      </div>
+
       <div class="section-title">All Players</div>
       <div class="card" style="padding:0.5rem 1rem;overflow-x:auto">
         <div id="players-loading" style="padding:1rem 0;color:var(--text-muted);font-size:14px">Loading...</div>
         <table id="players-table" style="display:none">
-          <thead><tr><th>#</th><th>Name</th><th>Phone</th><th style="text-align:right">Total pts</th><th style="text-align:right">Check-ins</th><th>Joined</th></tr></thead>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th style="text-align:right">Total pts</th>
+              <th style="text-align:right">Check-ins</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
           <tbody id="players-tbody"></tbody>
         </table>
       </div>
     </div>
+
   </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <script src="js/config.js"></script>
@@ -124,13 +172,14 @@ const sb = getSupabase();
 let authedAdmin = false;
 let bonusPlayerId = null;
 
+// --- Login ---
 function doLogin() {
   const pw = document.getElementById('pw-input').value;
   if (pw === ADMIN_PASSWORD) {
     authedAdmin = true;
     document.getElementById('login-gate').style.display = 'none';
     document.getElementById('admin-dashboard').style.display = 'block';
-    loadEvents(); loadPlayers(); loadEventsForBonus();
+    loadEvents(); loadPlayers(); loadEventsForBonus(); loadActivityStats();
   } else {
     showMsg('pw-msg', 'Wrong password.', 'error');
   }
@@ -143,6 +192,7 @@ function signOut() {
   document.getElementById('pw-input').value = '';
 }
 
+// --- Tabs ---
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
@@ -150,11 +200,13 @@ function switchTab(name, btn) {
   btn.classList.add('active');
 }
 
+// --- Events ---
 async function loadEvents() {
   const { data } = await sb.from('events').select('*').eq('active', true).order('created_at', { ascending: false });
   document.getElementById('events-loading').style.display = 'none';
   const list = document.getElementById('events-list');
   if (!data?.length) { list.innerHTML = '<p style="color:var(--text-muted);padding:1rem 0;font-size:14px">No active events yet.</p>'; return; }
+
   const typeLabels = { darts:'🎯', pool:'🎱', trivia:'🧠', bingo:'🎰', live_music:'🎵', blackjack:'🃏', other:'⭐' };
   list.innerHTML = data.map(ev => `
     <div class="event-row">
@@ -173,8 +225,10 @@ async function submitNewEvent() {
   const type = document.getElementById('ev-type').value;
   const pts = parseInt(document.getElementById('ev-pts').value) || 10;
   if (!name) { showMsg('ev-msg', 'Enter an event name.', 'error'); return; }
+
   const { data, error } = await sb.from('events').insert({ name, type, points_value: pts }).select().single();
   if (error) { showMsg('ev-msg', 'Error creating event.', 'error'); return; }
+
   showMsg('ev-msg', 'Event created!', 'success');
   document.getElementById('ev-name').value = '';
   loadEvents();
@@ -196,7 +250,7 @@ function generateQR(eventId, eventName) {
     <div class="qr-url">${url}</div>
     <div style="display:flex;gap:8px;justify-content:center;margin-top:0.75rem">
       <button class="btn btn-outline btn-sm" onclick="downloadQR()">Download PNG</button>
-      <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${url}').then(()=>alert('Copied!'))">Copy URL</button>
+      <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${url}').then(()=>alert('URL copied!'))">Copy URL</button>
     </div>`;
   QRCode.toCanvas(document.getElementById('qr-canvas'), url, { width:200, margin:2, color:{dark:'#111110',light:'#f0ede8'} });
 }
@@ -216,11 +270,14 @@ async function deactivateEvent(id) {
   loadEvents();
 }
 
+// --- Bonus ---
 async function loadEventsForBonus() {
   const { data } = await sb.from('events').select('id, name').eq('active', true);
   const sel = document.getElementById('bonus-event');
   sel.innerHTML = '<option value="">— No specific event —</option>';
-  (data || []).forEach(ev => { sel.innerHTML += `<option value="${ev.id}">${esc(ev.name)}</option>`; });
+  (data || []).forEach(ev => {
+    sel.innerHTML += `<option value="${ev.id}">${esc(ev.name)}</option>`;
+  });
 }
 
 async function lookupBonusPlayer() {
@@ -240,10 +297,14 @@ async function awardBonus() {
   if (!pts || pts <= 0) { showMsg('bonus-msg', 'Enter a valid points amount.', 'error'); return; }
   const reason = document.getElementById('bonus-reason').value.trim() || null;
   const eventId = document.getElementById('bonus-event').value || null;
+
   const { error } = await sb.from('bonus_points').insert({ player_id: bonusPlayerId, points: pts, reason, event_id: eventId });
   if (error) { showMsg('bonus-msg', 'Error awarding points.', 'error'); return; }
+
+  // Update total on player
   const { data: player } = await sb.from('players').select('total_points').eq('id', bonusPlayerId).single();
   await sb.from('players').update({ total_points: (player?.total_points || 0) + pts }).eq('id', bonusPlayerId);
+
   showMsg('bonus-msg', `${pts} bonus points awarded!`, 'success');
   document.getElementById('bonus-pts').value = '';
   document.getElementById('bonus-reason').value = '';
@@ -252,11 +313,53 @@ async function awardBonus() {
   document.getElementById('bonus-phone').value = '';
 }
 
+// --- Activity Stats ---
+async function loadActivityStats() {
+  const { data: checkins } = await sb.from('checkins').select('event_id, events(name, type)');
+  document.getElementById('activity-loading').style.display = 'none';
+
+  if (!checkins?.length) {
+    document.getElementById('activity-stats').innerHTML = '<p style="color:var(--text-muted);padding:1rem 0;font-size:14px">No check-ins yet.</p>';
+    return;
+  }
+
+  const counts = {};
+  const names = {};
+  const types = {};
+  checkins.forEach(c => {
+    const id = c.event_id;
+    counts[id] = (counts[id] || 0) + 1;
+    names[id] = c.events?.name || 'Unknown';
+    types[id] = c.events?.type || 'other';
+  });
+
+  const typeIcons = { darts:'🎯', pool:'🎱', trivia:'🧠', bingo:'🎰', live_music:'🎵', blackjack:'🃏', other:'⭐' };
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const max = sorted[0][1];
+
+  const html = sorted.map(([id, count], i) => `
+    <div style="padding:0.75rem 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:18px">${typeIcons[types[id]] || '⭐'}</span>
+        <span style="font-size:14px;font-weight:500;flex:1">${esc(names[id])}</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold)">${count}</span>
+        <span style="font-size:11px;color:var(--text-muted)">check-in${count !== 1 ? 's' : ''}</span>
+      </div>
+      <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${Math.round((count/max)*100)}%;background:var(--gold);border-radius:3px;transition:width 0.4s"></div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('activity-stats').innerHTML = `<div style="padding:0 0 0.5rem">${html}</div>`;
+}
+
+// --- Players ---
 async function loadPlayers() {
   const { data: players } = await sb.from('players').select('*').order('total_points', { ascending: false });
   const { data: checkins } = await sb.from('checkins').select('player_id');
   const countMap = {};
   (checkins || []).forEach(c => { countMap[c.player_id] = (countMap[c.player_id] || 0) + 1; });
+
   document.getElementById('players-loading').style.display = 'none';
   const tbody = document.getElementById('players-tbody');
   tbody.innerHTML = (players || []).map((p, i) => `
