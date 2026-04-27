@@ -29,6 +29,11 @@
     #qr-output { text-align:center; margin-top:1rem; }
     #qr-output canvas { border-radius:8px; }
     .qr-url { font-size:11px; color:var(--text-muted); word-break:break-all; margin-top:0.5rem; }
+    .period-btn { padding:6px 14px; border-radius:999px; font-size:13px; font-weight:500; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text-muted); transition:all 0.15s; font-family:'DM Sans',sans-serif; }
+    .period-btn.active, .period-btn:hover { border-color:var(--gold-dim); color:var(--gold); background:var(--gold-bg); }
+    .stat-card { background:var(--bg3); border-radius:var(--radius); padding:1rem; text-align:center; }
+    .stat-card-val { font-family:'Bebas Neue',sans-serif; font-size:36px; color:var(--gold); line-height:1; }
+    .stat-card-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:4px; }
   </style>
 </head>
 <body>
@@ -64,6 +69,7 @@
       <button class="tab active" onclick="switchTab('events', this)">Events & QR</button>
       <button class="tab" onclick="switchTab('bonus', this)">Award Bonus</button>
       <button class="tab" onclick="switchTab('players', this)">Players</button>
+      <button class="tab" onclick="switchTab('stats', this)">📊 Stats</button>
     </div>
 
     <!-- EVENTS TAB -->
@@ -161,6 +167,50 @@
       </div>
     </div>
 
+    <!-- STATS TAB -->
+    <div class="tab-panel" id="tab-stats">
+      <div class="section-title">Bar Owner Report</div>
+
+      <!-- Period selector -->
+      <div style="display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap">
+        <button class="period-btn active" onclick="setStatsPeriod(7, this)">Last 7 days</button>
+        <button class="period-btn" onclick="setStatsPeriod(30, this)">Last 30 days</button>
+        <button class="period-btn" onclick="setStatsPeriod(0, this)">All time</button>
+      </div>
+
+      <!-- Key metrics row -->
+      <div id="stats-metrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.5rem"></div>
+
+      <!-- Return rate explanation -->
+      <div id="stats-return-card" class="card card-gold" style="margin-bottom:1.5rem;display:none">
+        <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:0.25rem">Return visit rate</div>
+        <div id="stats-return-val" style="font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--gold);line-height:1"></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:0.25rem" id="stats-return-desc"></div>
+      </div>
+
+      <!-- Busiest days -->
+      <div class="section-title" style="margin-top:1.5rem">Busiest days</div>
+      <div class="card" style="padding:0.75rem 1rem;margin-bottom:1.5rem">
+        <div id="stats-days-loading" style="color:var(--text-muted);font-size:14px">Loading...</div>
+        <div id="stats-days"></div>
+      </div>
+
+      <!-- Activity breakdown -->
+      <div class="section-title">Activity breakdown</div>
+      <div class="card" style="padding:0.75rem 1rem;margin-bottom:1.5rem">
+        <div id="stats-activity-loading" style="color:var(--text-muted);font-size:14px">Loading...</div>
+        <div id="stats-activity"></div>
+      </div>
+
+      <!-- New vs returning -->
+      <div class="section-title">New vs returning players</div>
+      <div class="card" style="padding:0.75rem 1rem;margin-bottom:1.5rem">
+        <div id="stats-newret-loading" style="color:var(--text-muted);font-size:14px">Loading...</div>
+        <div id="stats-newret"></div>
+      </div>
+
+    </div>
+
   </div>
 </div>
 
@@ -179,7 +229,7 @@ function doLogin() {
     authedAdmin = true;
     document.getElementById('login-gate').style.display = 'none';
     document.getElementById('admin-dashboard').style.display = 'block';
-    loadEvents(); loadPlayers(); loadEventsForBonus(); loadActivityStats();
+    loadEvents(); loadPlayers(); loadEventsForBonus(); loadActivityStats(); loadStats();
   } else {
     showMsg('pw-msg', 'Wrong password.', 'error');
   }
@@ -372,6 +422,153 @@ async function loadPlayers() {
       <td style="color:var(--text-muted)">${new Date(p.created_at).toLocaleDateString('en-GB')}</td>
     </tr>`).join('');
   document.getElementById('players-table').style.display = 'table';
+}
+
+// --- Stats Dashboard ---
+let statsDays = 7;
+
+function setStatsPeriod(days, btn) {
+  statsDays = days;
+  document.querySelectorAll('#tab-stats .period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadStats();
+}
+
+async function loadStats() {
+  const since = statsDays > 0
+    ? new Date(Date.now() - statsDays * 86400000).toISOString()
+    : null;
+
+  let cq = sb.from('checkins').select('player_id, scanned_at, event_id, events(name, type)');
+  if (since) cq = cq.gte('scanned_at', since);
+  const { data: checkins } = await cq;
+
+  const { data: allPlayers } = await sb.from('players').select('id, created_at');
+
+  const ci = checkins || [];
+  const players = allPlayers || [];
+
+  // --- Key metrics ---
+  const uniquePlayerIds = [...new Set(ci.map(c => c.player_id))];
+  const totalCheckins = ci.length;
+  const avgPerPlayer = uniquePlayerIds.length > 0
+    ? (totalCheckins / uniquePlayerIds.length).toFixed(1)
+    : 0;
+
+  // Return rate: players who checked in more than once (in period)
+  const perPlayer = {};
+  ci.forEach(c => { perPlayer[c.player_id] = (perPlayer[c.player_id] || 0) + 1; });
+  const returners = Object.values(perPlayer).filter(v => v > 1).length;
+  const returnRate = uniquePlayerIds.length > 0
+    ? Math.round((returners / uniquePlayerIds.length) * 100)
+    : 0;
+
+  document.getElementById('stats-metrics').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-card-val">${uniquePlayerIds.length}</div>
+      <div class="stat-card-label">unique players</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-val">${totalCheckins}</div>
+      <div class="stat-card-label">total check-ins</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-val">${avgPerPlayer}</div>
+      <div class="stat-card-label">scans per player</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-val">${returnRate}%</div>
+      <div class="stat-card-label">return rate</div>
+    </div>`;
+
+  // Return rate card
+  const retCard = document.getElementById('stats-return-card');
+  retCard.style.display = 'block';
+  document.getElementById('stats-return-val').textContent = returnRate + '%';
+  document.getElementById('stats-return-desc').textContent =
+    returnRate === 0
+      ? 'No return visits yet — early days.'
+      : `${returners} of ${uniquePlayerIds.length} players came back more than once${statsDays > 0 ? ` in the last ${statsDays} days` : ''}.`;
+
+  // --- Busiest days ---
+  const dayCounts = {};
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  ci.forEach(c => {
+    const day = dayNames[new Date(c.scanned_at).getDay()];
+    dayCounts[day] = (dayCounts[day] || 0) + 1;
+  });
+  const daysSorted = Object.entries(dayCounts).sort((a, b) => b[1] - a[1]);
+  const maxDay = daysSorted[0]?.[1] || 1;
+  document.getElementById('stats-days-loading').style.display = 'none';
+  document.getElementById('stats-days').innerHTML = daysSorted.length
+    ? daysSorted.map(([day, count]) => `
+        <div style="padding:0.6rem 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:13px;font-weight:500">${day}</span>
+            <span style="font-size:13px;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:18px">${count}</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:3px">
+            <div style="height:100%;width:${Math.round((count/maxDay)*100)}%;background:var(--gold);border-radius:3px"></div>
+          </div>
+        </div>`).join('')
+    : '<p style="color:var(--text-muted);font-size:14px">No data yet.</p>';
+
+  // --- Activity breakdown ---
+  const actCounts = {};
+  const actNames = {};
+  const actTypes = {};
+  ci.forEach(c => {
+    const id = c.event_id;
+    actCounts[id] = (actCounts[id] || 0) + 1;
+    actNames[id] = c.events?.name || 'Unknown';
+    actTypes[id] = c.events?.type || 'other';
+  });
+  const actSorted = Object.entries(actCounts).sort((a, b) => b[1] - a[1]);
+  const maxAct = actSorted[0]?.[1] || 1;
+  const typeIcons = { darts:'🎯', pool:'🎱', trivia:'🧠', bingo:'🎰', live_music:'🎵', blackjack:'🃏', other:'⭐' };
+  const totalAct = Object.values(actCounts).reduce((a,b) => a+b, 0);
+  document.getElementById('stats-activity-loading').style.display = 'none';
+  document.getElementById('stats-activity').innerHTML = actSorted.length
+    ? actSorted.map(([id, count]) => `
+        <div style="padding:0.6rem 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <span style="font-size:16px">${typeIcons[actTypes[id]]||'⭐'}</span>
+            <span style="font-size:13px;font-weight:500;flex:1">${esc(actNames[id])}</span>
+            <span style="font-size:13px;color:var(--text-muted)">${Math.round((count/totalAct)*100)}%</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)">${count}</span>
+          </div>
+          <div style="height:5px;background:var(--bg3);border-radius:3px">
+            <div style="height:100%;width:${Math.round((count/maxAct)*100)}%;background:var(--gold);border-radius:3px"></div>
+          </div>
+        </div>`).join('')
+    : '<p style="color:var(--text-muted);font-size:14px">No check-ins yet.</p>';
+
+  // --- New vs returning ---
+  const periodStart = since ? new Date(since) : new Date(0);
+  const newInPeriod = players.filter(p => new Date(p.created_at) >= periodStart).length;
+  const returningInPeriod = uniquePlayerIds.length - newInPeriod;
+  const retPct = uniquePlayerIds.length > 0 ? Math.round((Math.max(0,returningInPeriod) / uniquePlayerIds.length) * 100) : 0;
+  const newPct = 100 - retPct;
+  document.getElementById('stats-newret-loading').style.display = 'none';
+  document.getElementById('stats-newret').innerHTML = uniquePlayerIds.length ? `
+    <div style="display:flex;gap:1rem;margin-bottom:0.75rem">
+      <div style="flex:1;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--green)">${Math.max(0,newInPeriod)}</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">new players</div>
+      </div>
+      <div style="flex:1;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold)">${Math.max(0,returningInPeriod)}</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">returning</div>
+      </div>
+    </div>
+    <div style="height:10px;border-radius:5px;overflow:hidden;display:flex">
+      <div style="width:${newPct}%;background:var(--green);transition:width 0.4s"></div>
+      <div style="width:${retPct}%;background:var(--gold);transition:width 0.4s"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px">
+      <span style="font-size:11px;color:var(--text-muted)">${newPct}% new</span>
+      <span style="font-size:11px;color:var(--text-muted)">${retPct}% returning</span>
+    </div>` : '<p style="color:var(--text-muted);font-size:14px">No data yet.</p>';
 }
 
 function showMsg(id, text, type) {
