@@ -217,6 +217,7 @@ input:focus{border-color:var(--gold-dim)}
 const sb = getSupabase();
 const LOCK_MINUTES = 15;
 let eventData = null;
+let currentBar = null;
 let timerInterval = null;
 
 // ── CELEBRATION ──────────────────────────────────────
@@ -308,7 +309,11 @@ async function init() {
   const eventId = params.get('event');
   if (!eventId) { show('not-found'); return; }
 
-  // Show form IMMEDIATELY — buttons enabled, no waiting
+  // Load bar from URL
+  const slug = getBarSlug();
+  if (slug) currentBar = await getBar(sb, slug);
+
+  // Show form immediately
   const savedPhone = localStorage.getItem('br_phone');
   if (savedPhone) {
     document.getElementById('ret-phone').value = savedPhone;
@@ -317,7 +322,7 @@ async function init() {
     showNew();
   }
 
-  // Load event details in background — just updates the card header
+  // Load event in background
   sb.from('events').select('*').eq('id', eventId).eq('active', true).single()
     .then(({ data }) => {
       if (!data) {
@@ -327,6 +332,9 @@ async function init() {
         return;
       }
       eventData = data;
+      if (!currentBar && data.bar_id) {
+        sb.from('bars').select('*').eq('id', data.bar_id).single().then(({ data: bar }) => { if (bar) currentBar = bar; });
+      }
       document.getElementById('event-name').textContent = data.name;
       document.getElementById('event-points').textContent = data.points_value;
       document.getElementById('new-pts').textContent = data.points_value;
@@ -406,7 +414,8 @@ async function doCheckin(player) {
   const { data: checkin, error } = await sb.from('checkins').insert({
     player_id: player.id, event_id: eventData.id,
     points_earned: eventData.points_value, pending: true,
-    points_confirm_at: confirmAt.toISOString()
+    points_confirm_at: confirmAt.toISOString(),
+    bar_id: currentBar?.id || eventData.bar_id
   }).select().single();
 
   if (error) { showMsg('ret-msg', 'Something went wrong. Try again.', 'error'); return; }
@@ -498,7 +507,7 @@ async function submitNewPlayer() {
   try {
     const { data: existing } = await sb.from('players').select('*').eq('phone', phone).single();
     if (existing) { await doCheckin(existing); return; }
-    const { data: newPlayer, error } = await sb.from('players').insert({ name, phone, total_points: 0 }).select().single();
+    const { data: newPlayer, error } = await sb.from('players').insert({ name, phone, total_points: 0, bar_id: currentBar?.id || eventData?.bar_id }).select().single();
     if (error) { showMsg('new-msg', 'Could not create account. Try again.', 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Check in — ' + (eventData?.points_value||'') + ' points'; } return; }
     await doCheckin(newPlayer);
   } catch(e) {
