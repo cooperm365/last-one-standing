@@ -230,11 +230,28 @@
 const sb = getSupabase();
 let authedAdmin = false;
 let bonusPlayerId = null;
+let currentBar = null;
+
+// --- Init: load bar from URL ---
+async function initAdmin() {
+  const slug = getBarSlug();
+  if (!slug) {
+    document.getElementById('login-gate').innerHTML = '<div style="padding:2rem;color:var(--red)">No bar specified. Use ?bar=your-bar-slug in the URL.</div>';
+    return;
+  }
+  currentBar = await getBar(sb, slug);
+  if (!currentBar) {
+    document.getElementById('login-gate').innerHTML = '<div style="padding:2rem;color:var(--red)">Bar not found: ' + slug + '</div>';
+    return;
+  }
+  // Update title
+  document.querySelectorAll('.site-name').forEach(el => el.textContent = currentBar.name);
+}
 
 // --- Login ---
 function doLogin() {
   const pw = document.getElementById('pw-input').value;
-  if (pw === ADMIN_PASSWORD) {
+  if (currentBar && pw === currentBar.admin_password) {
     authedAdmin = true;
     document.getElementById('login-gate').style.display = 'none';
     document.getElementById('admin-dashboard').style.display = 'block';
@@ -251,6 +268,8 @@ function signOut() {
   document.getElementById('pw-input').value = '';
 }
 
+initAdmin();
+
 // --- Tabs ---
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -262,7 +281,7 @@ function switchTab(name, btn) {
 
 // --- Events ---
 async function loadEvents() {
-  const { data } = await sb.from('events').select('*').eq('active', true).order('created_at', { ascending: false });
+  const { data } = await sb.from('events').select('*').eq('bar_id', currentBar.id).eq('active', true).order('created_at', { ascending: false });
   document.getElementById('events-loading').style.display = 'none';
   const list = document.getElementById('events-list');
   if (!data?.length) { list.innerHTML = '<p style="color:var(--text-muted);padding:1rem 0;font-size:14px">No active events yet.</p>'; return; }
@@ -286,7 +305,7 @@ async function submitNewEvent() {
   const pts = parseInt(document.getElementById('ev-pts').value) || 10;
   if (!name) { showMsg('ev-msg', 'Enter an event name.', 'error'); return; }
 
-  const { data, error } = await sb.from('events').insert({ name, type, points_value: pts }).select().single();
+  const { data, error } = await sb.from('events').insert({ name, type, points_value: pts, bar_id: currentBar.id }).select().single();
   if (error) { showMsg('ev-msg', 'Error creating event.', 'error'); return; }
 
   showMsg('ev-msg', 'Event created!', 'success');
@@ -332,7 +351,7 @@ async function deactivateEvent(id) {
 
 // --- Bonus ---
 async function loadEventsForBonus() {
-  const { data } = await sb.from('events').select('id, name').eq('active', true);
+  const { data } = await sb.from('events').select('id, name').eq('bar_id', currentBar.id).eq('active', true);
   const sel = document.getElementById('bonus-event');
   sel.innerHTML = '<option value="">— No specific event —</option>';
   (data || []).forEach(ev => {
@@ -375,7 +394,7 @@ async function awardBonus() {
 
 // --- Activity Stats ---
 async function loadActivityStats() {
-  const { data: checkins } = await sb.from('checkins').select('event_id, events(name, type)');
+  const { data: checkins } = await sb.from('checkins').select('event_id, events(name, type)').eq('bar_id', currentBar.id);
   document.getElementById('activity-loading').style.display = 'none';
 
   if (!checkins?.length) {
@@ -415,8 +434,8 @@ async function loadActivityStats() {
 
 // --- Players ---
 async function loadPlayers() {
-  const { data: players } = await sb.from('players').select('*').order('total_points', { ascending: false });
-  const { data: checkins } = await sb.from('checkins').select('player_id');
+  const { data: players } = await sb.from('players').select('*').eq('bar_id', currentBar.id).order('total_points', { ascending: false });
+  const { data: checkins } = await sb.from('checkins').select('player_id').eq('bar_id', currentBar.id);
   const countMap = {};
   (checkins || []).forEach(c => { countMap[c.player_id] = (countMap[c.player_id] || 0) + 1; });
 
