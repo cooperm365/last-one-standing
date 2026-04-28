@@ -341,6 +341,13 @@ async function init() {
       document.getElementById('ret-pts').textContent = data.points_value;
       const labels = { darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia', bingo:'🎰 Bingo', live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event' };
       document.getElementById('event-type-badge').innerHTML = '<span class="badge badge-gold">' + (labels[data.type] || data.type) + '</span>';
+
+      // Update all internal links to include bar slug
+      const slug = currentBar?.slug || getBarSlug();
+      if (slug) {
+        document.querySelectorAll('a[href="my-points.html"]').forEach(a => a.href = `my-points.html?bar=${slug}`);
+        document.querySelectorAll('a[href="leaderboard.html"]').forEach(a => a.href = `leaderboard.html?bar=${slug}`);
+      }
     })
     .catch(() => { document.getElementById('event-name').textContent = 'Could not load — check connection'; });
 }
@@ -428,7 +435,9 @@ async function doCheckin(player) {
   if (!tutorialDone) {
     // Save the checkin state so they can come back
     localStorage.setItem('br_tutorial_done', '1');
-    window.location.href = 'tutorial.html?return=my-points.html';
+    const slug = currentBar?.slug || getBarSlug();
+    const returnUrl = slug ? `my-points.html?bar=${slug}` : 'my-points.html';
+    window.location.href = `tutorial.html?return=${returnUrl}`;
     return;
   }
 
