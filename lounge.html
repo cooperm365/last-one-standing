@@ -149,6 +149,9 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
     <button class="tab-btn" onclick="switchTab('challenge',this)" id="challenge-tab">
       <span class="tab-icon">⚔️</span>Challenge
     </button>
+    <button class="tab-btn" onclick="switchTab('hunt',this)">
+      <span class="tab-icon">🔍</span>Hunt
+    </button>
   </div>
 
   <!-- ── TRIVIA PANEL ── -->
@@ -308,6 +311,70 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
         <button class="btn btn-outline" onclick="resetOrder()">Different vibe →</button>
       </div>
     </div>
+  </div>
+
+  <!-- ── HUNT PANEL ── -->
+  <div class="panel" id="panel-hunt">
+    <div style="margin-top:1rem">
+
+      <div id="hunt-no-player" style="display:none;text-align:center;padding:2rem 0">
+        <div style="font-size:40px;margin-bottom:0.75rem">🔍</div>
+        <div style="font-size:14px;color:var(--muted)">Sign in on your My Score page first to join the hunt.</div>
+        <a href="my-points.html" class="btn btn-gold" style="margin-top:1rem;display:inline-block;width:auto;padding:0.75rem 1.5rem">Go to My Score →</a>
+      </div>
+
+      <div id="hunt-content" style="display:none">
+
+        <!-- Already submitted today -->
+        <div id="hunt-done" style="display:none;text-align:center;padding:2rem 0">
+          <div style="font-size:48px;margin-bottom:0.75rem">📸</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);letter-spacing:1px;margin-bottom:0.5rem">Photo submitted!</div>
+          <div id="hunt-done-msg" style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:1rem"></div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;font-size:13px;color:var(--muted)">Staff will review your photo and award your 20 points if verified. Check your score page later!</div>
+        </div>
+
+        <!-- Hunt clue -->
+        <div id="hunt-clue-section">
+          <div style="background:linear-gradient(135deg,#1f1c10,#2a2200);border:2px solid var(--gold-dim);border-radius:14px;padding:1.5rem;text-align:center;margin-bottom:1.25rem">
+            <div style="font-size:11px;color:var(--gold-dim);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:0.5rem">🔍 Tonight's Hunt</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--text);letter-spacing:1px;line-height:1.2;margin-bottom:0.75rem" id="hunt-clue-text">Loading clue...</div>
+            <div style="background:var(--gold-bg);border:1px solid rgba(240,165,0,0.2);border-radius:8px;padding:0.6rem 1rem;display:inline-block;margin-bottom:0.5rem">
+              <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold)">+20 points</span>
+              <span style="font-size:12px;color:var(--muted);margin-left:6px">if verified by staff</span>
+            </div>
+            <div style="font-size:13px;font-weight:700;margin-top:0.25rem" id="hunt-spots-left">3 spots left tonight</div>
+          </div>
+
+          <!-- Camera for photo -->
+          <div id="hunt-camera-wrap" style="display:none;margin-bottom:1rem">
+            <div style="position:relative;width:100%;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3">
+              <video id="hunt-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block"></video>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:0.75rem">
+              <button class="btn btn-gold" onclick="snapHuntPhoto()" style="flex:1">📸 Take photo</button>
+              <button class="btn btn-outline" onclick="closeHuntCamera()" style="width:52px;flex-shrink:0">✕</button>
+            </div>
+          </div>
+
+          <!-- Photo preview -->
+          <div id="hunt-preview-wrap" style="display:none;margin-bottom:1rem">
+            <canvas id="hunt-canvas" style="width:100%;border-radius:12px;display:block"></canvas>
+            <div style="display:flex;gap:8px;margin-top:0.75rem">
+              <button class="btn btn-outline" onclick="retakeHuntPhoto()" style="flex:1">Retake</button>
+              <button class="btn btn-gold" onclick="submitHuntPhoto()" style="flex:1">✅ Submit for review</button>
+            </div>
+          </div>
+
+          <div id="hunt-start-btn-wrap">
+            <button class="btn btn-gold" onclick="openHuntCamera()">📸 Take a photo to prove it</button>
+            <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:0.75rem">One submission per day. Staff reviews and awards your points.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- ── CHALLENGE PANEL ── -->
   <div class="panel" id="panel-challenge">
     <div style="margin-top:1rem">
@@ -414,7 +481,9 @@ function switchTab(name, btn) {
   document.getElementById('panel-'+name).classList.add('active');
   btn.classList.add('active');
   if (name !== 'selfie' && selfieStream) { selfieStream.getTracks().forEach(t=>t.stop()); selfieStream=null; }
+  if (name !== 'hunt' && huntStream) { huntStream.getTracks().forEach(t=>t.stop()); huntStream=null; }
   if (name === 'challenge') loadChallengeTab();
+  if (name === 'hunt') loadHuntTab();
 }
 
 // ── WAGER ──────────────────────────────────────────────
@@ -940,6 +1009,159 @@ async function checkChallengeNotification() {
       tab.appendChild(badge);
     }
   }
+}
+
+// ── SCAVENGER HUNT ──────────────────────────────────────────
+const HUNT_CLUES = [
+  "Find something with the bar's logo on it",
+  "Find a dartboard in the bar",
+  "Find a menu or specials board",
+  "Find a TV showing a live game",
+  "Find a bar stool with a unique design",
+  "Find a neon sign in the bar",
+  "Find a pool cue rack",
+  "Find the jukebox or music speaker",
+  "Find a drink special written on a chalkboard",
+  "Find a framed photo or artwork on the wall",
+  "Find a pinball machine or arcade game",
+  "Find the bar's social media handle posted anywhere",
+  "Find a tap handle with a beer brand on it",
+  "Find a trophy or award displayed in the bar",
+  "Find the bathrooms sign",
+  "Find a bar game you haven't played yet tonight",
+  "Find somewhere to sit with a view of the leaderboard",
+  "Find the oldest looking item in the bar",
+  "Find a coaster or napkin with the bar's branding",
+  "Find a staff member wearing a uniform or name tag"
+];
+
+let huntStream = null;
+
+function getTodayClue() {
+  // Rotate clues by day of year so it changes daily automatically
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  return { text: HUNT_CLUES[dayOfYear % HUNT_CLUES.length], day: dayOfYear };
+}
+
+async function loadHuntTab() {
+  if (!currentPlayer) {
+    document.getElementById('hunt-no-player').style.display = 'block';
+    document.getElementById('hunt-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('hunt-no-player').style.display = 'none';
+  document.getElementById('hunt-content').style.display = 'block';
+
+  const clue = getTodayClue();
+  document.getElementById('hunt-clue-text').textContent = clue.text;
+
+  // Check winners cap — how many approved today
+  const { data: approvedToday } = await sb.from('hunt_submissions')
+    .select('id').eq('clue_day', clue.day).eq('status', 'approved');
+  const winnersToday = (approvedToday || []).length;
+  const MAX_WINNERS = 3;
+  const spotsLeft = MAX_WINNERS - winnersToday;
+
+  // Check if already submitted today
+  const { data: existing } = await sb.from('hunt_submissions')
+    .select('*').eq('player_id', currentPlayer.id).eq('clue_day', clue.day).single();
+
+  if (existing) {
+    document.getElementById('hunt-clue-section').style.display = 'none';
+    document.getElementById('hunt-done').style.display = 'block';
+    const statusMsg = existing.status === 'approved'
+      ? '✅ Approved! Your 20 points have been awarded.'
+      : existing.status === 'rejected'
+      ? '❌ Staff couldn\'t verify this one. Better luck tomorrow!'
+      : '⏳ Pending staff review — check back soon for your points.';
+    document.getElementById('hunt-done-msg').textContent = statusMsg;
+    return;
+  }
+
+  // Hunt is full — no more winners tonight
+  if (spotsLeft <= 0) {
+    document.getElementById('hunt-clue-section').style.display = 'none';
+    document.getElementById('hunt-done').style.display = 'block';
+    document.getElementById('hunt-done-msg').textContent = '🎯 All 3 winners have been found tonight! Come back tomorrow for a new clue.';
+    return;
+  }
+
+  // Show clue with spots remaining
+  document.getElementById('hunt-clue-section').style.display = 'block';
+  document.getElementById('hunt-done').style.display = 'none';
+
+  // Update spots remaining indicator
+  const spotsEl = document.getElementById('hunt-spots-left');
+  if (spotsEl) {
+    spotsEl.textContent = spotsLeft === 1 ? '⚡ Last spot tonight!' : `${spotsLeft} spots left tonight`;
+    spotsEl.style.color = spotsLeft === 1 ? 'var(--red)' : 'var(--gold)';
+  }
+}
+
+async function openHuntCamera() {
+  document.getElementById('hunt-start-btn-wrap').style.display = 'none';
+  document.getElementById('hunt-camera-wrap').style.display = 'block';
+  try {
+    huntStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 } }
+    });
+    document.getElementById('hunt-video').srcObject = huntStream;
+  } catch(e) {
+    alert('Camera access denied. Please allow camera access.');
+    document.getElementById('hunt-start-btn-wrap').style.display = 'block';
+    document.getElementById('hunt-camera-wrap').style.display = 'none';
+  }
+}
+
+function closeHuntCamera() {
+  if (huntStream) { huntStream.getTracks().forEach(t=>t.stop()); huntStream = null; }
+  document.getElementById('hunt-camera-wrap').style.display = 'none';
+  document.getElementById('hunt-start-btn-wrap').style.display = 'block';
+}
+
+function snapHuntPhoto() {
+  const video = document.getElementById('hunt-video');
+  const canvas = document.getElementById('hunt-canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  if (huntStream) { huntStream.getTracks().forEach(t=>t.stop()); huntStream = null; }
+  document.getElementById('hunt-camera-wrap').style.display = 'none';
+  document.getElementById('hunt-preview-wrap').style.display = 'block';
+}
+
+function retakeHuntPhoto() {
+  document.getElementById('hunt-preview-wrap').style.display = 'none';
+  openHuntCamera();
+}
+
+async function submitHuntPhoto() {
+  const canvas = document.getElementById('hunt-canvas');
+  const clue = getTodayClue();
+  const btn = document.querySelector('#hunt-preview-wrap .btn-gold');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+
+  // Store as base64 — staff reviews in admin
+  const photoData = canvas.toDataURL('image/jpeg', 0.7);
+
+  const { error } = await sb.from('hunt_submissions').insert({
+    player_id: currentPlayer.id,
+    clue_day: clue.day,
+    clue_text: clue.text,
+    photo_data: photoData,
+    status: 'pending'
+  });
+
+  if (error) {
+    btn.disabled = false; btn.textContent = '✅ Submit for review';
+    alert('Could not submit. Try again.');
+    return;
+  }
+
+  document.getElementById('hunt-clue-section').style.display = 'none';
+  document.getElementById('hunt-preview-wrap').style.display = 'none';
+  document.getElementById('hunt-done').style.display = 'block';
+  document.getElementById('hunt-done-msg').textContent = '⏳ Pending staff review — check back soon for your points.';
 }
 
 loadPlayer();
