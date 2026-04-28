@@ -70,6 +70,7 @@
       <button class="tab" onclick="switchTab('bonus', this)">Award Bonus</button>
       <button class="tab" onclick="switchTab('players', this)">Players</button>
       <button class="tab" onclick="switchTab('stats', this)">📊 Stats</button>
+      <button class="tab" onclick="switchTab('hunt', this)">🔍 Hunt</button>
     </div>
 
     <!-- EVENTS TAB -->
@@ -211,6 +212,14 @@
 
     </div>
 
+    <!-- HUNT TAB -->
+    <div class="tab-panel" id="tab-hunt">
+      <div class="section-title">🔍 Hunt Submissions</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Players submit photos to prove they found today's item. Award 20 points via the Award Bonus tab for verified ones.</p>
+      <div id="hunt-loading" style="color:var(--text-muted);font-size:14px;padding:1rem 0">Loading submissions...</div>
+      <div id="hunt-list"></div>
+    </div>
+
   </div>
 </div>
 
@@ -229,7 +238,7 @@ function doLogin() {
     authedAdmin = true;
     document.getElementById('login-gate').style.display = 'none';
     document.getElementById('admin-dashboard').style.display = 'block';
-    loadEvents(); loadPlayers(); loadEventsForBonus(); loadActivityStats(); loadStats();
+    loadEvents(); loadPlayers(); loadEventsForBonus(); loadActivityStats(); loadStats(); loadHuntSubmissions();
   } else {
     showMsg('pw-msg', 'Wrong password.', 'error');
   }
@@ -248,6 +257,7 @@ function switchTab(name, btn) {
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
+  if (name === 'hunt') loadHuntSubmissions();
 }
 
 // --- Events ---
@@ -602,6 +612,129 @@ async function loadStats() {
       <span style="font-size:11px;color:var(--text-muted)">${newPct}% new</span>
       <span style="font-size:11px;color:var(--text-muted)">${retPct}% returning</span>
     </div>` : '<p style="color:var(--text-muted);font-size:14px">No data yet.</p>';
+}
+
+// --- Hunt Submissions ---
+async function loadHuntSubmissions() {
+  document.getElementById('hunt-loading').style.display = 'block';
+  document.getElementById('hunt-list').innerHTML = '';
+
+  const { data } = await sb.from('hunt_submissions')
+    .select('*, players(name, phone)')
+    .order('created_at', { ascending: false });
+
+  document.getElementById('hunt-loading').style.display = 'none';
+
+  if (!data?.length) {
+    document.getElementById('hunt-list').innerHTML = '<p style="color:var(--text-muted);font-size:14px;padding:1rem 0">No submissions yet.</p>';
+    return;
+  }
+
+  const statusColors = { pending:'var(--gold)', approved:'var(--green)', rejected:'var(--red)' };
+
+  document.getElementById('hunt-list').innerHTML = data.map(s => `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+        <div>
+          <div style="font-weight:600;font-size:14px">${esc(s.players?.name||'Unknown')}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${s.players?.phone||''} · ${new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${statusColors[s.status]||'var(--gold)'};text-transform:uppercase;background:var(--bg3);padding:3px 10px;border-radius:999px">${s.status}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;font-style:italic">"${esc(s.clue_text)}"</div>
+      ${s.photo_data ? `<img src="${s.photo_data}" style="width:100%;border-radius:8px;margin-bottom:0.75rem;max-height:300px;object-fit:cover"/>` : '<p style="color:var(--text-muted);font-size:13px;margin-bottom:0.75rem">No photo attached</p>'}
+      ${s.status === 'pending' ? `
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" style="color:var(--green);border-color:rgba(62,207,142,0.3);flex:1" onclick="reviewHunt('${s.id}','approved','${s.players?.id}')">✅ Approve (+20 pts)</button>
+        <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:rgba(245,101,101,0.3);flex:1" onclick="reviewHunt('${s.id}','rejected','${s.players?.id}')">❌ Reject</button>
+      </div>` : ''}
+    </div>`).join('');
+}
+
+async function reviewHunt(submissionId, status, playerId) {
+  await sb.from('hunt_submissions').update({ status }).eq('id', submissionId);
+
+  if (status === 'approved' && playerId) {
+    const { data: player } = await sb.from('players').select('total_points').eq('id', playerId).single();
+    await sb.from('players').update({ total_points: (player?.total_points||0) + 20 }).eq('id', playerId);
+    await sb.from('bonus_points').insert({ player_id: playerId, points: 20, reason: 'Scavenger hunt verified ✓' });
+  }
+
+  loadHuntSubmissions();
+}
+
+// --- Hunt Submissions ---
+async function loadHuntSubmissions() {
+  document.getElementById('hunt-loading').style.display = 'block';
+  document.getElementById('hunt-list').innerHTML = '';
+
+  // Get today's clue day
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+
+  const { data } = await sb.from('hunt_submissions')
+    .select('*, players(id, name, phone)')
+    .eq('clue_day', dayOfYear)
+    .order('created_at', { ascending: false });
+
+  document.getElementById('hunt-loading').style.display = 'none';
+
+  const approvedCount = (data||[]).filter(s => s.status === 'approved').length;
+  const MAX_WINNERS = 3;
+  const spotsLeft = MAX_WINNERS - approvedCount;
+
+  // Status bar
+  const statusBar = `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem">
+    <span style="font-size:13px;color:var(--text-muted)">Winners awarded today</span>
+    <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${spotsLeft > 0 ? 'var(--gold)' : 'var(--green)'}">${approvedCount} / ${MAX_WINNERS}</span>
+  </div>
+  ${spotsLeft <= 0 ? '<div style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:13px;color:var(--green)">✅ Hunt is closed for tonight — 3 winners found. New clue tomorrow.</div>' : ''}`;
+
+  if (!data?.length) {
+    document.getElementById('hunt-list').innerHTML = statusBar + '<p style="color:var(--text-muted);font-size:14px">No submissions yet today.</p>';
+    return;
+  }
+
+  const list = document.getElementById('hunt-list');
+  list.innerHTML = statusBar + data.map(s => {
+    const statusColor = s.status === 'approved' ? 'var(--green)' : s.status === 'rejected' ? 'var(--red)' : 'var(--gold)';
+    const statusLabel = s.status === 'approved' ? '✅ Approved' : s.status === 'rejected' ? '❌ Rejected' : '⏳ Pending';
+    const date = new Date(s.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const canApprove = s.status === 'pending' && spotsLeft > 0;
+    return `<div class="card" style="margin-bottom:1rem">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem">
+        <div>
+          <div style="font-weight:600;font-size:15px">${esc(s.players?.name || '?')}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${s.players?.phone || ''} · ${date}</div>
+          <div style="font-size:12px;color:var(--gold);margin-top:3px">🔍 ${esc(s.clue_text || '')}</div>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:${statusColor}">${statusLabel}</span>
+      </div>
+      ${s.photo_data ? `<img src="${s.photo_data}" style="width:100%;border-radius:8px;margin-bottom:0.75rem;max-height:280px;object-fit:cover"/>` : '<p style="color:var(--text-muted);font-size:13px;margin-bottom:0.75rem">No photo attached</p>'}
+      ${s.status === 'pending' ? `
+      <div style="display:flex;gap:8px">
+        ${canApprove
+          ? `<button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:rgba(62,207,142,0.3)" onclick="approveHunt('${s.id}','${s.players?.id}','${esc(s.players?.name||'')}')">✅ Approve & award 20pts</button>`
+          : `<button class="btn btn-outline btn-sm" style="flex:1;opacity:0.4;cursor:not-allowed" disabled>Max winners reached</button>`
+        }
+        <button class="btn btn-outline btn-sm" style="flex:1;color:var(--red);border-color:rgba(245,101,101,0.3)" onclick="rejectHunt('${s.id}')">❌ Reject</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function approveHunt(submissionId, playerId, playerName) {
+  if (!confirm(`Award 20 points to ${playerName} for this submission?`)) return;
+  await sb.from('hunt_submissions').update({ status: 'approved' }).eq('id', submissionId);
+  const { data: player } = await sb.from('players').select('total_points').eq('id', playerId).single();
+  await sb.from('players').update({ total_points: (player?.total_points||0) + 20 }).eq('id', playerId);
+  await sb.from('bonus_points').insert({ player_id: playerId, points: 20, reason: 'Scavenger hunt — photo verified' });
+  loadHuntSubmissions();
+}
+
+async function rejectHunt(submissionId) {
+  if (!confirm('Reject this submission? The player will be notified.')) return;
+  await sb.from('hunt_submissions').update({ status: 'rejected' }).eq('id', submissionId);
+  loadHuntSubmissions();
 }
 
 function showMsg(id, text, type) {
