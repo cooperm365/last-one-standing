@@ -321,7 +321,8 @@ function showQRForEvent(id, name) {
 }
 
 function generateQR(eventId, eventName) {
-  const url = `${location.origin}${location.pathname.replace('admin.html','checkin.html')}?event=${eventId}`;
+  const base = `${location.origin}${location.pathname.replace('admin.html','checkin.html')}`;
+  const url = `${base}?bar=${currentBar.slug}&event=${eventId}`;
   const out = document.getElementById('qr-output');
   out.innerHTML = `
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem">QR for: <strong style="color:var(--text)">${esc(eventName)}</strong></p>
