@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>How It Works - Bar Rank</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap');
@@ -14,8 +14,8 @@
   --text:#f0ede8;--muted:#888780;--dim:#444441;
   --green:#3ecf8e;--red:#f56565;
 }
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;min-height:100vh}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;min-height:100dvh;min-height:100vh}
 
 /* PROGRESS BAR */
 .progress-bar{display:flex;gap:6px;padding:1.25rem 1.25rem 0;flex-shrink:0}
@@ -24,13 +24,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;dis
 .prog-dot.active{background:var(--gold);opacity:0.5}
 
 /* SLIDE */
-.slides{flex:1;position:relative;overflow:hidden}
-.slide{position:absolute;inset:0;padding:1.5rem 1.25rem;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transform:translateX(40px);transition:all 0.35s cubic-bezier(0.22,1,0.36,1);pointer-events:none}
+.slides{flex:1;position:relative;overflow:hidden;min-height:0}
+.slide{position:absolute;inset:0;padding:1rem 1.25rem 0.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transform:translateX(40px);transition:all 0.35s cubic-bezier(0.22,1,0.36,1);pointer-events:none}
 .slide.active{opacity:1;transform:translateX(0);pointer-events:all}
 .slide.exit{opacity:0;transform:translateX(-40px)}
 
 /* ILLUSTRATION */
-.illus{width:100%;max-width:320px;margin:0 auto 2rem;position:relative}
+.illus{width:100%;max-width:280px;margin:0 auto 1rem;position:relative}
 
 /* STEP NUMBER */
 .step-num{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);margin-bottom:0.5rem;text-align:center}
@@ -48,11 +48,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;dis
 .callout-icon{font-size:20px;margin-bottom:4px;display:block}
 
 /* BOTTOM NAV */
-.nav{padding:1.25rem;flex-shrink:0;display:flex;gap:10px;align-items:center}
+.nav{padding:1rem 1.25rem;padding-bottom:max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem));flex-shrink:0;display:flex;gap:10px;align-items:center;background:var(--bg)}
 .btn-prev{background:var(--bg2);border:1px solid var(--border);color:var(--muted);padding:0.85rem 1.25rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;flex-shrink:0}
-.btn-next{flex:1;background:var(--gold);color:#111;padding:0.85rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;border:none;text-align:center}
+.btn-next{flex:1;background:var(--gold);color:#111;padding:1rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;border:none;text-align:center}
 .btn-next:active,.btn-prev:active{transform:scale(0.97)}
-.skip{font-size:13px;color:var(--dim);text-align:center;margin-top:0.5rem;cursor:pointer;text-decoration:underline}
+.skip{font-size:13px;color:var(--dim);text-align:center;padding:0 1.25rem;padding-bottom:max(1rem, env(safe-area-inset-bottom));cursor:pointer;text-decoration:underline;flex-shrink:0;background:var(--bg)}
 
 /* SVG ILLUSTRATIONS */
 svg text{font-family:'DM Sans',sans-serif}
