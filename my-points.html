@@ -254,6 +254,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="js/config.js"></script>
 <script>
 const sb = getSupabase();
@@ -277,7 +278,6 @@ function closePanel(id) {
 
 // ── SCANNER ───────────────────────────────────────────
 async function openScanner() {
-  // Reset scanner state
   document.getElementById('scanner-status').textContent = '';
   openPanel('panel-scanner');
 
@@ -295,26 +295,32 @@ async function openScanner() {
 }
 
 function stopScanner() {
-  clearInterval(scanInterval);
+  if (scanInterval) { clearTimeout(scanInterval); scanInterval = null; }
   if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
   const v = document.getElementById('scanner-video');
-  v.srcObject = null;
+  if (v) v.srcObject = null;
 }
 
 function startDetecting(video) {
-  if (!('BarcodeDetector' in window)) {
-    document.getElementById('scanner-status').textContent = 'QR scanning not supported on this browser. Try Chrome or Safari.';
-    return;
-  }
-  const detector = new BarcodeDetector({ formats: ['qr_code'] });
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-  async function tick() {
+  function tick() {
     if (!scanStream) return;
-    try {
-      const codes = await detector.detect(video);
-      if (codes.length > 0) { handleScanResult(codes[0].rawValue); return; }
-    } catch(e) {}
-    scanInterval = setTimeout(tick, 300);
+    if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert'
+      });
+      if (code && code.data) {
+        handleScanResult(code.data);
+        return;
+      }
+    }
+    scanInterval = setTimeout(tick, 200);
   }
   tick();
 }
