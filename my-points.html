@@ -249,6 +249,12 @@
     </div>
     <div id="history-list" class="card" style="display:none;padding:0.5rem 1rem"></div>
 
+    <!-- My other bars -->
+    <div id="other-bars-section" style="display:none;margin-top:1.5rem">
+      <div class="section-title">My other bars</div>
+      <div id="other-bars-list"></div>
+    </div>
+
     <hr class="divider"/>
     <button class="btn btn-outline" onclick="switchPlayer()" style="font-size:13px">Switch account</button>
   </div>
@@ -601,8 +607,9 @@ function ciStartTimer(confirmAt, player, checkinId) {
 // ── DASHBOARD ───────────────────────────────────────
 async function getVisitScans(playerId) {
   const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
-  const { data } = await sb.from('checkins').select('id, scanned_at')
-    .eq('player_id', playerId).gte('scanned_at', windowStart);
+  let query = sb.from('checkins').select('id, scanned_at').eq('player_id', playerId).gte('scanned_at', windowStart);
+  if (currentBar) query = query.eq('bar_id', currentBar.id);
+  const { data } = await query;
   return data || [];
 }
 
@@ -610,11 +617,22 @@ async function lookup() {
   const raw = document.getElementById('lookup-phone').value.trim();
   const phone = raw.replace(/\D/g, '');
   if (phone.length < 10) { showMsg('lookup-msg', 'Please enter a valid mobile number.', 'error'); return; }
-  let query = sb.from('players').select('*').eq('phone', phone);
-  if (currentBar) query = query.eq('bar_id', currentBar.id);
-  const { data: player } = await query.single();
-  if (!player) { showMsg('lookup-msg', "We don't have that number. Have you checked in at an event yet?", 'error'); return; }
+
+  // Look up global profile
+  const { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone).single();
+  if (!profile) { showMsg('lookup-msg', "We don't have that number. Have you checked in at an event yet?", 'error'); return; }
+
   localStorage.setItem('br_phone', phone);
+
+  // Get bar score for current bar
+  let barScore = null;
+  if (currentBar) {
+    const { data: score } = await sb.from('player_bar_scores')
+      .select('*').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
+    barScore = score;
+  }
+
+  const player = { ...profile, total_points: barScore?.total_points || 0 };
   currentPlayer = player;
   await showDashboard(player);
 }
@@ -654,9 +672,9 @@ async function showDashboard(player) {
   }
 
   // Rank + change notification
-  const barId = currentBar?.id || player.bar_id;
-  const { data: allPlayers } = await sb.from('players').select('id, total_points').eq('bar_id', barId).order('total_points',{ascending:false});
-  const rank = (allPlayers||[]).findIndex(p=>p.id===player.id)+1;
+  const barId = currentBar?.id;
+  const { data: allScores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', barId).order('total_points', { ascending: false });
+  const rank = (allScores||[]).findIndex(s => s.player_id === player.id) + 1;
   document.getElementById('stat-rank').textContent = rank > 0 ? `#${rank}` : '—';
 
   // Compare to last recorded rank
@@ -681,7 +699,7 @@ async function showDashboard(player) {
         </div>`;
     } else {
       // Moved down
-      const gap = rank > 1 ? (allPlayers||[])[rank-2]?.total_points - ((checkinPts + bonusPts)) : 0;
+      const gap = rank > 1 ? (allScores||[])[rank-2]?.total_points - ((checkinPts + bonusPts)) : 0;
       const dropAmt = Math.abs(moved);
       notice.style.cssText = 'background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.25);border-radius:8px;padding:0.85rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px';
       notice.innerHTML = `
@@ -708,6 +726,9 @@ async function showDashboard(player) {
 
   // Save current rank for next visit
   if (rank > 0) localStorage.setItem(rankKey, String(rank));
+
+  // Load other bars this player has visited
+  loadOtherBars(player.id);
 
   // Tonight's scans
   const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000);
@@ -769,9 +790,40 @@ async function showDashboard(player) {
 
 async function refreshDashboard() {
   if (currentPlayer) {
-    const { data: fresh } = await sb.from('players').select('*').eq('id', currentPlayer.id).single();
-    if (fresh) await showDashboard(fresh);
+    const { data: fresh } = await sb.from('player_profiles').select('*').eq('id', currentPlayer.id).single();
+    if (fresh) {
+      let barScore = null;
+      if (currentBar) {
+        const { data: score } = await sb.from('player_bar_scores').select('*').eq('player_id', fresh.id).eq('bar_id', currentBar.id).single();
+        barScore = score;
+      }
+      await showDashboard({ ...fresh, total_points: barScore?.total_points || 0 });
+    }
   }
+}
+
+async function loadOtherBars(playerId) {
+  // Get all bars this player has scores at
+  const { data: scores } = await sb.from('player_bar_scores')
+    .select('*, bars(id, name, slug, point_target)')
+    .eq('player_id', playerId)
+    .order('total_points', { ascending: false });
+
+  if (!scores?.length) return;
+
+  // Filter out current bar
+  const others = scores.filter(s => s.bar_id !== currentBar?.id);
+  if (!others.length) return;
+
+  document.getElementById('other-bars-section').style.display = 'block';
+  document.getElementById('other-bars-list').innerHTML = others.map(s => `
+    <div class="card" style="display:flex;align-items:center;gap:12px;padding:0.85rem 1rem;margin-bottom:0.5rem">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${esc(s.bars?.name || 'Unknown Bar')}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${s.total_points} pts · goal: ${s.bars?.point_target || 200}</div>
+      </div>
+      <a href="my-points.html?bar=${s.bars?.slug}" class="btn btn-outline btn-sm">View →</a>
+    </div>`).join('');
 }
 
 function switchPlayer() {
