@@ -248,6 +248,10 @@ async function loadDashboard() {
       </div>
       <div class="bar-actions">
         <button class="btn btn-outline btn-sm" onclick="openEdit(${JSON.stringify(b).replace(/"/g,'&quot;')})">Edit</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleBar('${b.id}','${esc(b.name)}',${b.active})" style="color:${b.active ? 'var(--red)' : 'var(--green)'}">
+          ${b.active ? 'Deactivate' : 'Reactivate'}
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="deleteBar('${b.id}','${esc(b.name)}')" style="color:var(--red);border-color:rgba(245,101,101,0.3)">Delete</button>
         <a href="${BASE_URL}/leaderboard.html?bar=${b.slug}" target="_blank" class="btn btn-outline btn-sm">Leaderboard ↗</a>
         <a href="${BASE_URL}/admin.html?bar=${b.slug}" target="_blank" class="btn btn-outline btn-sm">Admin ↗</a>
       </div>
@@ -314,6 +318,29 @@ async function saveEdit() {
   if (error) { showMsg('edit-msg', 'Error saving.', 'error'); return; }
   showMsg('edit-msg', 'Saved!', 'success');
   document.getElementById('edit-section').style.display = 'none';
+  loadDashboard();
+}
+
+async function toggleBar(id, name, currentlyActive) {
+  const action = currentlyActive ? 'deactivate' : 'reactivate';
+  if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} ${name}? ${currentlyActive ? 'Their leaderboard and check-ins will stop working.' : 'Their bar will go live again.'}`)) return;
+  await sb.from('bars').update({ active: !currentlyActive }).eq('id', id);
+  loadDashboard();
+}
+
+async function deleteBar(id, name) {
+  if (!confirm(`Permanently delete ${name}?\n\nThis will delete ALL data — players, check-ins, events, points. This cannot be undone.`)) return;
+  if (!confirm(`Are you absolutely sure? Type the bar name to confirm.\n\nAll data for ${name} will be gone forever.`)) return;
+
+  // Delete all associated data first
+  await sb.from('hunt_submissions').delete().eq('bar_id', id);
+  await sb.from('challenges').delete().eq('bar_id', id);
+  await sb.from('bonus_points').delete().eq('bar_id', id);
+  await sb.from('checkins').delete().eq('bar_id', id);
+  await sb.from('events').delete().eq('bar_id', id);
+  await sb.from('players').delete().eq('bar_id', id);
+  await sb.from('bars').delete().eq('id', id);
+
   loadDashboard();
 }
 
