@@ -184,9 +184,9 @@
       <div class="site-sub">My Score</div>
     </div>
     <div style="margin-left:auto;display:flex;gap:8px">
-      <a href="tutorial.html" class="btn btn-outline btn-sm">❓ How it works</a>
-      <a href="lounge.html" class="btn btn-outline btn-sm">🎲 Lounge</a>
-      <a href="leaderboard.html" class="btn btn-outline btn-sm">Leaderboard</a>
+      <a href="tutorial.html" class="btn btn-outline btn-sm" id="link-tutorial">❓ How it works</a>
+      <a href="lounge.html" class="btn btn-outline btn-sm" id="link-lounge">🎲 Lounge</a>
+      <a href="leaderboard.html" class="btn btn-outline btn-sm" id="link-leaderboard">Leaderboard</a>
     </div>
   </div>
 
@@ -802,7 +802,13 @@ function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 // Auto-load with bar context
 (async () => {
   const slug = getBarSlug();
-  if (slug) currentBar = await getBar(sb, slug);
+  if (slug) {
+    currentBar = await getBar(sb, slug);
+    // Update header links with bar slug
+    document.getElementById('link-tutorial').href = `tutorial.html?bar=${slug}`;
+    document.getElementById('link-lounge').href = `lounge.html?bar=${slug}`;
+    document.getElementById('link-leaderboard').href = `leaderboard.html?bar=${slug}`;
+  }
   const saved = localStorage.getItem('br_phone');
   if (saved) {
     document.getElementById('lookup-phone').value = saved;
