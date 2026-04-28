@@ -249,7 +249,7 @@ async function init() {
   const eventId = params.get('event');
   if (!eventId) { show('not-found'); return; }
 
-  // Show form IMMEDIATELY — no waiting
+  // Show form IMMEDIATELY — buttons enabled, no waiting
   const savedPhone = localStorage.getItem('br_phone');
   if (savedPhone) {
     document.getElementById('ret-phone').value = savedPhone;
@@ -258,73 +258,19 @@ async function init() {
     showNew();
   }
 
-  // Disable buttons until event data loads
-  document.querySelectorAll('.btn-primary').forEach(b => b.disabled = true);
-
-  // Load event details in background — just updates the card
-  try {
-    const { data } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
-    if (!data) { document.getElementById('event-name').textContent = 'Event not found'; return; }
-    eventData = data;
-    document.getElementById('event-name').textContent = data.name;
-    document.getElementById('event-points').textContent = data.points_value;
-    document.getElementById('new-pts').textContent = data.points_value;
-    document.getElementById('ret-pts').textContent = data.points_value;
-    const labels = { darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia', bingo:'🎰 Bingo', live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event' };
-    document.getElementById('event-type-badge').innerHTML = '<span class="badge badge-gold">' + (labels[data.type] || data.type) + '</span>';
-
-    // If returning player, check immediately if they already scanned this event
-    if (savedPhone) {
-      const phone = savedPhone.replace(/\D/g, '');
-      const { data: player } = await sb.from('players').select('id').eq('phone', phone).single();
-      if (player) {
-        const { data: existing } = await sb.from('checkins').select('id, pending, points_confirm_at')
-          .eq('player_id', player.id).eq('event_id', eventId).single();
-        if (existing) {
-          if (!existing.pending) {
-            // Already fully confirmed — show already checked in
-            hide('form-new'); hide('form-returning');
-            show('already-in');
-            return;
-          } else {
-            // Has pending checkin — resume timer
-            const confirmAt = new Date(existing.points_confirm_at);
-            const remaining = confirmAt - new Date();
-            hide('form-new'); hide('form-returning');
-            if (remaining <= 0) {
-              // Timer already expired — show success
-              const { data: visitScans } = await sb.from('checkins').select('id')
-                .eq('player_id', player.id)
-                .gte('scanned_at', new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString());
-              showSuccessScreen(data.points_value, (visitScans||[]).length);
-            } else {
-              // Resume timer
-              document.getElementById('confirm-time').textContent = confirmAt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-              const { data: fullPlayer } = await sb.from('players').select('*').eq('id', player.id).single();
-              const visitScans = await getVisitScans(player.id);
-              const dotsEl = document.getElementById('pending-dots');
-              dotsEl.innerHTML = '';
-              for (let i = 0; i < MAX_SCANS_PER_VISIT; i++) {
-                const d = document.createElement('div');
-                d.className = 'scan-dot' + (i < visitScans.length ? ' used' : '');
-                dotsEl.appendChild(d);
-              }
-              document.getElementById('pending-pts').textContent = data.points_value;
-              show('pending');
-              startTimer(confirmAt, fullPlayer, existing.id, data.points_value);
-            }
-            return;
-          }
-        }
-      }
-    }
-
-    // Enable buttons — no existing checkin found
-    document.querySelectorAll('.btn-primary').forEach(b => b.disabled = false);
-  } catch(e) {
-    document.getElementById('event-name').textContent = 'Could not load event — check connection';
-    document.querySelectorAll('.btn-primary').forEach(b => b.disabled = false);
-  }
+  // Load event details in background — just updates the card header
+  sb.from('events').select('*').eq('id', eventId).eq('active', true).single()
+    .then(({ data }) => {
+      if (!data) { document.getElementById('event-name').textContent = 'Event not found'; return; }
+      eventData = data;
+      document.getElementById('event-name').textContent = data.name;
+      document.getElementById('event-points').textContent = data.points_value;
+      document.getElementById('new-pts').textContent = data.points_value;
+      document.getElementById('ret-pts').textContent = data.points_value;
+      const labels = { darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia', bingo:'🎰 Bingo', live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event' };
+      document.getElementById('event-type-badge').innerHTML = '<span class="badge badge-gold">' + (labels[data.type] || data.type) + '</span>';
+    })
+    .catch(() => { document.getElementById('event-name').textContent = 'Could not load — check connection'; });
 
 async function getVisitScans(playerId) {
   const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
@@ -339,11 +285,42 @@ async function hasScannedThisEvent(playerId, eventId) {
 
 async function doCheckin(player) {
   if (!eventData) {
-    showMsg('ret-msg', 'Loading event data — tap again in a moment.', 'error');
+    showMsg('ret-msg', 'Still loading event — tap again in a moment.', 'error');
     return;
   }
-  const alreadyScanned = await hasScannedThisEvent(player.id, eventData.id);
-  if (alreadyScanned) { show('already-in'); hide('form-new'); hide('form-returning'); return; }
+
+  // Check for existing checkin on this event
+  const { data: existing } = await sb.from('checkins').select('*')
+    .eq('player_id', player.id).eq('event_id', eventData.id).single();
+
+  if (existing) {
+    hide('form-new'); hide('form-returning');
+    if (!existing.pending) {
+      // Already fully confirmed
+      show('already-in');
+      return;
+    } else {
+      // Pending — resume timer
+      const confirmAt = new Date(existing.points_confirm_at);
+      const visitScans = await getVisitScans(player.id);
+      if (confirmAt - new Date() <= 0) {
+        showSuccessScreen(existing.points_earned, visitScans.length);
+      } else {
+        document.getElementById('confirm-time').textContent = confirmAt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        document.getElementById('pending-pts').textContent = existing.points_earned;
+        const dotsEl = document.getElementById('pending-dots');
+        dotsEl.innerHTML = '';
+        for (let i = 0; i < MAX_SCANS_PER_VISIT; i++) {
+          const d = document.createElement('div');
+          d.className = 'scan-dot' + (i < visitScans.length ? ' used' : '');
+          dotsEl.appendChild(d);
+        }
+        show('pending');
+        startTimer(confirmAt, player, existing.id, existing.points_earned);
+      }
+      return;
+    }
+  }
 
   const visitScans = await getVisitScans(player.id);
   if (visitScans.length >= MAX_SCANS_PER_VISIT) { show('cap-reached'); hide('form-new'); hide('form-returning'); return; }
