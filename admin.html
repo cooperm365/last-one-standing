@@ -542,7 +542,7 @@ async function loadStats() {
   if (since) cq = cq.gte('scanned_at', since);
   const { data: checkins } = await cq;
 
-  const { data: allPlayers } = await sb.from('players').select('id, created_at');
+  const { data: allPlayers } = await sb.from('player_profiles').select('id, created_at');
 
   const ci = checkins || [];
   const players = allPlayers || [];
@@ -711,9 +711,13 @@ async function reviewHunt(submissionId, status, playerId) {
   await sb.from('hunt_submissions').update({ status }).eq('id', submissionId);
 
   if (status === 'approved' && playerId) {
-    const { data: player } = await sb.from('players').select('total_points').eq('id', playerId).single();
-    await sb.from('players').update({ total_points: (player?.total_points||0) + 20 }).eq('id', playerId);
-    await sb.from('bonus_points').insert({ player_id: playerId, points: 20, reason: 'Scavenger hunt verified ✓' });
+    const { data: barScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', playerId).eq('bar_id', currentBar.id).single();
+    if (barScore) {
+      await sb.from('player_bar_scores').update({ total_points: (barScore.total_points||0) + 20 }).eq('player_id', playerId).eq('bar_id', currentBar.id);
+    } else {
+      await sb.from('player_bar_scores').insert({ player_id: playerId, bar_id: currentBar.id, total_points: 20 });
+    }
+    await sb.from('bonus_points').insert({ player_id: playerId, points: 20, reason: 'Scavenger hunt verified ✓', bar_id: currentBar.id });
   }
 
   loadHuntSubmissions();
@@ -728,7 +732,7 @@ async function loadHuntSubmissions() {
   const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
 
   const { data } = await sb.from('hunt_submissions')
-    .select('*, players(id, name, phone)')
+    .select('*, player_profiles(id, name, phone)')
     .eq('clue_day', dayOfYear)
     .order('created_at', { ascending: false });
 
@@ -759,8 +763,8 @@ async function loadHuntSubmissions() {
     return `<div class="card" style="margin-bottom:1rem">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem">
         <div>
-          <div style="font-weight:600;font-size:15px">${esc(s.players?.name || '?')}</div>
-          <div style="font-size:12px;color:var(--text-muted)">${s.players?.phone || ''} · ${date}</div>
+          <div style="font-weight:600;font-size:15px">${esc(s.player_profiles?.name || '?')}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${s.player_profiles?.phone || ''} · ${date}</div>
           <div style="font-size:12px;color:var(--gold);margin-top:3px">🔍 ${esc(s.clue_text || '')}</div>
         </div>
         <span style="font-size:12px;font-weight:600;color:${statusColor}">${statusLabel}</span>
@@ -769,7 +773,7 @@ async function loadHuntSubmissions() {
       ${s.status === 'pending' ? `
       <div style="display:flex;gap:8px">
         ${canApprove
-          ? `<button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:rgba(62,207,142,0.3)" onclick="approveHunt('${s.id}','${s.players?.id}','${esc(s.players?.name||'')}')">✅ Approve & award 20pts</button>`
+          ? `<button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:rgba(62,207,142,0.3)" onclick="approveHunt('${s.id}','${s.player_profiles?.id}','${esc(s.player_profiles?.name||'')}')">✅ Approve & award 20pts</button>`
           : `<button class="btn btn-outline btn-sm" style="flex:1;opacity:0.4;cursor:not-allowed" disabled>Max winners reached</button>`
         }
         <button class="btn btn-outline btn-sm" style="flex:1;color:var(--red);border-color:rgba(245,101,101,0.3)" onclick="rejectHunt('${s.id}')">❌ Reject</button>
@@ -781,9 +785,13 @@ async function loadHuntSubmissions() {
 async function approveHunt(submissionId, playerId, playerName) {
   if (!confirm(`Award 20 points to ${playerName} for this submission?`)) return;
   await sb.from('hunt_submissions').update({ status: 'approved' }).eq('id', submissionId);
-  const { data: player } = await sb.from('players').select('total_points').eq('id', playerId).single();
-  await sb.from('players').update({ total_points: (player?.total_points||0) + 20 }).eq('id', playerId);
-  await sb.from('bonus_points').insert({ player_id: playerId, points: 20, reason: 'Scavenger hunt — photo verified' });
+  const { data: barScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', playerId).eq('bar_id', currentBar.id).single();
+  if (barScore) {
+    await sb.from('player_bar_scores').update({ total_points: (barScore.total_points||0) + 20 }).eq('player_id', playerId).eq('bar_id', currentBar.id);
+  } else {
+    await sb.from('player_bar_scores').insert({ player_id: playerId, bar_id: currentBar.id, total_points: 20 });
+  }
+  await sb.from('bonus_points').insert({ player_id: playerId, points: 20, reason: 'Scavenger hunt — photo verified', bar_id: currentBar.id });
   loadHuntSubmissions();
 }
 
