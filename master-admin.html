@@ -228,7 +228,7 @@ function signOut() {
 async function loadDashboard() {
   const [{ data: bars }, { data: players }, { data: checkins }] = await Promise.all([
     sb.from('bars').select('*').order('created_at', { ascending: true }),
-    sb.from('players').select('id', { count: 'exact' }),
+    sb.from('player_profiles').select('id', { count: 'exact' }),
     sb.from('checkins').select('id', { count: 'exact' })
   ]);
 
