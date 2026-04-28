@@ -414,6 +414,11 @@ async function doCheckin(player) {
   localStorage.setItem('br_phone', player.phone);
   hide('form-new'); hide('form-returning');
 
+  // Show tutorial for first-time users
+  const tutorialDone = localStorage.getItem('br_tutorial_done');
+  const isNewPlayer = !localStorage.getItem('br_returning');
+  localStorage.setItem('br_returning', '1');
+
   // Show pending screen
   const pts = eventData.points_value;
   const scanCount = visitScans.length + 1;
