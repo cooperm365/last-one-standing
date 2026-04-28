@@ -258,6 +258,9 @@ async function init() {
     showNew();
   }
 
+  // Disable buttons until event data loads
+  document.querySelectorAll('.btn-primary').forEach(b => b.disabled = true);
+
   // Load event details in background — just updates the card
   try {
     const { data } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
@@ -269,8 +272,11 @@ async function init() {
     document.getElementById('ret-pts').textContent = data.points_value;
     const labels = { darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia', bingo:'🎰 Bingo', live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event' };
     document.getElementById('event-type-badge').innerHTML = '<span class="badge badge-gold">' + (labels[data.type] || data.type) + '</span>';
-  } catch(e) {}
-}
+    // Enable buttons now that event is loaded
+    document.querySelectorAll('.btn-primary').forEach(b => b.disabled = false);
+  } catch(e) {
+    document.getElementById('event-name').textContent = 'Could not load event — check connection';
+  }
 
 async function getVisitScans(playerId) {
   const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
@@ -285,7 +291,7 @@ async function hasScannedThisEvent(playerId, eventId) {
 
 async function doCheckin(player) {
   if (!eventData) {
-    showMsg('ret-msg', 'Still loading — tap again in a moment.', 'error');
+    showMsg('ret-msg', 'Loading event data — tap again in a moment.', 'error');
     return;
   }
   const alreadyScanned = await hasScannedThisEvent(player.id, eventData.id);
@@ -369,19 +375,31 @@ async function submitNewPlayer() {
   const phone = normalizePhone(document.getElementById('new-phone').value.trim());
   if (!name) { showMsg('new-msg', 'Please enter your name.', 'error'); return; }
   if (!phone) { showMsg('new-msg', 'Please enter a valid mobile number.', 'error'); return; }
-  const { data: existing } = await sb.from('players').select('*').eq('phone', phone).single();
-  if (existing) { await doCheckin(existing); return; }
-  const { data: newPlayer, error } = await sb.from('players').insert({ name, phone, total_points: 0 }).select().single();
-  if (error) { showMsg('new-msg', 'Could not create account. Try again.', 'error'); return; }
-  await doCheckin(newPlayer);
+  const btn = event.target.closest('button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking in...'; }
+  try {
+    const { data: existing } = await sb.from('players').select('*').eq('phone', phone).single();
+    if (existing) { await doCheckin(existing); return; }
+    const { data: newPlayer, error } = await sb.from('players').insert({ name, phone, total_points: 0 }).select().single();
+    if (error) { showMsg('new-msg', 'Could not create account. Try again.', 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Check in — ' + (eventData?.points_value||'') + ' points'; } return; }
+    await doCheckin(newPlayer);
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Check in'; }
+  }
 }
 
 async function submitReturning() {
   const phone = normalizePhone(document.getElementById('ret-phone').value.trim());
   if (!phone) { showMsg('ret-msg', 'Please enter your mobile number.', 'error'); return; }
-  const { data: player } = await sb.from('players').select('*').eq('phone', phone).single();
-  if (!player) { showMsg('ret-msg', "We don't recognise that number. Are you new?", 'error'); return; }
-  await doCheckin(player);
+  const btn = event.target.closest('button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking in...'; }
+  try {
+    const { data: player } = await sb.from('players').select('*').eq('phone', phone).single();
+    if (!player) { showMsg('ret-msg', "We don't recognise that number. Are you new?", 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Check in — ' + (eventData?.points_value||'') + ' points'; } return; }
+    await doCheckin(player);
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Check in'; }
+  }
 }
 
 function show(id) { document.getElementById(id).style.display = 'block'; }
