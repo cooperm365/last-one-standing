@@ -1072,16 +1072,16 @@ async function loadHuntTab() {
   const clue = getTodayClue();
   document.getElementById('hunt-clue-text').textContent = clue.text;
 
-  // Check winners cap — how many approved today
+  // Check winners cap — scoped to this bar
   const { data: approvedToday } = await sb.from('hunt_submissions')
-    .select('id').eq('clue_day', clue.day).eq('status', 'approved');
+    .select('id').eq('clue_day', clue.day).eq('status', 'approved').eq('bar_id', currentBar?.id || '');
   const winnersToday = (approvedToday || []).length;
   const MAX_WINNERS = 3;
   const spotsLeft = MAX_WINNERS - winnersToday;
 
-  // Check if already submitted today
+  // Check if already submitted today at THIS bar
   const { data: existing } = await sb.from('hunt_submissions')
-    .select('*').eq('player_id', currentPlayer.id).eq('clue_day', clue.day).single();
+    .select('*').eq('player_id', currentPlayer.id).eq('clue_day', clue.day).eq('bar_id', currentBar?.id || '').single();
 
   if (existing) {
     document.getElementById('hunt-clue-section').style.display = 'none';
@@ -1166,7 +1166,8 @@ async function submitHuntPhoto() {
     clue_day: clue.day,
     clue_text: clue.text,
     photo_data: photoData,
-    status: 'pending'
+    status: 'pending',
+    bar_id: currentBar?.id || null
   });
 
   if (error) {
