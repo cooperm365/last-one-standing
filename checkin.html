@@ -272,10 +272,58 @@ async function init() {
     document.getElementById('ret-pts').textContent = data.points_value;
     const labels = { darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia', bingo:'🎰 Bingo', live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event' };
     document.getElementById('event-type-badge').innerHTML = '<span class="badge badge-gold">' + (labels[data.type] || data.type) + '</span>';
-    // Enable buttons now that event is loaded
+
+    // If returning player, check immediately if they already scanned this event
+    if (savedPhone) {
+      const phone = savedPhone.replace(/\D/g, '');
+      const { data: player } = await sb.from('players').select('id').eq('phone', phone).single();
+      if (player) {
+        const { data: existing } = await sb.from('checkins').select('id, pending, points_confirm_at')
+          .eq('player_id', player.id).eq('event_id', eventId).single();
+        if (existing) {
+          if (!existing.pending) {
+            // Already fully confirmed — show already checked in
+            hide('form-new'); hide('form-returning');
+            show('already-in');
+            return;
+          } else {
+            // Has pending checkin — resume timer
+            const confirmAt = new Date(existing.points_confirm_at);
+            const remaining = confirmAt - new Date();
+            hide('form-new'); hide('form-returning');
+            if (remaining <= 0) {
+              // Timer already expired — show success
+              const { data: visitScans } = await sb.from('checkins').select('id')
+                .eq('player_id', player.id)
+                .gte('scanned_at', new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString());
+              showSuccessScreen(data.points_value, (visitScans||[]).length);
+            } else {
+              // Resume timer
+              document.getElementById('confirm-time').textContent = confirmAt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+              const { data: fullPlayer } = await sb.from('players').select('*').eq('id', player.id).single();
+              const visitScans = await getVisitScans(player.id);
+              const dotsEl = document.getElementById('pending-dots');
+              dotsEl.innerHTML = '';
+              for (let i = 0; i < MAX_SCANS_PER_VISIT; i++) {
+                const d = document.createElement('div');
+                d.className = 'scan-dot' + (i < visitScans.length ? ' used' : '');
+                dotsEl.appendChild(d);
+              }
+              document.getElementById('pending-pts').textContent = data.points_value;
+              show('pending');
+              startTimer(confirmAt, fullPlayer, existing.id, data.points_value);
+            }
+            return;
+          }
+        }
+      }
+    }
+
+    // Enable buttons — no existing checkin found
     document.querySelectorAll('.btn-primary').forEach(b => b.disabled = false);
   } catch(e) {
     document.getElementById('event-name').textContent = 'Could not load event — check connection';
+    document.querySelectorAll('.btn-primary').forEach(b => b.disabled = false);
   }
 
 async function getVisitScans(playerId) {
