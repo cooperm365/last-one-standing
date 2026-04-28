@@ -407,12 +407,10 @@ const DRINKS = {
   social:    { emoji:'🍺', name:'Round of Beers', description:'Get a round in for the crew. Keep it simple — a round of drafts is the move when you\'re out with your people.' },
   wild:      { emoji:'🔥', name:'Tequila Shot', description:'You said send it. One tequila shot, no overthinking it. Just make sure you can still hit that bullseye after.' }
 };
-  if (!currentPlayer) {
-    alert('Sign in first to play!'); return;
-  }
-  if (currentPlayer.total_points < currentWager) {
-    alert(`You only have ${currentPlayer.total_points} points. Lower your wager.`); return;
-  }
+
+async function startTrivia() {
+  if (!currentPlayer) { alert('Sign in first to play!'); return; }
+  if (currentPlayer.total_points < currentWager) { alert(`You only have ${currentPlayer.total_points} points. Lower your wager.`); return; }
 
   document.getElementById('trivia-setup').style.display = 'none';
   document.getElementById('trivia-loading').style.display = 'block';
@@ -429,17 +427,12 @@ const DRINKS = {
   const opts = document.getElementById('q-options');
   opts.innerHTML = '';
   currentQuestion.options.forEach((opt, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'q-opt';
-      btn.textContent = opt;
-      btn.onclick = () => answerTrivia(i, btn);
-      opts.appendChild(btn);
-    });
-  } catch(e) {
-    document.getElementById('trivia-loading').style.display = 'none';
-    document.getElementById('trivia-setup').style.display = 'block';
-    alert('Could not load question. Check your connection and try again.');
-  }
+    const btn = document.createElement('button');
+    btn.className = 'q-opt';
+    btn.textContent = opt;
+    btn.onclick = () => answerTrivia(i, btn);
+    opts.appendChild(btn);
+  });
 }
 
 async function answerTrivia(idx, btn) {
