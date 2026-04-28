@@ -188,6 +188,18 @@
       <a href="lounge.html" class="btn btn-outline btn-sm" id="link-lounge">🎲 Lounge</a>
       <a href="leaderboard.html" class="btn btn-outline btn-sm" id="link-leaderboard">Leaderboard</a>
     </div>
+    <script>
+      // Set links immediately from URL — before any async code runs
+      (function() {
+        const p = new URLSearchParams(location.search);
+        const slug = p.get('bar');
+        if (slug) {
+          document.getElementById('link-tutorial').href = `tutorial.html?bar=${slug}`;
+          document.getElementById('link-lounge').href = `lounge.html?bar=${slug}`;
+          document.getElementById('link-leaderboard').href = `leaderboard.html?bar=${slug}`;
+        }
+      })();
+    </script>
   </div>
 
   <!-- Phone lookup -->
