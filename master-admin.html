@@ -345,8 +345,9 @@ async function deleteBar(id) {
   await sb.from('challenges').delete().eq('bar_id', id);
   await sb.from('bonus_points').delete().eq('bar_id', id);
   await sb.from('checkins').delete().eq('bar_id', id);
+  await sb.from('player_bar_scores').delete().eq('bar_id', id);
   await sb.from('events').delete().eq('bar_id', id);
-  await sb.from('players').delete().eq('bar_id', id);
+  await sb.from('season_archives').delete().eq('bar_id', id);
   await sb.from('bars').delete().eq('id', id);
 
   loadDashboard();
