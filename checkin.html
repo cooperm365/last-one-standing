@@ -313,12 +313,25 @@ async function init() {
   const slug = getBarSlug();
   if (slug) currentBar = await getBar(sb, slug);
 
-  // Show form immediately
+  // Check if returning player HAS a score at THIS bar
   const savedPhone = localStorage.getItem('br_phone');
-  if (savedPhone) {
+  let isReturningAtThisBar = false;
+
+  if (savedPhone && currentBar) {
+    const { data: profile } = await sb.from('player_profiles').select('id').eq('phone', savedPhone.replace(/\D/g,'')).single();
+    if (profile) {
+      const { data: barScore } = await sb.from('player_bar_scores').select('id').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
+      isReturningAtThisBar = !!barScore;
+    }
+  }
+
+  // Show correct form — new form if first time at this bar
+  if (isReturningAtThisBar) {
     document.getElementById('ret-phone').value = savedPhone;
     showReturning();
   } else {
+    // Pre-fill phone if saved but show new form so they confirm name
+    if (savedPhone) document.getElementById('new-phone').value = savedPhone;
     showNew();
   }
 
@@ -432,13 +445,13 @@ async function doCheckin(player) {
   localStorage.setItem('br_phone', player.phone);
   hide('form-new'); hide('form-returning');
 
-  // Redirect first-time users to tutorial before showing the pending screen
-  const tutorialDone = localStorage.getItem('br_tutorial_done');
+  // Redirect first-time users at THIS BAR to tutorial
+  const barSlug = currentBar?.slug || getBarSlug() || 'default';
+  const tutorialKey = `br_tutorial_done_${barSlug}`;
+  const tutorialDone = localStorage.getItem(tutorialKey);
   if (!tutorialDone) {
-    // Save the checkin state so they can come back
-    localStorage.setItem('br_tutorial_done', '1');
-    const slug = currentBar?.slug || getBarSlug();
-    const returnUrl = slug ? `my-points.html?bar=${slug}` : 'my-points.html';
+    localStorage.setItem(tutorialKey, '1');
+    const returnUrl = barSlug !== 'default' ? `my-points.html?bar=${barSlug}` : 'my-points.html';
     window.location.href = `tutorial.html?return=${returnUrl}`;
     return;
   }
