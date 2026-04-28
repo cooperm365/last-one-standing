@@ -103,7 +103,7 @@ input:focus{border-color:var(--gold-dim)}
     </div>
   </div>
 
-  <div id="form-new" style="display:none">
+  <div id="form-new">
     <div class="card">
       <p style="font-size:14px;color:var(--muted);margin-bottom:1rem">First time? Enter your details to claim your points.</p>
       <label>Your name</label>
@@ -183,30 +183,9 @@ input:focus{border-color:var(--gold-dim)}
 </div>
 </div>
 
-<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" onload="onSupabaseLoaded()"></script>
-<script async src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-<script>
-// Show form immediately before any scripts load
-(function() {
-  const savedPhone = localStorage.getItem('br_phone');
-  if (savedPhone) {
-    document.getElementById('ret-phone').value = savedPhone;
-    document.getElementById('form-returning').style.display = 'block';
-    document.getElementById('form-new').style.display = 'none';
-  } else {
-    document.getElementById('form-new').style.display = 'block';
-    document.getElementById('form-returning').style.display = 'none';
-  }
-})();
-
-function onSupabaseLoaded() {
-  // Config is in js/config.js — load it now that supabase is ready
-  const s = document.createElement('script');
-  s.src = 'js/config.js';
-  s.onload = function() { init(); };
-  document.head.appendChild(s);
-}
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+<script src="js/config.js"></script>
 <script>
 const sb = getSupabase();
 const LOCK_MINUTES = 15;
@@ -282,7 +261,12 @@ async function init() {
   // Load event details in background — just updates the card header
   sb.from('events').select('*').eq('id', eventId).eq('active', true).single()
     .then(({ data }) => {
-      if (!data) { document.getElementById('event-name').textContent = 'Event not found'; return; }
+      if (!data) {
+        document.getElementById('form-new').style.display = 'none';
+        document.getElementById('form-returning').style.display = 'none';
+        document.getElementById('not-found').style.display = 'block';
+        return;
+      }
       eventData = data;
       document.getElementById('event-name').textContent = data.name;
       document.getElementById('event-points').textContent = data.points_value;
@@ -454,6 +438,8 @@ function showNew() { show('form-new'); hide('form-returning'); }
 function showReturning() { show('form-returning'); hide('form-new'); }
 function showMsg(id, text, type) { const el = document.getElementById(id); el.textContent = text; el.className = 'msg show msg-' + type; }
 function normalizePhone(raw) { const d = raw.replace(/\D/g,''); return d.length < 10 ? null : d; }
+
+init();
 </script>
 </body>
 </html>
