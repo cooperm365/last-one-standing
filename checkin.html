@@ -455,13 +455,7 @@ function startTimer(confirmAt, player, checkinId, pts) {
   const totalMs = LOCK_MINUTES * 60 * 1000;
   arc.style.strokeDashoffset = circumference * (1 - Math.min(1, (confirmAt - new Date()) / totalMs));
 
-  timerInterval = setInterval(() => {
-    const rem = confirmAt - new Date();
-    if (rem <= 0) { arc.style.strokeDashoffset = circumference; display.textContent = '0:00'; clearInterval(timerInterval); return; }
-    arc.style.strokeDashoffset = circumference * (1 - rem / totalMs);
-    display.textContent = Math.floor(rem/60000) + ':' + String(Math.floor((rem%60000)/1000)).padStart(2,'0');
-  }, 1000);
-
+  let fastPolling = false;
   const pollInterval = setInterval(async () => {
     const { data } = await sb.from('checkins').select('pending').eq('id', checkinId).single();
     if (data && !data.pending) {
@@ -469,7 +463,20 @@ function startTimer(confirmAt, player, checkinId, pts) {
       const visitScans = await getVisitScans(player.id);
       showSuccessScreen(pts, visitScans.length);
     }
-  }, 15000);
+  }, 3000);
+
+  // Also poll immediately when timer visually hits zero
+  timerInterval = setInterval(() => {
+    const rem = confirmAt - new Date();
+    if (rem <= 0) {
+      arc.style.strokeDashoffset = circumference;
+      display.textContent = '0:00';
+      clearInterval(timerInterval);
+    } else {
+      arc.style.strokeDashoffset = circumference * (1 - rem / totalMs);
+      display.textContent = Math.floor(rem/60000) + ':' + String(Math.floor((rem%60000)/1000)).padStart(2,'0');
+    }
+  }, 1000);
 }
 
 async function submitNewPlayer() {
