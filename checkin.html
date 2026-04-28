@@ -276,6 +276,7 @@ async function init() {
       document.getElementById('event-type-badge').innerHTML = '<span class="badge badge-gold">' + (labels[data.type] || data.type) + '</span>';
     })
     .catch(() => { document.getElementById('event-name').textContent = 'Could not load — check connection'; });
+}
 
 async function getVisitScans(playerId) {
   const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
