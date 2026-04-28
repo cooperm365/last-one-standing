@@ -254,6 +254,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="js/config.js"></script>
 <script>
@@ -268,6 +269,62 @@ let scanInterval = null;
 let ciTimerInterval = null;
 let ciPollInterval = null;
 let ciEventData = null;
+
+// ── CELEBRATION ───────────────────────────────────────
+function playSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (type === 'checkin') {
+      [0, 0.15].forEach((delay, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = i === 0 ? 880 : 1100;
+        o.type = 'sine';
+        g.gain.setValueAtTime(0, ctx.currentTime + delay);
+        g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + delay + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+        o.start(ctx.currentTime + delay); o.stop(ctx.currentTime + delay + 0.3);
+      });
+    } else {
+      [0, 0.12, 0.24, 0.36].forEach((delay, i) => {
+        const freqs = [523, 659, 784, 1047];
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = freqs[i]; o.type = 'triangle';
+        g.gain.setValueAtTime(0, ctx.currentTime + delay);
+        g.gain.linearRampToValueAtTime(0.25, ctx.currentTime + delay + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.35);
+        o.start(ctx.currentTime + delay); o.stop(ctx.currentTime + delay + 0.4);
+      });
+    }
+  } catch(e) {}
+}
+
+function fireConfetti(intensity) {
+  const count = intensity === 'big' ? 180 : 80;
+  confetti({ particleCount: count, spread: intensity === 'big' ? 100 : 60, origin: { y: 0.6 }, colors: ['#f0a500','#ffffff','#3ecf8e','#f0ede8'], scalar: intensity === 'big' ? 1.2 : 0.9, zIndex: 9999 });
+  if (intensity === 'big') {
+    setTimeout(() => confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: ['#f0a500','#ffffff','#3ecf8e'], zIndex: 9999 }), 200);
+    setTimeout(() => confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: ['#f0a500','#ffffff','#3ecf8e'], zIndex: 9999 }), 200);
+  }
+}
+
+function animateCounter(el, targetVal, duration) {
+  if (!el) return;
+  const start = performance.now();
+  function step(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(eased * targetVal);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function celebrate(type, pts) {
+  playSound(type);
+  fireConfetti(type === 'confirm' ? 'big' : 'small');
+}
 
 // ── PANELS ───────────────────────────────────────────
 function openPanel(id) { document.getElementById(id).classList.add('open'); }
@@ -449,7 +506,7 @@ async function ciDoCheckin(player) {
 }
 
 function ciShowPending(pts, confirmAt, scanCount) {
-  document.getElementById('ci-pending-pts').textContent = pts;
+  document.getElementById('ci-pending-pts').textContent = '0';
   document.getElementById('ci-confirm-time').textContent = confirmAt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
   const dotsEl = document.getElementById('ci-pending-dots');
   dotsEl.innerHTML = '';
@@ -459,10 +516,12 @@ function ciShowPending(pts, confirmAt, scanCount) {
     dotsEl.appendChild(d);
   }
   document.getElementById('ci-pending').style.display = 'block';
+  celebrate('checkin', pts);
+  setTimeout(() => animateCounter(document.getElementById('ci-pending-pts'), pts, 700), 200);
 }
 
 function ciShowSuccess(pts, scanCount) {
-  document.getElementById('ci-success-pts').textContent = pts;
+  document.getElementById('ci-success-pts').textContent = '0';
   const rem = MAX_SCANS_PER_VISIT - scanCount;
   document.getElementById('ci-success-remaining').textContent =
     rem > 0 ? `${rem} scan${rem !== 1 ? 's' : ''} left tonight` : 'No more scans tonight — come back tomorrow!';
@@ -475,6 +534,8 @@ function ciShowSuccess(pts, scanCount) {
   }
   document.getElementById('ci-pending').style.display = 'none';
   document.getElementById('ci-success').style.display = 'block';
+  celebrate('confirm', pts);
+  setTimeout(() => animateCounter(document.getElementById('ci-success-pts'), pts, 900), 200);
 }
 
 function ciStartTimer(confirmAt, player, checkinId) {
