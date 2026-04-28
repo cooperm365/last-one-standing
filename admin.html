@@ -363,12 +363,15 @@ async function loadEventsForBonus() {
 async function lookupBonusPlayer() {
   const phone = document.getElementById('bonus-phone').value.replace(/\D/g, '');
   if (!phone) return;
-  const { data } = await sb.from('players').select('*').eq('phone', phone).single();
+  const { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone).single();
   const info = document.getElementById('bonus-player-info');
-  if (!data) { info.style.display = 'block'; info.innerHTML = '<p style="color:var(--red);font-size:13px">Player not found.</p>'; bonusPlayerId = null; return; }
-  bonusPlayerId = data.id;
+  if (!profile) { info.style.display = 'block'; info.innerHTML = '<p style="color:var(--red);font-size:13px">Player not found.</p>'; bonusPlayerId = null; return; }
+  
+  // Get their score at this bar
+  const { data: barScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
+  bonusPlayerId = profile.id;
   info.style.display = 'block';
-  info.innerHTML = `<p style="font-size:14px"><strong>${esc(data.name)}</strong> · ${data.total_points} pts total</p>`;
+  info.innerHTML = `<p style="font-size:14px"><strong>${esc(profile.name)}</strong> · ${barScore?.total_points || 0} pts at this bar</p>`;
 }
 
 async function awardBonus() {
@@ -378,12 +381,16 @@ async function awardBonus() {
   const reason = document.getElementById('bonus-reason').value.trim() || null;
   const eventId = document.getElementById('bonus-event').value || null;
 
-  const { error } = await sb.from('bonus_points').insert({ player_id: bonusPlayerId, points: pts, reason, event_id: eventId });
+  const { error } = await sb.from('bonus_points').insert({ player_id: bonusPlayerId, points: pts, reason, event_id: eventId, bar_id: currentBar.id });
   if (error) { showMsg('bonus-msg', 'Error awarding points.', 'error'); return; }
 
-  // Update total on player
-  const { data: player } = await sb.from('players').select('total_points').eq('id', bonusPlayerId).single();
-  await sb.from('players').update({ total_points: (player?.total_points || 0) + pts }).eq('id', bonusPlayerId);
+  // Update bar score
+  const { data: barScore } = await sb.from('player_bar_scores').select('total_points, id').eq('player_id', bonusPlayerId).eq('bar_id', currentBar.id).single();
+  if (barScore) {
+    await sb.from('player_bar_scores').update({ total_points: (barScore.total_points || 0) + pts }).eq('id', barScore.id);
+  } else {
+    await sb.from('player_bar_scores').insert({ player_id: bonusPlayerId, bar_id: currentBar.id, total_points: pts });
+  }
 
   showMsg('bonus-msg', `${pts} bonus points awarded!`, 'success');
   document.getElementById('bonus-pts').value = '';
@@ -435,14 +442,13 @@ async function loadActivityStats() {
 
 // --- Players ---
 async function loadPlayers() {
-  const { data: players } = await sb.from('players').select('*').eq('bar_id', currentBar.id).order('total_points', { ascending: false });
+  const { data: scores } = await sb.from('player_bar_scores').select('*, player_profiles(id, name, phone, created_at)').eq('bar_id', currentBar.id).order('total_points', { ascending: false });
   const { data: checkins } = await sb.from('checkins').select('player_id').eq('bar_id', currentBar.id);
   const countMap = {};
   (checkins || []).forEach(c => { countMap[c.player_id] = (countMap[c.player_id] || 0) + 1; });
 
   document.getElementById('players-loading').style.display = 'none';
 
-  // Add table header with clear-all-test-data button
   const tableEl = document.getElementById('players-table');
   tableEl.querySelector('thead tr').innerHTML = `
     <th>#</th><th>Name</th><th>Phone</th>
@@ -452,39 +458,40 @@ async function loadPlayers() {
     <th style="text-align:right">Actions</th>`;
 
   const tbody = document.getElementById('players-tbody');
-  tbody.innerHTML = (players || []).map((p, i) => `
-    <tr>
+  tbody.innerHTML = (scores || []).map((s, i) => {
+    const p = s.player_profiles;
+    if (!p) return '';
+    return `<tr>
       <td style="color:var(--text-muted)">${i + 1}</td>
       <td style="font-weight:500">${esc(p.name)}</td>
       <td style="color:var(--text-muted)">${p.phone}</td>
-      <td style="text-align:right;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:18px">${p.total_points}</td>
+      <td style="text-align:right;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:18px">${s.total_points}</td>
       <td style="text-align:right">${countMap[p.id] || 0}</td>
       <td style="color:var(--text-muted)">${new Date(p.created_at).toLocaleDateString('en-US')}</td>
       <td style="text-align:right;white-space:nowrap">
         <button class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 8px;color:var(--text-muted)" onclick="resetPlayerScans('${p.id}','${esc(p.name)}')">Reset scans</button>
-        <button class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 8px;color:var(--red);border-color:rgba(245,101,101,0.3);margin-left:4px" onclick="deletePlayer('${p.id}','${esc(p.name)}')">Delete</button>
+        <button class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 8px;color:var(--red);border-color:rgba(245,101,101,0.3);margin-left:4px" onclick="deletePlayerFromBar('${p.id}','${esc(p.name)}')">Remove</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   tableEl.style.display = 'table';
 }
 
 async function resetPlayerScans(playerId, name) {
-  if (!confirm(`Reset all check-ins for ${name}? Their points will be recalculated. Use this for testing.`)) return;
-  await sb.from('checkins').delete().eq('player_id', playerId);
-  await sb.from('bonus_points').delete().eq('player_id', playerId);
-  await sb.from('players').update({ total_points: 0 }).eq('id', playerId);
+  if (!confirm(`Reset all check-ins for ${name} at this bar?`)) return;
+  await sb.from('checkins').delete().eq('player_id', playerId).eq('bar_id', currentBar.id);
+  await sb.from('bonus_points').delete().eq('player_id', playerId).eq('bar_id', currentBar.id);
+  await sb.from('player_bar_scores').update({ total_points: 0 }).eq('player_id', playerId).eq('bar_id', currentBar.id);
   showMsg('players-loading', `${name}'s scans cleared.`, 'success');
   loadPlayers();
-  loadActivityStats();
 }
 
-async function deletePlayer(playerId, name) {
-  if (!confirm(`Permanently delete ${name}? This removes them and all their check-ins. Cannot be undone.`)) return;
-  await sb.from('checkins').delete().eq('player_id', playerId);
-  await sb.from('bonus_points').delete().eq('player_id', playerId);
-  await sb.from('players').delete().eq('id', playerId);
+async function deletePlayerFromBar(playerId, name) {
+  if (!confirm(`Remove ${name} from this bar? Their profile at other bars will remain.`)) return;
+  await sb.from('checkins').delete().eq('player_id', playerId).eq('bar_id', currentBar.id);
+  await sb.from('bonus_points').delete().eq('player_id', playerId).eq('bar_id', currentBar.id);
+  await sb.from('player_bar_scores').delete().eq('player_id', playerId).eq('bar_id', currentBar.id);
   loadPlayers();
-  loadActivityStats();
 }
 
 // --- Stats Dashboard ---
