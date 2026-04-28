@@ -778,8 +778,15 @@ const directEventId = urlParams.get('event');
 
 if (saved) {
   document.getElementById('lookup-phone').value = saved;
-  // If there's an event param, open the checkin panel after dashboard loads
   if (directEventId) {
+    // Show a loading screen immediately so user doesn't see a blank page
+    document.getElementById('lookup-form').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'none';
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'initial-loading';
+    loadingDiv.style.cssText = 'text-align:center;padding:3rem 1rem';
+    loadingDiv.innerHTML = '<span class="spinner"></span><p style="margin-top:1rem;color:var(--text-muted);font-size:14px">Loading your account...</p>';
+    document.querySelector('.page').appendChild(loadingDiv);
     lookupThenCheckin(saved, directEventId);
   } else {
     lookup();
@@ -789,22 +796,24 @@ if (saved) {
 async function lookupThenCheckin(phone, eventId) {
   const digits = phone.replace(/\D/g, '');
   try {
-    const { data: player, error } = await sb.from('players').select('*').eq('phone', digits).single();
-    if (error || !player) {
-      // Player not found — clear stale phone and show lookup form
+    const { data: player } = await sb.from('players').select('*').eq('phone', digits).single();
+    const loadingEl = document.getElementById('initial-loading');
+    if (loadingEl) loadingEl.remove();
+
+    if (!player) {
+      // Stale phone — clear it and show lookup form
       localStorage.removeItem('br_phone');
       document.getElementById('lookup-form').style.display = 'block';
-      document.getElementById('dashboard').style.display = 'none';
       return;
     }
     currentPlayer = player;
     await showDashboard(player);
     openCheckinPanel(eventId);
   } catch(e) {
-    // Something went wrong — just show the lookup form
+    const loadingEl = document.getElementById('initial-loading');
+    if (loadingEl) loadingEl.remove();
     localStorage.removeItem('br_phone');
     document.getElementById('lookup-form').style.display = 'block';
-    document.getElementById('dashboard').style.display = 'none';
   }
 }
 </script>
