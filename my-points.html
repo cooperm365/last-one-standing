@@ -476,19 +476,29 @@ async function ciSubmitNew() {
   if (!name) { ciShowMsg('ci-new-msg', 'Please enter your name.', 'error'); return; }
   if (!phone) { ciShowMsg('ci-new-msg', 'Please enter a valid mobile number.', 'error'); return; }
 
-  const { data: existing } = await sb.from('players').select('*').eq('phone', phone).single();
-  if (existing) {
-    currentPlayer = existing;
-    localStorage.setItem('br_phone', phone);
-    await ciDoCheckin(existing);
-    return;
+  // Check global profile
+  let { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone).single();
+  if (!profile) {
+    const { data: newProfile, error } = await sb.from('player_profiles').insert({ name, phone }).select().single();
+    if (error) { ciShowMsg('ci-new-msg', 'Could not create account. Try again.', 'error'); return; }
+    profile = newProfile;
   }
 
-  const { data: newPlayer, error } = await sb.from('players').insert({ name, phone, total_points: 0 }).select().single();
-  if (error) { ciShowMsg('ci-new-msg', 'Could not create account. Try again.', 'error'); return; }
-  currentPlayer = newPlayer;
+  // Get or create bar score
+  let barScore = null;
+  if (currentBar) {
+    const { data: existing } = await sb.from('player_bar_scores').select('*').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
+    if (existing) { barScore = existing; }
+    else {
+      const { data: created } = await sb.from('player_bar_scores').insert({ player_id: profile.id, bar_id: currentBar.id, total_points: 0 }).select().single();
+      barScore = created;
+    }
+  }
+
+  const player = { ...profile, total_points: barScore?.total_points || 0 };
+  currentPlayer = player;
   localStorage.setItem('br_phone', phone);
-  await ciDoCheckin(newPlayer);
+  await ciDoCheckin(player);
 }
 
 async function ciDoCheckin(player) {
@@ -871,8 +881,7 @@ function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 async function lookupThenCheckin(phone, eventId) {
   const digits = phone.replace(/\D/g, '');
   try {
-    let query = sb.from('players').select('*').eq('phone', digits);
-    if (currentBar) query = query.eq('bar_id', currentBar.id);
+    let query = sb.from('player_profiles').select('*').eq('phone', digits);
     const { data: player } = await query.single();
     const loadingEl = document.getElementById('initial-loading');
     if (loadingEl) loadingEl.remove();
