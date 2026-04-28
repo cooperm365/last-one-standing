@@ -500,7 +500,8 @@ function switchTab(name, btn) {
 function updateWager(val) {
   currentWager = parseInt(val);
   document.getElementById('wager-display').textContent = currentWager;
-  document.getElementById('wager-slider').value = currentWager;
+  const slider = document.getElementById('wager-slider');
+  if (slider) slider.value = currentWager;
   document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
 }
 function setWager(val) {
