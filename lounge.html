@@ -133,7 +133,13 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
       <div class="site-name">The Lounge</div>
       <div class="site-sub">Hang out. Earn more.</div>
     </div>
-    <a href="my-points.html" class="back-btn">← My Score</a>
+    <a id="lounge-back-btn" href="my-points.html" class="back-btn">← My Score</a>
+    <script>
+      (function() {
+        const slug = new URLSearchParams(location.search).get('bar');
+        if (slug) document.getElementById('lounge-back-btn').href = `my-points.html?bar=${slug}`;
+      })();
+    </script>
   </div>
 
   <div class="tab-bar">
@@ -443,19 +449,25 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
 <script>
 const sb = getSupabase();
 let currentPlayer = null;
+let currentBar = null;
 let currentWager = 10;
 let currentQuestion = null;
 let selfieStream = null;
+let huntStream = null;
 let facingMode = 'user';
+
+// Load bar immediately — before anything else
+(async () => {
+  const slug = getBarSlug();
+  if (slug) currentBar = await getBar(sb, slug);
+  await loadPlayer();
+  checkChallengeNotification();
+})();
 
 // ── LOAD PLAYER ──────────────────────────────────────
 async function loadPlayer() {
   const phone = localStorage.getItem('br_phone');
   if (!phone) return;
-
-  // Load bar context
-  const slug = getBarSlug();
-  if (slug && !currentBar) currentBar = await getBar(sb, slug);
 
   // Look up global profile
   const { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone.replace(/\D/g,'')).single();
@@ -1171,8 +1183,6 @@ async function submitHuntPhoto() {
   document.getElementById('hunt-done-msg').textContent = '⏳ Pending staff review — check back soon for your points.';
 }
 
-loadPlayer();
-checkChallengeNotification();
 </script>
 </body>
 </html>
