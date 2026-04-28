@@ -349,9 +349,21 @@ async function hasScannedThisEvent(playerId, eventId) {
 }
 
 async function doCheckin(player) {
+  // Wait up to 5 seconds for eventData if still loading
   if (!eventData) {
-    showMsg('ret-msg', 'Still loading event — tap again in a moment.', 'error');
-    return;
+    const btn = document.querySelector('.btn-primary');
+    const originalText = btn ? btn.textContent : '';
+    if (btn) btn.textContent = 'Loading...';
+    let waited = 0;
+    while (!eventData && waited < 5000) {
+      await new Promise(r => setTimeout(r, 200));
+      waited += 200;
+    }
+    if (btn) btn.textContent = originalText;
+    if (!eventData) {
+      showMsg('ret-msg', 'Could not load event. Check your connection and try again.', 'error');
+      return;
+    }
   }
 
   // Check for existing checkin on this event
