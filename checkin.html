@@ -183,9 +183,30 @@ input:focus{border-color:var(--gold-dim)}
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-<script src="js/config.js"></script>
+<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" onload="onSupabaseLoaded()"></script>
+<script async src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+<script>
+// Show form immediately before any scripts load
+(function() {
+  const savedPhone = localStorage.getItem('br_phone');
+  if (savedPhone) {
+    document.getElementById('ret-phone').value = savedPhone;
+    document.getElementById('form-returning').style.display = 'block';
+    document.getElementById('form-new').style.display = 'none';
+  } else {
+    document.getElementById('form-new').style.display = 'block';
+    document.getElementById('form-returning').style.display = 'none';
+  }
+})();
+
+function onSupabaseLoaded() {
+  // Config is in js/config.js — load it now that supabase is ready
+  const s = document.createElement('script');
+  s.src = 'js/config.js';
+  s.onload = function() { init(); };
+  document.head.appendChild(s);
+}
+</script>
 <script>
 const sb = getSupabase();
 const LOCK_MINUTES = 15;
@@ -433,8 +454,6 @@ function showNew() { show('form-new'); hide('form-returning'); }
 function showReturning() { show('form-returning'); hide('form-new'); }
 function showMsg(id, text, type) { const el = document.getElementById(id); el.textContent = text; el.className = 'msg show msg-' + type; }
 function normalizePhone(raw) { const d = raw.replace(/\D/g,''); return d.length < 10 ? null : d; }
-
-init();
 </script>
 </body>
 </html>
