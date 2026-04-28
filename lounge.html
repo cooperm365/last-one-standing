@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Lounge - Bar Rank</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#111110;--bg2:#1a1a18;--bg3:#222220;
+  --border:rgba(255,255,255,0.08);
+  --gold:#f0a500;--gold-dim:#a87300;--gold-bg:rgba(240,165,0,0.1);
+  --text:#f0ede8;--muted:#888780;--dim:#444441;
+  --green:#3ecf8e;--red:#f56565;--radius:12px;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.5;min-height:100vh;overflow-x:hidden}
+.page{max-width:480px;margin:0 auto;padding:0 0 6rem}
+
+/* HEADER */
+.header{padding:1.5rem 1.25rem 0;display:flex;align-items:center;gap:12px;margin-bottom:0}
+.logo-mark{width:38px;height:38px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#111;flex-shrink:0}
+.site-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--gold)}
+.site-sub{font-size:11px;color:var(--muted)}
+.back-btn{margin-left:auto;background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:999px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none}
+
+/* TAB BAR */
+.tab-bar{display:flex;gap:4px;padding:1.25rem 1.25rem 0;position:sticky;top:0;background:var(--bg);z-index:10;padding-bottom:0.75rem;border-bottom:1px solid var(--border)}
+.tab-btn{flex:1;padding:0.6rem 0.5rem;border:1px solid var(--border);background:var(--bg2);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;line-height:1.3}
+.tab-btn.active{background:var(--gold);color:#111;border-color:var(--gold)}
+.tab-icon{font-size:18px;display:block;margin-bottom:2px}
+
+/* PANELS */
+.panel{display:none;padding:1.25rem;animation:fadeUp 0.3s ease both}
+.panel.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.card-gold{border-color:var(--gold-dim);background:var(--gold-bg)}
+
+/* BUTTONS */
+.btn{display:block;width:100%;padding:0.9rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;border:none;text-align:center;transition:all 0.15s;text-decoration:none}
+.btn:active{transform:scale(0.97)}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn-gold{background:var(--gold);color:#111}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-red{background:var(--red);color:#fff}
+.btn-green{background:var(--green);color:#111}
+.btn-sm{padding:0.5rem 1rem;font-size:13px;width:auto;display:inline-block}
+
+/* ── TRIVIA ── */
+.wager-section{margin-bottom:1.5rem}
+.wager-label{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem;font-weight:600}
+.wager-display{font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--gold);text-align:center;line-height:1;margin-bottom:0.5rem}
+.wager-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:1rem}
+input[type="range"]{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--bg3);outline:none;margin-bottom:0.5rem}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--gold);cursor:pointer;border:3px solid #111;box-shadow:0 0 0 2px var(--gold-dim)}
+.wager-presets{display:flex;gap:8px;margin-bottom:1.5rem}
+.preset{flex:1;padding:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s}
+.preset:hover,.preset.active{background:var(--gold-bg);border-color:var(--gold-dim);color:var(--gold)}
+
+.q-card{background:var(--bg2);border:2px solid var(--gold-dim);border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem;position:relative;overflow:hidden}
+.q-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#fff,var(--gold));animation:shimmer 2s infinite}
+@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+.q-category{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:0.75rem}
+.q-text{font-size:17px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:1.25rem}
+.q-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.q-opt{padding:0.75rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;text-align:center;transition:all 0.2s;font-family:'DM Sans',sans-serif;color:var(--text)}
+.q-opt:hover{border-color:var(--gold-dim);background:var(--gold-bg)}
+.q-opt.correct{background:rgba(62,207,142,0.2);border-color:var(--green);color:var(--green)}
+.q-opt.wrong{background:rgba(245,101,101,0.15);border-color:var(--red);color:var(--red)}
+.q-opt:disabled{cursor:not-allowed}
+
+.result-card{text-align:center;padding:2rem 1.25rem}
+.result-emoji{font-size:52px;margin-bottom:0.75rem}
+.result-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:1px;margin-bottom:0.5rem}
+.result-pts{font-family:'Bebas Neue',sans-serif;font-size:64px;line-height:1;margin-bottom:0.25rem}
+.result-sub{font-size:14px;color:var(--muted);margin-bottom:1.5rem}
+
+/* ── SELFIE ── */
+.selfie-wrap{position:relative;width:100%;border-radius:var(--radius);overflow:hidden;background:#000;aspect-ratio:3/4}
+#selfie-video{width:100%;height:100%;object-fit:cover;display:block}
+.selfie-overlay{position:absolute;inset:0;pointer-events:none}
+.frame-corner{position:absolute;width:40px;height:40px}
+.frame-corner.tl{top:12px;left:12px;border-top:3px solid var(--gold);border-left:3px solid var(--gold)}
+.frame-corner.tr{top:12px;right:12px;border-top:3px solid var(--gold);border-right:3px solid var(--gold)}
+.frame-corner.bl{bottom:12px;left:12px;border-bottom:3px solid var(--gold);border-left:3px solid var(--gold)}
+.frame-corner.br{bottom:12px;right:12px;border-bottom:3px solid var(--gold);border-right:3px solid var(--gold)}
+.selfie-nameplate{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.85));padding:2rem 1rem 1rem;text-align:center}
+.selfie-name{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--gold)}
+.selfie-rank{font-size:13px;color:rgba(255,255,255,0.7);margin-top:2px}
+.selfie-bar{font-size:11px;color:var(--gold-dim);margin-top:1px}
+.selfie-controls{display:flex;gap:10px;margin-top:1rem}
+.snap-btn{flex:1;padding:1rem;background:var(--gold);color:#111;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.flip-btn{width:52px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
+#selfie-canvas{display:none}
+.photo-preview{width:100%;border-radius:var(--radius);display:none;margin-bottom:1rem}
+
+/* ── ORDER UP ── */
+.vibe-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem}
+.vibe-btn{padding:1rem 0.75rem;background:var(--bg2);border:1px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s}
+.vibe-btn:hover,.vibe-btn.selected{border-color:var(--gold-dim);background:var(--gold-bg)}
+.vibe-icon{font-size:28px;margin-bottom:6px;display:block}
+.vibe-label{font-size:13px;font-weight:600;color:var(--text)}
+.vibe-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.drink-result{background:var(--bg2);border:2px solid var(--gold-dim);border-radius:var(--radius);padding:1.5rem;text-align:center;display:none}
+.drink-emoji{font-size:48px;margin-bottom:0.75rem}
+.drink-name{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);letter-spacing:1px;margin-bottom:0.5rem}
+.drink-desc{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:1rem}
+.loading-dots{display:flex;gap:6px;justify-content:center;padding:1rem}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:bounce 0.6s infinite alternate}
+.dot:nth-child(2){animation-delay:0.2s}
+.dot:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{from{transform:translateY(0);opacity:0.4}to{transform:translateY(-8px);opacity:1}}
+
+/* SPINNER */
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* POINTS DISPLAY */
+.your-pts{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border-radius:10px;padding:0.75rem 1rem;margin-bottom:1.25rem}
+.your-pts-label{font-size:12px;color:var(--muted)}
+.your-pts-val{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="logo-mark">BR</div>
+    <div>
+      <div class="site-name">The Lounge</div>
+      <div class="site-sub">Hang out. Earn more.</div>
+    </div>
+    <a href="my-points.html" class="back-btn">← My Score</a>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('trivia',this)">
+      <span class="tab-icon">🎲</span>Risk It
+    </button>
+    <button class="tab-btn" onclick="switchTab('selfie',this)">
+      <span class="tab-icon">📸</span>Rep Rank
+    </button>
+    <button class="tab-btn" onclick="switchTab('order',this)">
+      <span class="tab-icon">🍺</span>Order Up
+    </button>
+  </div>
+
+  <!-- ── TRIVIA PANEL ── -->
+  <div class="panel active" id="panel-trivia">
+
+    <div id="trivia-setup">
+      <div style="margin-top:1rem" class="your-pts">
+        <span class="your-pts-label">Your current points</span>
+        <span class="your-pts-val" id="trivia-pts-display">—</span>
+      </div>
+
+      <div class="wager-section">
+        <div class="wager-label">How many points do you want to risk?</div>
+        <div class="wager-display" id="wager-display">10</div>
+        <div class="wager-sub">Win → double your wager &nbsp;·&nbsp; Lose → they're gone</div>
+        <input type="range" id="wager-slider" min="5" max="100" value="10" step="5" oninput="updateWager(this.value)"/>
+        <div class="wager-presets">
+          <button class="preset" onclick="setWager(10)">10</button>
+          <button class="preset" onclick="setWager(25)">25</button>
+          <button class="preset" onclick="setWager(50)">50</button>
+          <button class="preset" onclick="setWager(100)">ALL IN</button>
+        </div>
+      </div>
+
+      <button class="btn btn-gold" id="start-trivia-btn" onclick="startTrivia()">
+        🎲 Risk it — get a question
+      </button>
+      <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:0.75rem">You need an account to play. <a href="my-points.html" style="color:var(--gold)">Sign in first →</a></p>
+    </div>
+
+    <div id="trivia-loading" style="display:none;text-align:center;padding:2rem">
+      <div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <p style="color:var(--muted);font-size:14px;margin-top:0.5rem">Generating your question...</p>
+    </div>
+
+    <div id="trivia-question" style="display:none">
+      <div class="your-pts" style="margin-top:1rem">
+        <span class="your-pts-label">Points wagered</span>
+        <span class="your-pts-val" id="wager-in-play" style="color:var(--red)">—</span>
+      </div>
+      <div class="q-card">
+        <div class="q-category" id="q-category">Bar Trivia</div>
+        <div class="q-text" id="q-text">Loading question...</div>
+        <div class="q-options" id="q-options"></div>
+      </div>
+    </div>
+
+    <div id="trivia-result" style="display:none">
+      <div class="card result-card">
+        <div class="result-emoji" id="result-emoji"></div>
+        <div class="result-title" id="result-title"></div>
+        <div class="result-pts" id="result-pts"></div>
+        <div class="result-sub" id="result-sub"></div>
+        <div style="font-size:13px;color:var(--muted);background:var(--bg3);border-radius:8px;padding:0.75rem;margin-bottom:1.25rem;text-align:left" id="result-explanation"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline" onclick="resetTrivia()" style="flex:1">Play again</button>
+          <a href="my-points.html" class="btn btn-gold" style="flex:1">My score</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SELFIE PANEL ── -->
+  <div class="panel" id="panel-selfie">
+    <div style="margin-top:1rem">
+      <p style="font-size:14px;color:var(--muted);margin-bottom:1rem">Take a photo with your rank frame. Screenshot it and share — let everyone know where you stand.</p>
+
+      <div id="selfie-photo-preview" style="display:none;margin-bottom:1rem">
+        <canvas id="selfie-canvas" style="width:100%;border-radius:12px;display:block"></canvas>
+        <div style="display:flex;gap:8px;margin-top:0.75rem">
+          <button class="btn btn-outline" onclick="retakeSelfie()" style="flex:1">Retake</button>
+          <button class="btn btn-gold" onclick="downloadSelfie()" style="flex:1">📥 Save photo</button>
+        </div>
+      </div>
+
+      <div id="selfie-camera-wrap">
+        <div class="selfie-wrap">
+          <video id="selfie-video" autoplay playsinline muted></video>
+          <div class="selfie-overlay">
+            <div class="frame-corner tl"></div>
+            <div class="frame-corner tr"></div>
+            <div class="frame-corner bl"></div>
+            <div class="frame-corner br"></div>
+            <div class="selfie-nameplate">
+              <div class="selfie-name" id="selfie-name">BAR RANK PLAYER</div>
+              <div class="selfie-rank" id="selfie-rank">Rank #—</div>
+              <div class="selfie-bar">CJ's Tavern · Bar Rank</div>
+            </div>
+          </div>
+        </div>
+        <div class="selfie-controls">
+          <button class="snap-btn" onclick="snapPhoto()">📸 Take photo</button>
+          <button class="flip-btn" onclick="flipCamera()">🔄</button>
+        </div>
+      </div>
+
+      <div id="selfie-start" style="margin-top:0">
+        <button class="btn btn-gold" onclick="startSelfie()" id="selfie-start-btn">
+          📸 Open camera
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ORDER UP PANEL ── -->
+  <div class="panel" id="panel-order">
+    <div style="margin-top:1rem">
+      <p style="font-size:14px;color:var(--muted);margin-bottom:1.25rem">Tell us your vibe and we'll pick your next drink.</p>
+
+      <div class="vibe-grid">
+        <button class="vibe-btn" onclick="selectVibe('celebrate','🎉','On a roll')">
+          <span class="vibe-icon">🎉</span>
+          <div class="vibe-label">On a roll</div>
+          <div class="vibe-sub">Celebrating a win</div>
+        </button>
+        <button class="vibe-btn" onclick="selectVibe('focused','🎯','In the zone')">
+          <span class="vibe-icon">🎯</span>
+          <div class="vibe-label">In the zone</div>
+          <div class="vibe-sub">Game face on</div>
+        </button>
+        <button class="vibe-btn" onclick="selectVibe('chill','😎','Just vibing')">
+          <span class="vibe-icon">😎</span>
+          <div class="vibe-label">Just vibing</div>
+          <div class="vibe-sub">No rush tonight</div>
+        </button>
+        <button class="vibe-btn" onclick="selectVibe('comeback','💪','Comeback mode')">
+          <span class="vibe-icon">💪</span>
+          <div class="vibe-label">Comeback mode</div>
+          <div class="vibe-sub">Need to climb the board</div>
+        </button>
+        <button class="vibe-btn" onclick="selectVibe('social','🤝','Squad night')">
+          <span class="vibe-icon">🤝</span>
+          <div class="vibe-label">Squad night</div>
+          <div class="vibe-sub">Here with the crew</div>
+        </button>
+        <button class="vibe-btn" onclick="selectVibe('wild','🔥','Send it')">
+          <span class="vibe-icon">🔥</span>
+          <div class="vibe-label">Send it</div>
+          <div class="vibe-sub">No limits tonight</div>
+        </button>
+      </div>
+
+      <div id="drink-loading" style="display:none;text-align:center">
+        <div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <p style="color:var(--muted);font-size:14px;margin-top:0.5rem">Picking your drink...</p>
+      </div>
+
+      <div class="drink-result" id="drink-result">
+        <div class="drink-emoji" id="drink-emoji">🍺</div>
+        <div class="drink-name" id="drink-name">Loading...</div>
+        <div class="drink-desc" id="drink-desc"></div>
+        <button class="btn btn-outline" onclick="resetOrder()">Different vibe →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script>
+const sb = getSupabase();
+let currentPlayer = null;
+let currentWager = 10;
+let currentQuestion = null;
+let selfieStream = null;
+let facingMode = 'user';
+
+// ── LOAD PLAYER ──────────────────────────────────────
+async function loadPlayer() {
+  const phone = localStorage.getItem('br_phone');
+  if (!phone) return;
+  const { data } = await sb.from('players').select('*').eq('phone', phone.replace(/\D/g,'')).single();
+  if (!data) return;
+  currentPlayer = data;
+
+  // Update trivia points display
+  document.getElementById('trivia-pts-display').textContent = data.total_points;
+  document.getElementById('wager-slider').max = Math.min(data.total_points, 200);
+  if (data.total_points < 10) {
+    document.getElementById('wager-slider').min = data.total_points > 0 ? data.total_points : 5;
+    currentWager = data.total_points > 0 ? data.total_points : 5;
+    updateWager(currentWager);
+  }
+
+  // Update selfie nameplate
+  const { data: allPlayers } = await sb.from('players').select('id,total_points').order('total_points',{ascending:false});
+  const rank = (allPlayers||[]).findIndex(p=>p.id===data.id)+1;
+  document.getElementById('selfie-name').textContent = data.name.toUpperCase();
+  document.getElementById('selfie-rank').textContent = rank > 0 ? `Rank #${rank} · ${data.total_points} pts` : `${data.total_points} pts`;
+}
+
+// ── TABS ──────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name !== 'selfie' && selfieStream) { selfieStream.getTracks().forEach(t=>t.stop()); selfieStream=null; }
+}
+
+// ── WAGER ──────────────────────────────────────────────
+function updateWager(val) {
+  currentWager = parseInt(val);
+  document.getElementById('wager-display').textContent = currentWager;
+  document.getElementById('wager-slider').value = currentWager;
+  document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
+}
+function setWager(val) {
+  const max = currentPlayer ? Math.min(currentPlayer.total_points, 200) : 100;
+  const actual = val === 100 ? max : Math.min(val, max);
+  updateWager(actual);
+  document.querySelectorAll('.preset').forEach((p,i)=>{
+    if ([10,25,50][i]===val || (val===100&&i===3)) p.classList.add('active');
+  });
+}
+
+// ── TRIVIA ──────────────────────────────────────────────
+async function startTrivia() {
+  if (!currentPlayer) {
+    alert('Sign in first to play!'); return;
+  }
+  if (currentPlayer.total_points < currentWager) {
+    alert(`You only have ${currentPlayer.total_points} points. Lower your wager.`); return;
+  }
+
+  document.getElementById('trivia-setup').style.display = 'none';
+  document.getElementById('trivia-loading').style.display = 'block';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `Generate a fun bar trivia question. It should be about sports, pop culture, food & drinks, music, or general knowledge — the kind of thing people debate at a bar. Make it genuinely challenging but fair.
+
+Respond ONLY with valid JSON in this exact format, no other text:
+{
+  "category": "category name",
+  "question": "the question text",
+  "options": ["A", "B", "C", "D"],
+  "correct": 0,
+  "explanation": "brief fun explanation of the answer"
+}`
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content[0].text.replace(/```json|```/g,'').trim();
+    currentQuestion = JSON.parse(text);
+
+    document.getElementById('trivia-loading').style.display = 'none';
+    document.getElementById('trivia-question').style.display = 'block';
+    document.getElementById('wager-in-play').textContent = currentWager;
+    document.getElementById('q-category').textContent = currentQuestion.category;
+    document.getElementById('q-text').textContent = currentQuestion.question;
+
+    const opts = document.getElementById('q-options');
+    opts.innerHTML = '';
+    currentQuestion.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'q-opt';
+      btn.textContent = opt;
+      btn.onclick = () => answerTrivia(i, btn);
+      opts.appendChild(btn);
+    });
+  } catch(e) {
+    document.getElementById('trivia-loading').style.display = 'none';
+    document.getElementById('trivia-setup').style.display = 'block';
+    alert('Could not load question. Check your connection and try again.');
+  }
+}
+
+async function answerTrivia(idx, btn) {
+  // Disable all buttons
+  document.querySelectorAll('.q-opt').forEach(b => b.disabled = true);
+
+  const correct = idx === currentQuestion.correct;
+  const correctBtn = document.querySelectorAll('.q-opt')[currentQuestion.correct];
+
+  if (correct) {
+    btn.classList.add('correct');
+  } else {
+    btn.classList.add('wrong');
+    correctBtn.classList.add('correct');
+  }
+
+  await new Promise(r => setTimeout(r, 1200));
+
+  // Update points
+  const pointChange = correct ? currentWager : -currentWager;
+  const newTotal = Math.max(0, currentPlayer.total_points + pointChange);
+  await sb.from('players').update({ total_points: newTotal }).eq('id', currentPlayer.id);
+
+  if (correct) {
+    // Award bonus points
+    await sb.from('bonus_points').insert({
+      player_id: currentPlayer.id,
+      points: currentWager,
+      reason: `Won trivia wager (${currentWager} pts)`
+    });
+  } else {
+    // Deduct via negative bonus
+    await sb.from('bonus_points').insert({
+      player_id: currentPlayer.id,
+      points: -currentWager,
+      reason: `Lost trivia wager (${currentWager} pts)`
+    });
+  }
+
+  currentPlayer.total_points = newTotal;
+
+  document.getElementById('trivia-question').style.display = 'none';
+  document.getElementById('trivia-result').style.display = 'block';
+
+  if (correct) {
+    document.getElementById('result-emoji').textContent = '🎉';
+    document.getElementById('result-title').textContent = 'CORRECT!';
+    document.getElementById('result-title').style.color = 'var(--green)';
+    document.getElementById('result-pts').textContent = '+' + currentWager;
+    document.getElementById('result-pts').style.color = 'var(--green)';
+    document.getElementById('result-sub').textContent = `You won ${currentWager} points! New total: ${newTotal}`;
+  } else {
+    document.getElementById('result-emoji').textContent = '😬';
+    document.getElementById('result-title').textContent = 'WRONG!';
+    document.getElementById('result-title').style.color = 'var(--red)';
+    document.getElementById('result-pts').textContent = '-' + currentWager;
+    document.getElementById('result-pts').style.color = 'var(--red)';
+    document.getElementById('result-sub').textContent = `You lost ${currentWager} points. New total: ${newTotal}`;
+  }
+  document.getElementById('result-explanation').textContent = '💡 ' + currentQuestion.explanation;
+  document.getElementById('trivia-pts-display').textContent = newTotal;
+}
+
+function resetTrivia() {
+  document.getElementById('trivia-result').style.display = 'none';
+  document.getElementById('trivia-setup').style.display = 'block';
+  document.getElementById('trivia-pts-display').textContent = currentPlayer?.total_points || '—';
+  currentQuestion = null;
+}
+
+// ── SELFIE ──────────────────────────────────────────────
+async function startSelfie() {
+  document.getElementById('selfie-start').style.display = 'none';
+  document.getElementById('selfie-camera-wrap').style.display = 'block';
+  await openCamera();
+}
+
+async function openCamera() {
+  try {
+    if (selfieStream) selfieStream.getTracks().forEach(t=>t.stop());
+    selfieStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width: { ideal: 1280 }, height: { ideal: 1600 } }
+    });
+    document.getElementById('selfie-video').srcObject = selfieStream;
+  } catch(e) {
+    alert('Camera access denied. Please allow camera access and try again.');
+  }
+}
+
+async function flipCamera() {
+  facingMode = facingMode === 'user' ? 'environment' : 'user';
+  await openCamera();
+}
+
+function snapPhoto() {
+  const video = document.getElementById('selfie-video');
+  const canvas = document.getElementById('selfie-canvas');
+  const w = video.videoWidth, h = video.videoHeight;
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+
+  // Mirror if front camera
+  if (facingMode === 'user') { ctx.scale(-1,1); ctx.drawImage(video,-w,0,w,h); ctx.scale(-1,1); }
+  else { ctx.drawImage(video,0,0,w,h); }
+
+  // Gold corner frames
+  ctx.strokeStyle = '#f0a500'; ctx.lineWidth = Math.max(4, w*0.008);
+  const cs = w * 0.1, m = w * 0.04;
+  [[m,m,1,1],[w-m,m,-1,1],[m,h-m,1,-1],[w-m,h-m,-1,-1]].forEach(([x,y,dx,dy]) => {
+    ctx.beginPath(); ctx.moveTo(x+cs*dx,y); ctx.lineTo(x,y); ctx.lineTo(x,y+cs*dy); ctx.stroke();
+  });
+
+  // Bottom nameplate
+  const grad = ctx.createLinearGradient(0,h-h*0.25,0,h);
+  grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,'rgba(0,0,0,0.85)');
+  ctx.fillStyle = grad; ctx.fillRect(0,h-h*0.3,w,h*0.3);
+
+  const name = document.getElementById('selfie-name').textContent;
+  const rank = document.getElementById('selfie-rank').textContent;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f0a500'; ctx.font = `bold ${w*0.072}px 'Bebas Neue', sans-serif`;
+  ctx.fillText(name, w/2, h - h*0.1);
+  ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `${w*0.035}px 'DM Sans', sans-serif`;
+  ctx.fillText(rank, w/2, h - h*0.065);
+  ctx.fillStyle = '#a87300'; ctx.font = `${w*0.028}px 'DM Sans', sans-serif`;
+  ctx.fillText("CJ's Tavern · Bar Rank", w/2, h - h*0.04);
+
+  // Show preview
+  if (selfieStream) { selfieStream.getTracks().forEach(t=>t.stop()); selfieStream=null; }
+  document.getElementById('selfie-camera-wrap').style.display = 'none';
+  document.getElementById('selfie-photo-preview').style.display = 'block';
+}
+
+function retakeSelfie() {
+  document.getElementById('selfie-photo-preview').style.display = 'none';
+  document.getElementById('selfie-camera-wrap').style.display = 'block';
+  openCamera();
+}
+
+function downloadSelfie() {
+  const canvas = document.getElementById('selfie-canvas');
+  const a = document.createElement('a');
+  a.download = 'bar-rank-selfie.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+// ── ORDER UP ──────────────────────────────────────────────
+async function selectVibe(vibe, icon, label) {
+  document.querySelectorAll('.vibe-btn').forEach(b=>b.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.getElementById('drink-result').style.display = 'none';
+  document.getElementById('drink-loading').style.display = 'block';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        messages: [{
+          role: 'user',
+          content: `Someone at a bar has the vibe: "${label}" (${vibe}). Recommend one specific drink for them. Be fun, specific, and bar-appropriate. Could be a beer, cocktail, shot, or non-alcoholic option.
+
+Respond ONLY with valid JSON, no other text:
+{
+  "emoji": "one emoji for the drink",
+  "name": "drink name",
+  "description": "2-3 fun sentences about why this drink fits their vibe right now. Be conversational and a bit witty."
+}`
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content[0].text.replace(/```json|```/g,'').trim();
+    const drink = JSON.parse(text);
+
+    document.getElementById('drink-loading').style.display = 'none';
+    document.getElementById('drink-result').style.display = 'block';
+    document.getElementById('drink-emoji').textContent = drink.emoji;
+    document.getElementById('drink-name').textContent = drink.name;
+    document.getElementById('drink-desc').textContent = drink.description;
+  } catch(e) {
+    document.getElementById('drink-loading').style.display = 'none';
+    alert('Could not load recommendation. Try again.');
+  }
+}
+
+function resetOrder() {
+  document.getElementById('drink-result').style.display = 'none';
+  document.querySelectorAll('.vibe-btn').forEach(b=>b.classList.remove('selected'));
+}
+
+// Hide camera wrap initially
+document.getElementById('selfie-camera-wrap').style.display = 'none';
+loadPlayer();
+</script>
+</body>
+</html>
