@@ -138,7 +138,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
 
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('trivia',this)">
-      <span class="tab-icon">🎲</span>Risk It
+      <span class="tab-icon">🎲</span>Trivia
     </button>
     <button class="tab-btn" onclick="switchTab('selfie',this)">
       <span class="tab-icon">📸</span>Rep Rank
@@ -157,21 +157,14 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
         <span class="your-pts-val" id="trivia-pts-display">—</span>
       </div>
 
-      <div class="wager-section">
-        <div class="wager-label">How many points do you want to risk?</div>
-        <div class="wager-display" id="wager-display">10</div>
-        <div class="wager-sub">Win → double your wager &nbsp;·&nbsp; Lose → they're gone</div>
-        <input type="range" id="wager-slider" min="5" max="100" value="10" step="5" oninput="updateWager(this.value)"/>
-        <div class="wager-presets">
-          <button class="preset" onclick="setWager(10)">10</button>
-          <button class="preset" onclick="setWager(25)">25</button>
-          <button class="preset" onclick="setWager(50)">50</button>
-          <button class="preset" onclick="setWager(100)">ALL IN</button>
-        </div>
+      <div style="background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:12px;padding:1.25rem;text-align:center;margin-bottom:1.25rem">
+        <div style="font-size:36px;margin-bottom:0.5rem">🎲</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);letter-spacing:1px;margin-bottom:0.25rem">Bar Trivia</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.5">Answer a bar trivia question correctly and earn <strong style="color:var(--text)">+5 bonus points</strong>. No penalty for wrong answers — just bragging rights.</div>
       </div>
 
       <button class="btn btn-gold" id="start-trivia-btn" onclick="startTrivia()">
-        🎲 Risk it — get a question
+        🎲 Get a question
       </button>
       <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:0.75rem">You need an account to play. <a href="my-points.html" style="color:var(--gold)">Sign in first →</a></p>
     </div>
@@ -183,8 +176,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
 
     <div id="trivia-question" style="display:none">
       <div class="your-pts" style="margin-top:1rem">
-        <span class="your-pts-label">Points wagered</span>
-        <span class="your-pts-val" id="wager-in-play" style="color:var(--red)">—</span>
+        <span class="your-pts-label">Your points</span>
+        <span class="your-pts-val" id="wager-in-play">—</span>
       </div>
       <div class="q-card">
         <div class="q-category" id="q-category">Bar Trivia</div>
@@ -420,7 +413,7 @@ async function startTrivia() {
 
   document.getElementById('trivia-loading').style.display = 'none';
   document.getElementById('trivia-question').style.display = 'block';
-  document.getElementById('wager-in-play').textContent = currentWager;
+  document.getElementById('wager-in-play').textContent = currentPlayer.total_points;
   document.getElementById('q-category').textContent = currentQuestion.category;
   document.getElementById('q-text').textContent = currentQuestion.question;
 
@@ -451,49 +444,35 @@ async function answerTrivia(idx, btn) {
 
   await new Promise(r => setTimeout(r, 1200));
 
-  // Update points
-  const pointChange = correct ? currentWager : -currentWager;
-  const newTotal = Math.max(0, currentPlayer.total_points + pointChange);
-  await sb.from('players').update({ total_points: newTotal }).eq('id', currentPlayer.id);
-
-  if (correct) {
-    // Award bonus points
-    await sb.from('bonus_points').insert({
-      player_id: currentPlayer.id,
-      points: currentWager,
-      reason: `Won trivia wager (${currentWager} pts)`
-    });
-  } else {
-    // Deduct via negative bonus
-    await sb.from('bonus_points').insert({
-      player_id: currentPlayer.id,
-      points: -currentWager,
-      reason: `Lost trivia wager (${currentWager} pts)`
-    });
-  }
-
-  currentPlayer.total_points = newTotal;
-
+  const BONUS = 5;
   document.getElementById('trivia-question').style.display = 'none';
   document.getElementById('trivia-result').style.display = 'block';
 
   if (correct) {
+    const newTotal = currentPlayer.total_points + BONUS;
+    await sb.from('players').update({ total_points: newTotal }).eq('id', currentPlayer.id);
+    await sb.from('bonus_points').insert({
+      player_id: currentPlayer.id,
+      points: BONUS,
+      reason: 'Got a trivia question right'
+    });
+    currentPlayer.total_points = newTotal;
     document.getElementById('result-emoji').textContent = '🎉';
     document.getElementById('result-title').textContent = 'CORRECT!';
     document.getElementById('result-title').style.color = 'var(--green)';
-    document.getElementById('result-pts').textContent = '+' + currentWager;
+    document.getElementById('result-pts').textContent = '+' + BONUS;
     document.getElementById('result-pts').style.color = 'var(--green)';
-    document.getElementById('result-sub').textContent = `You won ${currentWager} points! New total: ${newTotal}`;
+    document.getElementById('result-sub').textContent = `+${BONUS} bonus points added to your score!`;
   } else {
     document.getElementById('result-emoji').textContent = '😬';
     document.getElementById('result-title').textContent = 'WRONG!';
     document.getElementById('result-title').style.color = 'var(--red)';
-    document.getElementById('result-pts').textContent = '-' + currentWager;
-    document.getElementById('result-pts').style.color = 'var(--red)';
-    document.getElementById('result-sub').textContent = `You lost ${currentWager} points. New total: ${newTotal}`;
+    document.getElementById('result-pts').textContent = 'No points';
+    document.getElementById('result-pts').style.color = 'var(--muted)';
+    document.getElementById('result-sub').textContent = 'Better luck next question — no points lost.';
   }
   document.getElementById('result-explanation').textContent = '💡 ' + currentQuestion.explanation;
-  document.getElementById('trivia-pts-display').textContent = newTotal;
+  document.getElementById('trivia-pts-display').textContent = currentPlayer.total_points;
 }
 
 function resetTrivia() {
