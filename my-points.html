@@ -583,7 +583,7 @@ function ciStartTimer(confirmAt, player, checkinId) {
     display.textContent = `${Math.floor(remaining/60000)}:${String(Math.floor((remaining%60000)/1000)).padStart(2,'0')}`;
   }, 1000);
 
-  // Poll server every 15 seconds for confirmation
+  // Poll server every 3 seconds for confirmation
   ciPollInterval = setInterval(async () => {
     const { data } = await sb.from('checkins').select('pending').eq('id', checkinId).single();
     if (data && !data.pending) {
@@ -592,7 +592,7 @@ function ciStartTimer(confirmAt, player, checkinId) {
       const visitScans = await getVisitScans(player.id);
       ciShowSuccess(ciEventData.points_value, visitScans.length);
     }
-  }, 15000);
+  }, 3000);
 }
 
 // ── DASHBOARD ───────────────────────────────────────
