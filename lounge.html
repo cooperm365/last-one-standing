@@ -576,7 +576,7 @@ function getTriviaRoundsThisVisit() {
   const key = `br_trivia_rounds_${slug}`;
   const stored = JSON.parse(localStorage.getItem(key) || '[]');
   const windowStart = Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000;
-  return stored.filter((ts: number) => ts > windowStart);
+  return stored.filter((ts) => ts > windowStart);
 }
 
 function recordTriviaRound() {
