@@ -28,11 +28,6 @@
     </div>
   </div>
 
-  <div id="loading" class="card" style="text-align:center;padding:2rem">
-    <span class="spinner"></span>
-    <p style="margin-top:1rem;color:var(--text-muted);font-size:14px">Loading event...</p>
-  </div>
-
   <div id="not-found" style="display:none">
     <div class="card">
       <p style="color:var(--red)">Event not found or no longer active.</p>
@@ -40,13 +35,13 @@
     </div>
   </div>
 
-  <div id="main" style="display:none">
+  <div id="main">
 
     <div class="card card-gold" style="text-align:center;margin-bottom:1.5rem">
-      <div id="event-type-badge" style="margin-bottom:0.5rem"></div>
-      <div id="event-name" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px"></div>
+      <div id="event-type-badge" style="margin-bottom:0.5rem"><span class="badge badge-gold">⭐ Event</span></div>
+      <div id="event-name" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px">Loading...</div>
       <div style="margin-top:0.75rem">
-        <span class="points-big" id="event-points"></span>
+        <span class="points-big" id="event-points">—</span>
         <span class="points-label" style="margin-left:6px">points</span>
       </div>
       <div style="font-size:13px;color:var(--text-muted);margin-top:0.25rem">stay and play to earn</div>
@@ -260,35 +255,38 @@ function celebrate(type, pts) {
 async function init() {
   const params = new URLSearchParams(location.search);
   const eventId = params.get('event');
-  if (!eventId) { show('not-found'); hide('loading'); return; }
+  if (!eventId) { show('not-found'); return; }
 
-  // Load event — no redirects, everyone sees the form
-  const { data, error } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
-  if (error || !data) { show('not-found'); hide('loading'); return; }
-
-  eventData = data;
-  document.getElementById('event-name').textContent = data.name;
-  document.getElementById('event-points').textContent = data.points_value;
-  document.getElementById('new-pts').textContent = data.points_value;
-  document.getElementById('ret-pts').textContent = data.points_value;
-
-  const typeLabels = {
-    darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia', bingo:'🎰 Bingo',
-    live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event'
-  };
-  document.getElementById('event-type-badge').innerHTML =
-    '<span class="badge badge-gold">' + (typeLabels[data.type] || data.type) + '</span>';
-
-  hide('loading');
-  show('main');
-
-  // Pre-fill phone if saved — but always show the form
+  // Show the form immediately — don't wait for Supabase
   const savedPhone = localStorage.getItem('br_phone');
   if (savedPhone) {
     document.getElementById('ret-phone').value = savedPhone;
     showReturning();
   } else {
     showNew();
+  }
+
+  // Load event details in the background — just updates the card header
+  try {
+    const { data, error } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
+    if (error || !data) {
+      document.getElementById('event-name').textContent = 'Event not found';
+      document.getElementById('event-points').textContent = '—';
+      return;
+    }
+    eventData = data;
+    document.getElementById('event-name').textContent = data.name;
+    document.getElementById('event-points').textContent = data.points_value;
+    document.getElementById('new-pts').textContent = data.points_value;
+    document.getElementById('ret-pts').textContent = data.points_value;
+    const typeLabels = {
+      darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia', bingo:'🎰 Bingo',
+      live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event'
+    };
+    document.getElementById('event-type-badge').innerHTML =
+      '<span class="badge badge-gold">' + (typeLabels[data.type] || data.type) + '</span>';
+  } catch(e) {
+    document.getElementById('event-name').textContent = 'Event not found';
   }
 }
 
@@ -306,6 +304,10 @@ async function hasScannedThisEvent(playerId, eventId) {
 }
 
 async function doCheckin(player) {
+  if (!eventData) {
+    showMsg('ret-msg', 'Still loading event — please wait a moment and try again.', 'error');
+    return;
+  }
   const alreadyScanned = await hasScannedThisEvent(player.id, eventData.id);
   if (alreadyScanned) { show('already-in'); hide('form-new'); hide('form-returning'); return; }
 
