@@ -773,24 +773,9 @@ function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 
 // Auto-load
 const saved = localStorage.getItem('br_phone');
-const urlParams = new URLSearchParams(location.search);
-const directEventId = urlParams.get('event');
-
 if (saved) {
   document.getElementById('lookup-phone').value = saved;
-  if (directEventId) {
-    // Show a loading screen immediately so user doesn't see a blank page
-    document.getElementById('lookup-form').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'none';
-    const loadingDiv = document.createElement('div');
-    loadingDiv.id = 'initial-loading';
-    loadingDiv.style.cssText = 'text-align:center;padding:3rem 1rem';
-    loadingDiv.innerHTML = '<span class="spinner"></span><p style="margin-top:1rem;color:var(--text-muted);font-size:14px">Loading your account...</p>';
-    document.querySelector('.page').appendChild(loadingDiv);
-    lookupThenCheckin(saved, directEventId);
-  } else {
-    lookup();
-  }
+  lookup();
 }
 
 async function lookupThenCheckin(phone, eventId) {
@@ -799,9 +784,7 @@ async function lookupThenCheckin(phone, eventId) {
     const { data: player } = await sb.from('players').select('*').eq('phone', digits).single();
     const loadingEl = document.getElementById('initial-loading');
     if (loadingEl) loadingEl.remove();
-
     if (!player) {
-      // Stale phone — clear it and show lookup form
       localStorage.removeItem('br_phone');
       document.getElementById('lookup-form').style.display = 'block';
       return;
