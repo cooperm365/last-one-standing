@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bar Rank — Master Admin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#111110;--bg2:#1a1a18;--bg3:#222220;--border:rgba(255,255,255,0.08);--gold:#f0a500;--gold-dim:#a87300;--gold-bg:rgba(240,165,0,0.1);--text:#f0ede8;--muted:#888780;--dim:#444441;--green:#3ecf8e;--red:#f56565;--radius:10px}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;min-height:100vh}
+.page{max-width:900px;margin:0 auto;padding:2rem 1.25rem 4rem}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:2rem}
+.logo{width:44px;height:44px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;color:#111}
+.site-name{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:var(--gold)}
+.site-sub{font-size:12px;color:var(--muted)}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.card-gold{border-color:var(--gold-dim);background:var(--gold-bg)}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
+input,select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;padding:0.7rem 1rem;outline:none;margin-bottom:1rem}
+input:focus,select:focus{border-color:var(--gold-dim)}
+.btn{display:block;width:100%;padding:0.85rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;border:none;text-align:center}
+.btn-gold{background:var(--gold);color:#111}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-sm{width:auto;display:inline-block;padding:0.4rem 0.9rem;font-size:12px}
+.btn-red{background:transparent;color:var(--red);border:1px solid rgba(245,101,101,0.3)}
+.msg{padding:0.75rem 1rem;border-radius:8px;font-size:14px;margin-bottom:1rem;display:none}
+.msg.show{display:block}
+.msg-success{background:rgba(62,207,142,0.12);color:var(--green);border:1px solid rgba(62,207,142,0.25)}
+.msg-error{background:rgba(245,101,101,0.12);color:var(--red);border:1px solid rgba(245,101,101,0.25)}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--gold);margin-bottom:1rem}
+.divider{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
+.bar-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:0.75rem;display:flex;align-items:center;gap:14px}
+.bar-dot{width:12px;height:12px;border-radius:50%;background:var(--green);flex-shrink:0}
+.bar-dot.inactive{background:var(--dim)}
+.bar-info{flex:1}
+.bar-name{font-weight:600;font-size:15px}
+.bar-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.bar-actions{display:flex;gap:8px;flex-shrink:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- LOGIN -->
+<div id="login-gate">
+  <div class="header">
+    <div class="logo">BR</div>
+    <div><div class="site-name">Bar Rank</div><div class="site-sub">Master Admin</div></div>
+  </div>
+  <div class="card" style="max-width:380px">
+    <label>Master password</label>
+    <input type="password" id="pw" placeholder="Enter master password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div id="pw-msg" class="msg"></div>
+    <button class="btn btn-gold" onclick="doLogin()">Sign in</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none">
+  <div class="header">
+    <div class="logo">BR</div>
+    <div><div class="site-name">Bar Rank</div><div class="site-sub">Master Admin · All Bars</div></div>
+    <div style="margin-left:auto">
+      <button class="btn btn-outline btn-sm" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:2rem" id="stats-row">
+    <div class="card" style="text-align:center;padding:1rem">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold)" id="stat-bars">—</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Active bars</div>
+    </div>
+    <div class="card" style="text-align:center;padding:1rem">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold)" id="stat-players">—</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Total players</div>
+    </div>
+    <div class="card" style="text-align:center;padding:1rem">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold)" id="stat-checkins">—</div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Total check-ins</div>
+    </div>
+  </div>
+
+  <!-- All bars -->
+  <div class="section-title">All Bars</div>
+  <div id="bars-list" class="card" style="padding:0.5rem 1rem">
+    <div style="padding:1rem 0;color:var(--muted);font-size:14px"><span class="spinner"></span> Loading...</div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- Create new bar -->
+  <div class="section-title">Add New Bar</div>
+  <div class="card">
+    <div class="grid2">
+      <div>
+        <label>Bar name</label>
+        <input type="text" id="new-name" placeholder="e.g. The Anchor"/>
+      </div>
+      <div>
+        <label>URL slug</label>
+        <input type="text" id="new-slug" placeholder="e.g. the-anchor"/>
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>Admin password (for bar staff)</label>
+        <input type="text" id="new-pw" placeholder="e.g. anchor2024"/>
+      </div>
+      <div>
+        <label>Point target to win</label>
+        <input type="number" id="new-target" value="200"/>
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>1st prize</label>
+        <input type="text" id="new-p1" placeholder="$50 Gift Card"/>
+      </div>
+      <div>
+        <label>2nd prize</label>
+        <input type="text" id="new-p2" placeholder="Free Round (up to 6)"/>
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>3rd prize</label>
+        <input type="text" id="new-p3" placeholder="Bar T-Shirt"/>
+      </div>
+      <div>
+        <label>Weekly report email</label>
+        <input type="email" id="new-email" placeholder="owner@thebar.com"/>
+      </div>
+    </div>
+    <div id="create-msg" class="msg"></div>
+    <button class="btn btn-gold" onclick="createBar()">Create bar + generate links</button>
+  </div>
+
+  <!-- Generated links -->
+  <div id="bar-links" style="display:none" class="card card-gold">
+    <div class="section-title" style="margin-bottom:0.75rem">✅ Bar created! Share these links:</div>
+    <div style="margin-bottom:1rem">
+      <label>Leaderboard (for TV)</label>
+      <div style="background:var(--bg3);border-radius:8px;padding:0.75rem 1rem;font-size:13px;font-family:monospace;word-break:break-all" id="link-leaderboard"></div>
+    </div>
+    <div style="margin-bottom:1rem">
+      <label>Admin panel (for bar owner)</label>
+      <div style="background:var(--bg3);border-radius:8px;padding:0.75rem 1rem;font-size:13px;font-family:monospace;word-break:break-all" id="link-admin"></div>
+    </div>
+    <div>
+      <label>My Score page (share with customers)</label>
+      <div style="background:var(--bg3);border-radius:8px;padding:0.75rem 1rem;font-size:13px;font-family:monospace;word-break:break-all" id="link-mypoints"></div>
+    </div>
+  </div>
+
+  <!-- Edit bar modal -->
+  <div id="edit-section" style="display:none">
+    <hr class="divider"/>
+    <div class="section-title" id="edit-title">Edit Bar</div>
+    <div class="card">
+      <input type="hidden" id="edit-id"/>
+      <div class="grid2">
+        <div>
+          <label>Bar name</label>
+          <input type="text" id="edit-name"/>
+        </div>
+        <div>
+          <label>Point target</label>
+          <input type="number" id="edit-target"/>
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Admin password</label>
+          <input type="text" id="edit-pw"/>
+        </div>
+        <div>
+          <label>Report email</label>
+          <input type="email" id="edit-email"/>
+        </div>
+      </div>
+      <div class="grid2">
+        <div><label>1st prize</label><input type="text" id="edit-p1"/></div>
+        <div><label>2nd prize</label><input type="text" id="edit-p2"/></div>
+      </div>
+      <label>3rd prize</label>
+      <input type="text" id="edit-p3"/>
+      <div id="edit-msg" class="msg"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-gold" onclick="saveEdit()" style="flex:1">Save changes</button>
+        <button class="btn btn-outline" onclick="document.getElementById('edit-section').style.display='none'" style="flex:1">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script>
+const sb = getSupabase();
+const BASE_URL = location.origin;
+
+function doLogin() {
+  const pw = document.getElementById('pw').value;
+  if (pw === MASTER_PASSWORD) {
+    document.getElementById('login-gate').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadDashboard();
+  } else {
+    const el = document.getElementById('pw-msg');
+    el.textContent = 'Wrong password.';
+    el.className = 'msg show msg-error';
+  }
+}
+
+function signOut() {
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-gate').style.display = 'block';
+  document.getElementById('pw').value = '';
+}
+
+async function loadDashboard() {
+  const [{ data: bars }, { data: players }, { data: checkins }] = await Promise.all([
+    sb.from('bars').select('*').order('created_at', { ascending: true }),
+    sb.from('players').select('id', { count: 'exact' }),
+    sb.from('checkins').select('id', { count: 'exact' })
+  ]);
+
+  document.getElementById('stat-bars').textContent = (bars||[]).filter(b=>b.active).length;
+  document.getElementById('stat-players').textContent = (players||[]).length;
+  document.getElementById('stat-checkins').textContent = (checkins||[]).length;
+
+  const list = document.getElementById('bars-list');
+  if (!bars?.length) { list.innerHTML = '<p style="color:var(--muted);padding:1rem 0;font-size:14px">No bars yet — create one below.</p>'; return; }
+
+  list.innerHTML = bars.map(b => `
+    <div class="bar-card">
+      <div class="bar-dot ${b.active ? '' : 'inactive'}"></div>
+      <div class="bar-info">
+        <div class="bar-name">${esc(b.name)}</div>
+        <div class="bar-meta">/${b.slug} · target ${b.point_target} pts · ${b.active ? 'Active' : 'Inactive'}</div>
+      </div>
+      <div class="bar-actions">
+        <button class="btn btn-outline btn-sm" onclick="openEdit(${JSON.stringify(b).replace(/"/g,'&quot;')})">Edit</button>
+        <a href="${BASE_URL}/leaderboard.html?bar=${b.slug}" target="_blank" class="btn btn-outline btn-sm">Leaderboard ↗</a>
+        <a href="${BASE_URL}/admin.html?bar=${b.slug}" target="_blank" class="btn btn-outline btn-sm">Admin ↗</a>
+      </div>
+    </div>`).join('');
+}
+
+async function createBar() {
+  const name = document.getElementById('new-name').value.trim();
+  const slug = document.getElementById('new-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+  const pw = document.getElementById('new-pw').value.trim();
+  const target = parseInt(document.getElementById('new-target').value) || 200;
+  const p1 = document.getElementById('new-p1').value.trim() || '$50 Gift Card';
+  const p2 = document.getElementById('new-p2').value.trim() || 'Free Round';
+  const p3 = document.getElementById('new-p3').value.trim() || 'Bar T-Shirt';
+  const email = document.getElementById('new-email').value.trim() || null;
+
+  if (!name || !slug || !pw) { showMsg('create-msg', 'Name, slug, and password are required.', 'error'); return; }
+
+  const { data, error } = await sb.from('bars').insert({
+    name, slug, admin_password: pw, point_target: target,
+    prize_1: p1, prize_2: p2, prize_3: p3, report_email: email
+  }).select().single();
+
+  if (error) { showMsg('create-msg', error.message.includes('unique') ? 'That slug is already taken.' : 'Error creating bar.', 'error'); return; }
+
+  showMsg('create-msg', 'Bar created!', 'success');
+  document.getElementById('bar-links').style.display = 'block';
+  document.getElementById('link-leaderboard').textContent = `${BASE_URL}/leaderboard.html?bar=${slug}`;
+  document.getElementById('link-admin').textContent = `${BASE_URL}/admin.html?bar=${slug}`;
+  document.getElementById('link-mypoints').textContent = `${BASE_URL}/my-points.html?bar=${slug}`;
+
+  // Clear form
+  ['new-name','new-slug','new-pw','new-p1','new-p2','new-p3','new-email'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('new-target').value = '200';
+  loadDashboard();
+}
+
+function openEdit(bar) {
+  document.getElementById('edit-section').style.display = 'block';
+  document.getElementById('edit-title').textContent = `Edit — ${bar.name}`;
+  document.getElementById('edit-id').value = bar.id;
+  document.getElementById('edit-name').value = bar.name;
+  document.getElementById('edit-target').value = bar.point_target;
+  document.getElementById('edit-pw').value = bar.admin_password;
+  document.getElementById('edit-email').value = bar.report_email || '';
+  document.getElementById('edit-p1').value = bar.prize_1 || '';
+  document.getElementById('edit-p2').value = bar.prize_2 || '';
+  document.getElementById('edit-p3').value = bar.prize_3 || '';
+  document.getElementById('edit-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const { error } = await sb.from('bars').update({
+    name: document.getElementById('edit-name').value.trim(),
+    point_target: parseInt(document.getElementById('edit-target').value) || 200,
+    admin_password: document.getElementById('edit-pw').value.trim(),
+    report_email: document.getElementById('edit-email').value.trim() || null,
+    prize_1: document.getElementById('edit-p1').value.trim(),
+    prize_2: document.getElementById('edit-p2').value.trim(),
+    prize_3: document.getElementById('edit-p3').value.trim(),
+  }).eq('id', id);
+
+  if (error) { showMsg('edit-msg', 'Error saving.', 'error'); return; }
+  showMsg('edit-msg', 'Saved!', 'success');
+  document.getElementById('edit-section').style.display = 'none';
+  loadDashboard();
+}
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text; el.className = `msg show msg-${type}`;
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Auto-slug from name
+document.addEventListener('DOMContentLoaded', () => {
+  const nameEl = document.getElementById('new-name');
+  const slugEl = document.getElementById('new-slug');
+  if (nameEl && slugEl) {
+    nameEl.addEventListener('input', () => {
+      slugEl.value = nameEl.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    });
+  }
+});
+</script>
+</body>
+</html>
