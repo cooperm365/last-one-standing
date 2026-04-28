@@ -154,6 +154,13 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
   <!-- ── TRIVIA PANEL ── -->
   <div class="panel active" id="panel-trivia">
 
+    <div id="trivia-cap-msg" style="display:none;text-align:center;padding:2rem 0;margin-top:1rem">
+      <div style="font-size:48px;margin-bottom:0.75rem">🎯</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);letter-spacing:1px;margin-bottom:0.5rem">3 rounds done!</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:1.25rem">You've used all your trivia rounds for this visit. Come back tomorrow for more bonus points!</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;font-size:13px;color:var(--muted)">Your trivia resets in 8 hours from your first round tonight.</div>
+    </div>
+
     <div id="trivia-setup">
       <div style="margin-top:1rem" class="your-pts">
         <span class="your-pts-label">Your current points</span>
@@ -489,15 +496,10 @@ function recordTriviaRound() {
 async function startTrivia() {
   if (!currentPlayer) { alert('Sign in first to play!'); return; }
 
-  // Check trivia round cap
   const triviaRounds = getTriviaRoundsThisVisit();
   if (triviaRounds.length >= MAX_TRIVIA_PER_VISIT) {
-    document.getElementById('trivia-setup').innerHTML = `
-      <div style="text-align:center;padding:2rem 0">
-        <div style="font-size:40px;margin-bottom:0.75rem">🎯</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);margin-bottom:0.5rem">3 rounds done!</div>
-        <div style="font-size:14px;color:var(--muted);line-height:1.6">You've played your 3 trivia rounds for this visit. Come back tomorrow for more bonus points!</div>
-      </div>`;
+    document.getElementById('trivia-cap-msg').style.display = 'block';
+    document.getElementById('trivia-setup').style.display = 'none';
     return;
   }
 
@@ -579,14 +581,11 @@ function resetTrivia() {
   const roundsEl = document.getElementById('trivia-rounds-left');
   if (roundsEl) roundsEl.textContent = `${triviaRemaining} round${triviaRemaining !== 1 ? 's' : ''} left tonight`;
   if (triviaRemaining > 0) {
+    document.getElementById('trivia-cap-msg').style.display = 'none';
     document.getElementById('trivia-setup').style.display = 'block';
   } else {
-    document.getElementById('trivia-setup').innerHTML = `
-      <div style="text-align:center;padding:2rem 0">
-        <div style="font-size:40px;margin-bottom:0.75rem">🎯</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);margin-bottom:0.5rem">3 rounds done!</div>
-        <div style="font-size:14px;color:var(--muted);line-height:1.6">You've played your 3 trivia rounds for this visit. Come back tomorrow for more!</div>
-      </div>`;
+    document.getElementById('trivia-setup').style.display = 'none';
+    document.getElementById('trivia-cap-msg').style.display = 'block';
   }
   document.getElementById('trivia-pts-display').textContent = currentPlayer?.total_points || '—';
   currentQuestion = null;
