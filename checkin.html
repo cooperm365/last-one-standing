@@ -414,10 +414,14 @@ async function doCheckin(player) {
   localStorage.setItem('br_phone', player.phone);
   hide('form-new'); hide('form-returning');
 
-  // Show tutorial for first-time users
+  // Redirect first-time users to tutorial before showing the pending screen
   const tutorialDone = localStorage.getItem('br_tutorial_done');
-  const isNewPlayer = !localStorage.getItem('br_returning');
-  localStorage.setItem('br_returning', '1');
+  if (!tutorialDone) {
+    // Save the checkin state so they can come back
+    localStorage.setItem('br_tutorial_done', '1');
+    window.location.href = 'tutorial.html?return=my-points.html';
+    return;
+  }
 
   // Show pending screen
   const pts = eventData.points_value;
