@@ -452,28 +452,36 @@ let facingMode = 'user';
 async function loadPlayer() {
   const phone = localStorage.getItem('br_phone');
   if (!phone) return;
-  const { data } = await sb.from('players').select('*').eq('phone', phone.replace(/\D/g,'')).single();
-  if (!data) return;
-  currentPlayer = data;
+
+  // Load bar context
+  const slug = getBarSlug();
+  if (slug && !currentBar) currentBar = await getBar(sb, slug);
+
+  // Look up global profile
+  const { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone.replace(/\D/g,'')).single();
+  if (!profile) return;
+
+  // Get bar score
+  let barPoints = 0;
+  if (currentBar) {
+    const { data: barScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
+    barPoints = barScore?.total_points || 0;
+  }
+
+  currentPlayer = { ...profile, total_points: barPoints };
 
   // Update trivia display
-  document.getElementById('trivia-pts-display').textContent = data.total_points;
+  document.getElementById('trivia-pts-display').textContent = barPoints;
   const triviaRounds = getTriviaRoundsThisVisit();
   const triviaRemaining = MAX_TRIVIA_PER_VISIT - triviaRounds.length;
   const triviaCountEl = document.getElementById('trivia-rounds-left');
   if (triviaCountEl) triviaCountEl.textContent = `${triviaRemaining} round${triviaRemaining !== 1 ? 's' : ''} left tonight`;
-  document.getElementById('wager-slider').max = Math.min(data.total_points, 200);
-  if (data.total_points < 10) {
-    document.getElementById('wager-slider').min = data.total_points > 0 ? data.total_points : 5;
-    currentWager = data.total_points > 0 ? data.total_points : 5;
-    updateWager(currentWager);
-  }
 
   // Update selfie nameplate
-  const { data: allPlayers } = await sb.from('players').select('id,total_points').order('total_points',{ascending:false});
-  const rank = (allPlayers||[]).findIndex(p=>p.id===data.id)+1;
-  document.getElementById('selfie-name').textContent = data.name.toUpperCase();
-  document.getElementById('selfie-rank').textContent = rank > 0 ? `Rank #${rank} · ${data.total_points} pts` : `${data.total_points} pts`;
+  const { data: allScores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', currentBar?.id || '').order('total_points', { ascending: false });
+  const rank = (allScores||[]).findIndex(s => s.player_id === profile.id) + 1;
+  document.getElementById('selfie-name').textContent = profile.name.toUpperCase();
+  document.getElementById('selfie-rank').textContent = rank > 0 ? `Rank #${rank} · ${barPoints} pts` : `${barPoints} pts`;
 }
 
 // ── TABS ──────────────────────────────────────────────
@@ -551,14 +559,16 @@ const DRINKS = {
 const MAX_TRIVIA_PER_VISIT = 3;
 
 function getTriviaRoundsThisVisit() {
-  const key = 'br_trivia_rounds';
+  const slug = getBarSlug() || 'default';
+  const key = `br_trivia_rounds_${slug}`;
   const stored = JSON.parse(localStorage.getItem(key) || '[]');
   const windowStart = Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000;
-  return stored.filter(ts => ts > windowStart);
+  return stored.filter((ts: number) => ts > windowStart);
 }
 
 function recordTriviaRound() {
-  const key = 'br_trivia_rounds';
+  const slug = getBarSlug() || 'default';
+  const key = `br_trivia_rounds_${slug}`;
   const rounds = getTriviaRoundsThisVisit();
   rounds.push(Date.now());
   localStorage.setItem(key, JSON.stringify(rounds));
@@ -620,11 +630,12 @@ async function answerTrivia(idx, btn) {
 
   if (correct) {
     const newTotal = currentPlayer.total_points + BONUS;
-    await sb.from('players').update({ total_points: newTotal }).eq('id', currentPlayer.id);
+    await sb.from('player_bar_scores').update({ total_points: newTotal }).eq('player_id', currentPlayer.id).eq('bar_id', currentBar?.id || '');
     await sb.from('bonus_points').insert({
       player_id: currentPlayer.id,
       points: BONUS,
-      reason: 'Got a trivia question right'
+      reason: 'Got a trivia question right',
+      bar_id: currentBar?.id || null
     });
     currentPlayer.total_points = newTotal;
     document.getElementById('result-emoji').textContent = '🎉';
@@ -868,31 +879,24 @@ async function loadIncomingChallenges() {
 }
 
 async function loadPlayerList() {
-  const { data: checkins } = await sb.from('checkins').select('player_id, points_earned').eq('pending', false);
-  const { data: bonuses } = await sb.from('bonus_points').select('player_id, points');
-  const { data: players } = await sb.from('players').select('id, name');
-
-  const totals = {};
-  (checkins||[]).forEach(c=>{ totals[c.player_id]=(totals[c.player_id]||0)+c.points_earned; });
-  (bonuses||[]).forEach(b=>{ totals[b.player_id]=(totals[b.player_id]||0)+b.points; });
-
-  const ranked = (players||[])
-    .filter(p => p.id !== currentPlayer.id)
-    .map(p => ({ ...p, pts: Math.max(0, totals[p.id]||0) }))
-    .sort((a,b) => b.pts - a.pts);
+  const { data: scores } = await sb.from('player_bar_scores')
+    .select('player_id, total_points, player_profiles(id, name)')
+    .eq('bar_id', currentBar?.id || '')
+    .order('total_points', { ascending: false });
 
   const list = document.getElementById('player-list');
-  if (!ranked.length) { list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:0.5rem">No other players yet.</div>'; return; }
+  const filtered = (scores||[]).filter(s => s.player_id !== currentPlayer?.id && s.total_points > 0);
+  if (!filtered.length) { list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:0.5rem">No other players yet.</div>'; return; }
 
-  list.innerHTML = ranked.map((p, i) => `
-    <div class="player-option" id="po-${p.id}" onclick="selectPlayer('${p.id}','${esc(p.name)}')"
+  list.innerHTML = filtered.map((s, i) => `
+    <div class="player-option" id="po-${s.player_id}" onclick="selectPlayer('${s.player_id}','${esc(s.player_profiles?.name || '?')}')"
       style="display:flex;align-items:center;gap:10px;padding:0.75rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s">
-      <div style="width:30px;height:30px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--muted);flex-shrink:0">${p.name[0].toUpperCase()}</div>
+      <div style="width:30px;height:30px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--muted);flex-shrink:0">${(s.player_profiles?.name||'?')[0].toUpperCase()}</div>
       <div style="flex:1">
-        <div style="font-size:14px;font-weight:500">${esc(p.name)}</div>
-        <div style="font-size:11px;color:var(--muted)">#${i+1} · ${p.pts} pts</div>
+        <div style="font-size:14px;font-weight:500">${esc(s.player_profiles?.name || '?')}</div>
+        <div style="font-size:11px;color:var(--muted)">#${i+1} · ${s.total_points} pts</div>
       </div>
-      <div style="font-size:16px;opacity:0" id="check-${p.id}">✓</div>
+      <div style="font-size:16px;opacity:0" id="check-${s.player_id}">✓</div>
     </div>`).join('');
 }
 
@@ -965,12 +969,12 @@ async function reportResult(challengeId, winnerId) {
       const winnerId = updated.challenger_reported;
       await sb.from('challenges').update({ status: 'completed', winner_id: winnerId }).eq('id', challengeId);
       await sb.from('bonus_points').insert({
-        player_id: winnerId,
-        points: CHALLENGE_POINTS,
-        reason: `Won a player challenge (${GAME_LABELS[challenge.game]||challenge.game})`
+        player_id: winnerId, points: CHALLENGE_POINTS,
+        reason: `Won a player challenge (${GAME_LABELS[challenge.game]||challenge.game})`,
+        bar_id: currentBar?.id || null
       });
-      const { data: winner } = await sb.from('players').select('total_points').eq('id', winnerId).single();
-      await sb.from('players').update({ total_points: (winner?.total_points||0) + CHALLENGE_POINTS }).eq('id', winnerId);
+      const { data: winnerScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', winnerId).eq('bar_id', currentBar?.id || '').single();
+      await sb.from('player_bar_scores').update({ total_points: (winnerScore?.total_points||0) + CHALLENGE_POINTS }).eq('player_id', winnerId).eq('bar_id', currentBar?.id || '');
 
       const iWon = winnerId === currentPlayer.id;
       alert(iWon ? `🏆 Result confirmed! +${CHALLENGE_POINTS} points added to your score!` : `Result confirmed. Better luck next time!`);
