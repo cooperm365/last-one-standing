@@ -25,7 +25,7 @@ function getSupabase() {
 // ============================================
 function getBarSlug() {
   // Check query param first: ?bar=cjs-tavern
-  const params = new URLSearchParams(location.search);
+  const params = new URLSearchParamslocation.search;
   if (params.get('bar')) return params.get('bar');
   // Check path: /cjs-tavern/checkin.html
   const parts = location.pathname.split('/').filter(Boolean);
