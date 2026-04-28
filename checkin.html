@@ -1,6 +1,3 @@
-Here you go — select all of this and copy it:
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -160,6 +157,7 @@ Here you go — select all of this and copy it:
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <script src="js/config.js"></script>
 <script>
 const sb = getSupabase();
@@ -167,11 +165,104 @@ const LOCK_MINUTES = 15;
 let eventData = null;
 let timerInterval = null;
 
+// ── CELEBRATION ───────────────────────────────────────
+function playSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (type === 'checkin') {
+      // Upbeat double-ding
+      [0, 0.15].forEach((delay, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = i === 0 ? 880 : 1100;
+        o.type = 'sine';
+        g.gain.setValueAtTime(0, ctx.currentTime + delay);
+        g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + delay + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+        o.start(ctx.currentTime + delay);
+        o.stop(ctx.currentTime + delay + 0.3);
+      });
+    } else if (type === 'confirm') {
+      // Victory fanfare — ascending notes
+      [0, 0.12, 0.24, 0.36].forEach((delay, i) => {
+        const freqs = [523, 659, 784, 1047];
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = freqs[i];
+        o.type = 'triangle';
+        g.gain.setValueAtTime(0, ctx.currentTime + delay);
+        g.gain.linearRampToValueAtTime(0.25, ctx.currentTime + delay + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.35);
+        o.start(ctx.currentTime + delay);
+        o.stop(ctx.currentTime + delay + 0.4);
+      });
+    }
+  } catch(e) {}
+}
+
+function fireConfetti(intensity) {
+  const count = intensity === 'big' ? 180 : 80;
+  const spread = intensity === 'big' ? 100 : 60;
+  confetti({
+    particleCount: count,
+    spread,
+    origin: { y: 0.6 },
+    colors: ['#f0a500', '#ffffff', '#3ecf8e', '#f0ede8', '#a87300'],
+    scalar: intensity === 'big' ? 1.2 : 0.9,
+    zIndex: 9999
+  });
+  if (intensity === 'big') {
+    setTimeout(() => confetti({
+      particleCount: 60,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.7 },
+      colors: ['#f0a500', '#ffffff', '#3ecf8e'],
+      zIndex: 9999
+    }), 200);
+    setTimeout(() => confetti({
+      particleCount: 60,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.7 },
+      colors: ['#f0a500', '#ffffff', '#3ecf8e'],
+      zIndex: 9999
+    }), 200);
+  }
+}
+
+function animateCounter(el, targetVal, duration) {
+  const start = performance.now();
+  function step(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease out cubic
+    el.textContent = Math.round(eased * targetVal);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function celebrate(type, pts) {
+  playSound(type);
+  fireConfetti(type === 'confirm' ? 'big' : 'small');
+  // Animate the points counter
+  setTimeout(() => {
+    const el = type === 'confirm'
+      ? document.getElementById('success-pts')
+      : document.getElementById('pending-pts');
+    if (el) animateCounter(el, pts, 800);
+  }, 150);
+}
+
 async function init() {
   const params = new URLSearchParams(location.search);
   const eventId = params.get('event');
   if (!eventId) { show('not-found'); hide('loading'); return; }
 
+  // If returning player, redirect to in-app flow
   const savedPhone = localStorage.getItem('br_phone');
   if (savedPhone) {
     const { data: existingPlayer } = await sb.from('players').select('id').eq('phone', savedPhone.replace(/\D/g,'')).single();
@@ -183,6 +274,7 @@ async function init() {
     }
   }
 
+  // Load event for new/unknown player
   const { data, error } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
   if (error || !data) { show('not-found'); hide('loading'); return; }
 
@@ -244,7 +336,7 @@ async function doCheckin(player) {
 }
 
 function showPendingScreen(pts, confirmAt, scanCount) {
-  document.getElementById('pending-pts').textContent = pts;
+  document.getElementById('pending-pts').textContent = '0';
   document.getElementById('confirm-time').textContent = confirmAt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
   const dotsEl = document.getElementById('pending-dots');
   dotsEl.innerHTML = '';
@@ -254,10 +346,13 @@ function showPendingScreen(pts, confirmAt, scanCount) {
     dotsEl.appendChild(d);
   }
   show('pending');
+  celebrate('checkin', pts);
+  setTimeout(() => animateCounter(document.getElementById('pending-pts'), pts, 700), 200);
+}
 }
 
 function showSuccessScreen(pts, scanCount) {
-  document.getElementById('success-pts').textContent = pts;
+  document.getElementById('success-pts').textContent = '0';
   const remaining = MAX_SCANS_PER_VISIT - scanCount;
   document.getElementById('success-remaining').textContent =
     remaining > 0 ? remaining + ' scan' + (remaining !== 1 ? 's' : '') + ' left tonight' : 'No more scans tonight — come back tomorrow!';
@@ -270,6 +365,8 @@ function showSuccessScreen(pts, scanCount) {
   }
   hide('pending');
   show('success');
+  celebrate('confirm', pts);
+  setTimeout(() => animateCounter(document.getElementById('success-pts'), pts, 900), 200);
 }
 
 async function confirmCheckin(checkinId, player) {
@@ -353,4 +450,3 @@ init();
 </script>
 </body>
 </html>
-```
