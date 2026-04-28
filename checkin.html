@@ -52,6 +52,33 @@ input:focus{border-color:var(--gold-dim)}
 .timer-mins{font-family:'Bebas Neue',sans-serif;font-size:32px;color:#f0a500;line-height:1}
 .timer-label{font-size:10px;color:#888780;text-transform:uppercase;letter-spacing:0.5px}
 .pending-badge{background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.3);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem}
+
+/* ── PAGE SLIDE-IN ── */
+@keyframes pageIn {
+  from { opacity:0; transform:translateY(18px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(12px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes headerIn {
+  from { opacity:0; transform:translateY(-10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes cardPop {
+  0%   { opacity:0; transform:translateY(16px) scale(0.97); }
+  60%  { transform:translateY(-2px) scale(1.005); }
+  100% { opacity:1; transform:translateY(0) scale(1); }
+}
+.page { animation: pageIn 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+.header { animation: headerIn 0.3s ease both; }
+.card { animation: cardPop 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.15s; }
+#form-new, #form-returning { animation: fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
+#pending, #success { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
 </style>
 </head>
 <body>
