@@ -407,10 +407,12 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
           <select id="challenge-game" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;padding:0.75rem 1rem;outline:none">
             <option value="darts">🎯 Darts</option>
             <option value="pool">🎱 Pool</option>
+            <option value="cornhole">🌽 Cornhole</option>
+            <option value="shuffleboard">🏒 Shuffleboard</option>
+            <option value="foosball">⚽ Foosball</option>
+            <option value="pingpong">🏓 Ping Pong</option>
             <option value="trivia">🧠 Trivia Night</option>
-            <option value="bingo">🎰 Bingo</option>
-            <option value="blackjack">🃏 Blackjack</option>
-            <option value="any">⭐ Any game</option>
+            <option value="any">⭐ Any skill game</option>
           </select>
         </div>
 
@@ -764,7 +766,7 @@ function resetOrder() {
 document.getElementById('selfie-camera-wrap').style.display = 'none';
 
 // ── CHALLENGE SYSTEM ──────────────────────────────────────────
-const GAME_LABELS = { darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia Night', bingo:'🎰 Bingo', blackjack:'🃏 Blackjack', any:'⭐ Any game' };
+const GAME_LABELS = { darts:'🎯 Darts', pool:'🎱 Pool', cornhole:'🌽 Cornhole', shuffleboard:'🏒 Shuffleboard', foosball:'⚽ Foosball', pingpong:'🏓 Ping Pong', trivia:'🧠 Trivia Night', any:'⭐ Any skill game' };
 const CHALLENGE_POINTS = 25;
 let selectedChallengedId = null;
 
