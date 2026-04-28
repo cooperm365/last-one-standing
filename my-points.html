@@ -749,8 +749,8 @@ async function showDashboard(player) {
   // Save current rank for next visit
   if (rank > 0) localStorage.setItem(rankKey, String(rank));
 
-  // Load other bars this player has visited
-  loadOtherBars(player.id);
+  // Load other bars this player has visited — pass bar ID to avoid timing issue
+  loadOtherBars(player.id, currentBar?.id);
 
   // Tonight's scans
   const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000);
@@ -824,8 +824,7 @@ async function refreshDashboard() {
   }
 }
 
-async function loadOtherBars(playerId) {
-  // Get all bars this player has scores at
+async function loadOtherBars(playerId, barId) {
   const { data: scores } = await sb.from('player_bar_scores')
     .select('*, bars(id, name, slug, point_target)')
     .eq('player_id', playerId)
@@ -833,8 +832,7 @@ async function loadOtherBars(playerId) {
 
   if (!scores?.length) return;
 
-  // Filter out current bar
-  const others = scores.filter(s => s.bar_id !== currentBar?.id);
+  const others = scores.filter(s => s.bar_id !== barId);
   if (!others.length) return;
 
   document.getElementById('other-bars-section').style.display = 'block';
