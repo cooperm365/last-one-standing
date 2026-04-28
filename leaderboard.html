@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
     :root {
       --bg:#111110; --bg2:#1a1a18; --bg3:#222220;
       --border:rgba(255,255,255,0.07);
@@ -15,100 +15,151 @@
       --text:#f0ede8; --muted:#888780; --dim:#444441;
       --green:#3ecf8e; --silver:#C0C0C0; --bronze:#cd7f32;
     }
-    html, body { height: 100%; }
+    html, body { height:100%; }
     body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; display:flex; flex-direction:column; min-height:100vh; }
 
+    /* TOP BAR */
     .top-bar { background:var(--bg2); border-bottom:1px solid var(--border); padding:14px 32px; display:flex; align-items:center; gap:20px; flex-shrink:0; flex-wrap:wrap; }
     .logo-mark { width:42px; height:42px; background:var(--gold); border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:17px; color:#111; flex-shrink:0; }
-    .title-block { flex:1; min-width:200px; }
+    .title-block { flex:1; min-width:180px; }
     .title-main { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:1px; color:var(--text); line-height:1; }
     .title-sub { font-size:12px; color:var(--gold); margin-top:2px; }
-
     .prizes { display:flex; gap:8px; }
     .prize-badge { background:rgba(240,165,0,0.08); border:1px solid var(--gold-dim); border-radius:6px; padding:5px 12px; text-align:center; }
     .prize-pos { font-size:10px; color:var(--gold-dim); text-transform:uppercase; letter-spacing:0.5px; }
     .prize-val { font-size:13px; font-weight:600; color:var(--gold); }
-
     .live-badge { display:flex; align-items:center; gap:6px; background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:6px 14px; }
     .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 1.5s infinite; flex-shrink:0; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
     .live-text { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
-    .live-countdown { font-family:'Bebas Neue',sans-serif; font-size:15px; color:var(--text); letter-spacing:1px; margin-left:4px; }
 
-    .period-bar { display:flex; gap:6px; }
-    .period-btn { padding:5px 12px; border-radius:999px; font-size:12px; font-weight:500; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--muted); transition:all 0.15s; font-family:'DM Sans',sans-serif; }
-    .period-btn.active, .period-btn:hover { border-color:var(--gold-dim); color:var(--gold); background:var(--gold-bg); }
+    /* RACE TO TARGET BAR */
+    .race-bar-wrap { background:var(--bg2); border-bottom:1px solid var(--border); padding:16px 32px; flex-shrink:0; }
+    .race-header { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+    .race-title { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; color:var(--text); }
+    .race-target { font-size:13px; color:var(--muted); }
+    .race-target span { color:var(--gold); font-weight:600; }
+    .race-track { height:10px; background:var(--bg3); border-radius:5px; overflow:visible; position:relative; margin-bottom:6px; }
+    .race-fill { height:100%; border-radius:5px; background:linear-gradient(90deg, var(--gold-dim), var(--gold)); transition:width 1s cubic-bezier(0.22,1,0.36,1); position:relative; min-width:0; }
+    .race-fill::after { content:''; position:absolute; right:-1px; top:50%; transform:translateY(-50%); width:14px; height:14px; background:var(--gold); border-radius:50%; border:2px solid #111; box-shadow:0 0 8px var(--gold); }
+    .race-flag { position:absolute; right:0; top:-18px; font-size:16px; }
+    .race-label { display:flex; justify-content:space-between; font-size:11px; color:var(--dim); }
+    .race-leader { font-size:12px; color:var(--muted); margin-top:6px; }
+    .race-leader span { color:var(--gold); font-weight:600; }
 
-    .main { flex:1; padding:24px 32px; display:flex; flex-direction:column; gap:16px; }
+    /* WINNER BANNER */
+    .winner-banner { background:linear-gradient(135deg, #1f1c10, #2a2200); border:2px solid var(--gold); border-radius:12px; padding:20px 32px; margin:0 32px; text-align:center; animation:winnerGlow 2s ease-in-out infinite alternate; }
+    @keyframes winnerGlow { from{box-shadow:0 0 20px rgba(240,165,0,0.3)} to{box-shadow:0 0 40px rgba(240,165,0,0.6)} }
+    .winner-crown { font-size:48px; margin-bottom:8px; }
+    .winner-title { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:2px; color:var(--gold); }
+    .winner-name { font-family:'Bebas Neue',sans-serif; font-size:52px; color:var(--text); line-height:1; margin:4px 0; }
+    .winner-sub { font-size:14px; color:var(--muted); }
 
+    /* MAIN */
+    .main { flex:1; padding:20px 32px; display:flex; flex-direction:column; gap:14px; }
+
+    /* PODIUM */
     .podium { display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:12px; align-items:end; }
-    .pod-card { border-radius:10px; padding:16px 14px; text-align:center; border:1px solid var(--border); background:var(--bg2); }
-    .pod-card.first { background:rgba(240,165,0,0.06); border-color:var(--gold-dim); padding:22px 14px; }
-    .pod-card.empty { opacity:0.25; }
-    .pod-medal { font-size:20px; margin-bottom:8px; }
-    .pod-card.first .pod-medal { font-size:28px; }
-    .pod-avatar { width:46px; height:46px; border-radius:50%; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:16px; background:var(--bg3); color:var(--muted); }
-    .pod-card.first .pod-avatar { width:56px; height:56px; font-size:20px; background:rgba(240,165,0,0.18); color:var(--gold); }
+    .pod-card { border-radius:10px; padding:14px 12px; text-align:center; border:1px solid var(--border); background:var(--bg2); }
+    .pod-card.first { background:rgba(240,165,0,0.06); border-color:var(--gold-dim); padding:20px 12px; }
+    .pod-card.empty { opacity:0.2; }
+    .pod-medal { font-size:18px; margin-bottom:6px; }
+    .pod-card.first .pod-medal { font-size:26px; }
+    .pod-avatar { width:42px; height:42px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; background:var(--bg3); color:var(--muted); }
+    .pod-card.first .pod-avatar { width:52px; height:52px; font-size:19px; background:rgba(240,165,0,0.18); color:var(--gold); }
     .pod-card.second .pod-avatar { background:rgba(192,192,192,0.12); color:var(--silver); }
     .pod-card.third .pod-avatar { background:rgba(205,127,50,0.12); color:var(--bronze); }
-    .pod-name { font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px; }
-    .pod-card.first .pod-name { font-size:17px; }
-    .pod-pts { font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--gold); line-height:1; }
-    .pod-card.first .pod-pts { font-size:44px; }
+    .pod-name { font-size:13px; font-weight:600; color:var(--text); margin-bottom:3px; }
+    .pod-card.first .pod-name { font-size:16px; }
+    .pod-pts { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--gold); line-height:1; }
+    .pod-card.first .pod-pts { font-size:40px; }
     .pod-card.second .pod-pts { color:var(--silver); }
     .pod-card.third .pod-pts { color:var(--bronze); }
     .pod-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
-    .pod-checkins { font-size:11px; color:var(--dim); margin-top:4px; }
+    .pod-checkins { font-size:11px; color:var(--dim); margin-top:3px; }
 
-    .rest-list { display:flex; flex-direction:column; gap:6px; }
-    .lb-row { display:flex; align-items:center; gap:12px; padding:11px 16px; background:var(--bg2); border-radius:8px; border:1px solid var(--border); }
+    /* Progress bar per player */
+    .pod-progress { margin-top:8px; height:4px; background:var(--bg3); border-radius:2px; overflow:hidden; }
+    .pod-progress-fill { height:100%; border-radius:2px; background:var(--gold); transition:width 1s ease; }
+    .pod-card.second .pod-progress-fill { background:var(--silver); }
+    .pod-card.third .pod-progress-fill { background:var(--bronze); }
+
+    /* REST LIST */
+    .rest-list { display:flex; flex-direction:column; gap:5px; }
+    .lb-row { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--bg2); border-radius:8px; border:1px solid var(--border); }
     .lb-row.me { background:rgba(240,165,0,0.06); border-color:var(--gold-dim); }
-    .lb-rank { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--dim); min-width:30px; text-align:center; }
-    .lb-avatar { width:34px; height:34px; border-radius:50%; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--muted); flex-shrink:0; }
-    .lb-name { flex:1; font-size:15px; font-weight:500; }
-    .lb-name .you { font-size:11px; color:var(--gold); font-weight:400; margin-left:6px; }
+    .lb-rank { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--dim); min-width:28px; text-align:center; }
+    .lb-avatar { width:32px; height:32px; border-radius:50%; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:var(--muted); flex-shrink:0; }
+    .lb-name { flex:1; font-size:14px; font-weight:500; }
+    .lb-you { font-size:11px; color:var(--gold); font-weight:400; margin-left:5px; }
     .lb-meta { font-size:11px; color:var(--dim); }
-    .lb-pts { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--gold); }
-    .lb-pts-lbl { font-size:10px; color:var(--dim); text-transform:uppercase; text-align:right; }
+    .lb-right { text-align:right; }
+    .lb-pts { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--gold); }
+    .lb-pts-lbl { font-size:10px; color:var(--dim); text-transform:uppercase; }
+    .lb-bar { height:3px; background:var(--bg3); border-radius:2px; margin-top:3px; width:60px; }
+    .lb-bar-fill { height:100%; border-radius:2px; background:var(--gold); opacity:0.5; }
 
+    /* EMPTY / LOADING */
     .lb-empty { text-align:center; padding:3rem; color:var(--muted); font-size:15px; }
     .spinner { width:22px; height:22px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.7s linear infinite; display:inline-block; }
-    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes spin { to{transform:rotate(360deg)} }
 
-    .bottom-bar { background:var(--bg2); border-top:2px solid var(--gold-dim); padding:18px 32px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; gap:16px; }
-    .cta-text { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:1px; color:var(--text); line-height:1.1; }
+    /* BOTTOM CTA */
+    .bottom-bar { background:var(--bg2); border-top:2px solid var(--gold-dim); padding:16px 32px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; gap:16px; }
+    .cta-text { font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:1px; color:var(--text); line-height:1.1; }
     .cta-text span { color:var(--gold); }
-    .cta-sub { font-size:14px; color:var(--muted); margin-top:4px; }
-    .cta-arrow { font-family:'Bebas Neue',sans-serif; font-size:52px; color:var(--gold); flex-shrink:0; }
+    .cta-sub { font-size:13px; color:var(--muted); margin-top:3px; }
+    .cta-arrow { font-family:'Bebas Neue',sans-serif; font-size:48px; color:var(--gold); flex-shrink:0; }
   </style>
 </head>
 <body>
 
+  <!-- TOP BAR -->
   <div class="top-bar">
     <div class="logo-mark">BR</div>
     <div class="title-block">
       <div class="title-main">Leaderboard Legends — CJ's Tavern</div>
-      <div class="title-sub" id="season-sub">Loading...</div>
+      <div class="title-sub" id="season-sub">First to 200 points wins</div>
     </div>
-    <div class="prizes" id="prizes-row" style="display:none">
-      <div class="prize-badge"><div class="prize-pos">1st</div><div class="prize-val" id="prize-1"></div></div>
-      <div class="prize-badge"><div class="prize-pos">2nd</div><div class="prize-val" id="prize-2"></div></div>
-      <div class="prize-badge"><div class="prize-pos">3rd</div><div class="prize-val" id="prize-3"></div></div>
-    </div>
-    <div class="period-bar">
-      <button class="period-btn active" onclick="setPeriod('week',this)">This week</button>
-      <button class="period-btn" onclick="setPeriod('month',this)">This month</button>
-      <button class="period-btn" onclick="setPeriod('alltime',this)">All time</button>
+    <div class="prizes">
+      <div class="prize-badge"><div class="prize-pos">🥇 Winner</div><div class="prize-val">$50 Gift Card</div></div>
+      <div class="prize-badge"><div class="prize-pos">🥈 2nd</div><div class="prize-val">Free Round (up to 6)</div></div>
+      <div class="prize-badge"><div class="prize-pos">🥉 3rd</div><div class="prize-val">CJ's Tavern Tee</div></div>
     </div>
     <div class="live-badge">
       <div class="live-dot"></div>
       <span class="live-text">Live</span>
-      <span class="live-countdown" id="countdown">—</span>
     </div>
   </div>
 
+  <!-- RACE TO TARGET BAR -->
+  <div class="race-bar-wrap" id="race-bar-section">
+    <div class="race-header">
+      <div class="race-title">🏁 Race to 200 points</div>
+      <div class="race-target">First to <span>200 pts</span> wins the $50 gift card</div>
+    </div>
+    <div class="race-track">
+      <div class="race-fill" id="race-fill" style="width:0%">
+        <span class="race-flag">🏁</span>
+      </div>
+    </div>
+    <div class="race-label">
+      <span>0</span><span>50</span><span>100</span><span>150</span><span>200 🎯</span>
+    </div>
+    <div class="race-leader" id="race-leader">Loading...</div>
+  </div>
+
+  <!-- WINNER BANNER (hidden until someone wins) -->
+  <div class="winner-banner" id="winner-banner" style="display:none;margin-top:20px">
+    <div class="winner-crown">👑</div>
+    <div class="winner-title">We have a winner!</div>
+    <div class="winner-name" id="winner-name"></div>
+    <div class="winner-sub" id="winner-sub"></div>
+  </div>
+
+  <!-- MAIN -->
   <div class="main">
-    <div id="lb-loading" style="text-align:center;padding:3rem"><span class="spinner"></span></div>
+    <div id="lb-loading" style="text-align:center;padding:2rem"><span class="spinner"></span></div>
     <div id="lb-empty" class="lb-empty" style="display:none">No check-ins yet — be the first on the board!</div>
     <div class="podium" id="podium" style="display:none">
       <div class="pod-card second" id="pod-2">
@@ -118,6 +169,7 @@
         <div class="pod-pts" id="pod-2-pts">—</div>
         <div class="pod-label">points</div>
         <div class="pod-checkins" id="pod-2-ci"></div>
+        <div class="pod-progress"><div class="pod-progress-fill" id="pod-2-bar" style="width:0%"></div></div>
       </div>
       <div class="pod-card first" id="pod-1">
         <div class="pod-medal">🥇</div>
@@ -126,6 +178,7 @@
         <div class="pod-pts" id="pod-1-pts">—</div>
         <div class="pod-label">points</div>
         <div class="pod-checkins" id="pod-1-ci"></div>
+        <div class="pod-progress"><div class="pod-progress-fill" id="pod-1-bar" style="width:0%"></div></div>
       </div>
       <div class="pod-card third" id="pod-3">
         <div class="pod-medal">🥉</div>
@@ -134,11 +187,13 @@
         <div class="pod-pts" id="pod-3-pts">—</div>
         <div class="pod-label">points</div>
         <div class="pod-checkins" id="pod-3-ci"></div>
+        <div class="pod-progress"><div class="pod-progress-fill" id="pod-3-bar" style="width:0%"></div></div>
       </div>
     </div>
     <div class="rest-list" id="lb-rest" style="display:none"></div>
   </div>
 
+  <!-- BOTTOM CTA -->
   <div class="bottom-bar">
     <div>
       <div class="cta-text">Not on the board? <span>Scan any game QR code to join.</span></div>
@@ -151,123 +206,96 @@
 <script src="js/config.js"></script>
 <script>
 const sb = getSupabase();
-let currentPeriod = 'week';
+const TARGET = 200;
 const myPhone = localStorage.getItem('br_phone');
-
-const PRIZES = { p1: '$50 Gift Card', p2: 'Free Round (up to 6)', p3: "CJ's Tavern Tee" };
-const SEASON_END = new Date('2025-05-08T23:59:59');
-
-function initPrizes() {
-  document.getElementById('prize-1').textContent = PRIZES.p1;
-  document.getElementById('prize-2').textContent = PRIZES.p2;
-  document.getElementById('prize-3').textContent = PRIZES.p3;
-  document.getElementById('prizes-row').style.display = 'flex';
-}
-
-function updateCountdown() {
-  const diff = SEASON_END - new Date();
-  if (diff <= 0) { document.getElementById('countdown').textContent = 'ENDED'; return; }
-  const d = Math.floor(diff/86400000);
-  const h = Math.floor((diff%86400000)/3600000);
-  const m = Math.floor((diff%3600000)/60000);
-  const s = Math.floor((diff%60000)/1000);
-  document.getElementById('countdown').textContent = d > 0
-    ? `${d}D ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
-    : `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  const daysLeft = d === 1 ? '1 day left' : d > 0 ? `${d} days left` : 'Final hours!';
-  document.getElementById('season-sub').textContent = `Bar Rank · Season ends ${SEASON_END.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${daysLeft}`;
-}
 
 function initials(name) { return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 
 function setPod(num, row) {
-  if (!row) { document.getElementById(`pod-${num}`).classList.add('empty'); return; }
-  document.getElementById(`pod-${num}-av`).textContent = initials(row.name);
-  document.getElementById(`pod-${num}-name`).textContent = row.name;
-  document.getElementById(`pod-${num}-pts`).textContent = row.pts;
-  document.getElementById(`pod-${num}-ci`).textContent = `${row.checkins} check-in${row.checkins!==1?'s':''}`;
-}
-
-function getPeriodStart(p) {
-  if (p==='week') { const d=new Date(); d.setDate(d.getDate()-7); return d.toISOString(); }
-  if (p==='month') { const d=new Date(); d.setMonth(d.getMonth()-1); return d.toISOString(); }
-  return null;
+  if (!row) { document.getElementById('pod-'+num).classList.add('empty'); return; }
+  document.getElementById('pod-'+num+'-av').textContent = initials(row.name);
+  document.getElementById('pod-'+num+'-name').textContent = row.name;
+  document.getElementById('pod-'+num+'-pts').textContent = row.pts;
+  document.getElementById('pod-'+num+'-ci').textContent = row.checkins + ' check-in' + (row.checkins!==1?'s':'');
+  const pct = Math.min(100, Math.round((row.pts / TARGET) * 100));
+  document.getElementById('pod-'+num+'-bar').style.width = pct + '%';
 }
 
 async function load() {
-  const since = getPeriodStart(currentPeriod);
-  let q = sb.from('checkins').select('player_id, points_earned');
-  if (since) q = q.gte('scanned_at', since);
-  const { data: checkins } = await q;
-  let bq = sb.from('bonus_points').select('player_id, points');
-  if (since) bq = bq.gte('awarded_at', since);
-  const { data: bonuses } = await bq;
+  const { data: checkins } = await sb.from('checkins').select('player_id, points_earned').eq('pending', false);
+  const { data: bonuses } = await sb.from('bonus_points').select('player_id, points');
+  const { data: players } = await sb.from('players').select('id, name, phone');
 
-  const totals={}, cins={};
-  (checkins||[]).forEach(c=>{ totals[c.player_id]=(totals[c.player_id]||0)+c.points_earned; cins[c.player_id]=(cins[c.player_id]||0)+1; });
-  (bonuses||[]).forEach(b=>{ totals[b.player_id]=(totals[b.player_id]||0)+b.points; });
+  const totals = {}, cins = {};
+  (checkins||[]).forEach(c => { totals[c.player_id]=(totals[c.player_id]||0)+c.points_earned; cins[c.player_id]=(cins[c.player_id]||0)+1; });
+  (bonuses||[]).forEach(b => { totals[b.player_id]=(totals[b.player_id]||0)+b.points; });
 
-  const ids = Object.keys(totals);
+  const pm = {};
+  (players||[]).forEach(p => { pm[p.id] = p; });
+
+  const rows = Object.keys(totals)
+    .map(id => ({ id, name:pm[id]?.name||'?', phone:pm[id]?.phone, pts:Math.max(0,totals[id]), checkins:cins[id]||0 }))
+    .sort((a,b) => b.pts-a.pts);
+
   document.getElementById('lb-loading').style.display = 'none';
 
-  if (!ids.length) {
+  if (!rows.length) {
     document.getElementById('lb-empty').style.display = 'block';
-    document.getElementById('podium').style.display = 'none';
-    document.getElementById('lb-rest').style.display = 'none';
+    document.getElementById('race-leader').textContent = 'No players yet — be the first to scan!';
     return;
   }
 
-  const { data: players } = await sb.from('players').select('id, name, phone').in('id', ids);
-  const pm = {};
-  (players||[]).forEach(p=>{ pm[p.id]=p; });
+  const leader = rows[0];
+  const pct = Math.min(100, Math.round((leader.pts / TARGET) * 100));
 
-  const rows = ids
-    .map(id=>({ id, name:pm[id]?.name||'?', phone:pm[id]?.phone, pts:totals[id], checkins:cins[id]||0 }))
-    .sort((a,b)=>b.pts-a.pts);
+  // Race bar
+  setTimeout(() => {
+    document.getElementById('race-fill').style.width = pct + '%';
+  }, 300);
 
-  setPod(1, rows[0]); setPod(2, rows[1]); setPod(3, rows[2]);
+  const remaining = Math.max(0, TARGET - leader.pts);
+  document.getElementById('race-leader').innerHTML =
+    `<span>${esc(leader.name)}</span> is leading with ${leader.pts} pts — <span>${remaining > 0 ? remaining + ' points from winning' : '🏆 Target reached!'}</span>`;
+
+  // Check for winner
+  if (leader.pts >= TARGET) {
+    document.getElementById('winner-banner').style.display = 'block';
+    document.getElementById('winner-name').textContent = leader.name.toUpperCase();
+    document.getElementById('winner-sub').textContent = `${leader.pts} points · ${leader.checkins} check-ins · $50 Gift Card winner!`;
+    document.getElementById('race-bar-section').style.display = 'none';
+  }
+
+  // Podium
+  setPod(1, rows[0]); setPod(2, rows[1]||null); setPod(3, rows[2]||null);
   document.getElementById('podium').style.display = 'grid';
 
+  // Rest of list
   const rest = rows.slice(3);
   const restEl = document.getElementById('lb-rest');
   if (rest.length) {
-    restEl.innerHTML = rest.map((row,i) => {
-      const rank = i+4;
+    restEl.innerHTML = rest.map((row, i) => {
+      const rank = i + 4;
       const isMe = myPhone && row.phone === myPhone;
+      const pct = Math.min(100, Math.round((row.pts / TARGET) * 100));
       return `<div class="lb-row${isMe?' me':''}">
         <div class="lb-rank">${rank}</div>
         <div class="lb-avatar">${initials(row.name)}</div>
         <div style="flex:1">
-          <div class="lb-name">${esc(row.name)}${isMe?'<span class="you">(you)</span>':''}</div>
+          <div class="lb-name">${esc(row.name)}${isMe?'<span class="lb-you">(you)</span>':''}</div>
           <div class="lb-meta">${row.checkins} check-in${row.checkins!==1?'s':''}</div>
         </div>
-        <div style="text-align:right">
+        <div class="lb-right">
           <div class="lb-pts">${row.pts}</div>
-          <div class="lb-pts-lbl">pts</div>
+          <div class="lb-bar"><div class="lb-bar-fill" style="width:${pct}%"></div></div>
         </div>
       </div>`;
     }).join('');
     restEl.style.display = 'flex';
-  } else {
-    restEl.style.display = 'none';
   }
-}
-
-function setPeriod(p, btn) {
-  currentPeriod = p;
-  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('lb-loading').style.display = 'block';
-  document.getElementById('podium').style.display = 'none';
-  document.getElementById('lb-rest').style.display = 'none';
-  load();
 }
 
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-initPrizes();
-updateCountdown();
-setInterval(updateCountdown, 1000);
 load();
 setInterval(load, 30000);
 </script>
