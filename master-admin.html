@@ -247,7 +247,7 @@ async function loadDashboard() {
         <div class="bar-meta">/${b.slug} · target ${b.point_target} pts · ${b.active ? 'Active' : 'Inactive'}</div>
       </div>
       <div class="bar-actions">
-        <button class="btn btn-outline btn-sm" onclick="openEdit(${JSON.stringify(b).replace(/"/g,'&quot;')})">Edit</button>
+        <button class="btn btn-outline btn-sm" onclick="openEditById('${b.id}')">Edit</button>
         <button class="btn btn-outline btn-sm" onclick="toggleBar('${b.id}','${esc(b.name)}',${b.active})" style="color:${b.active ? 'var(--red)' : 'var(--green)'}">
           ${b.active ? 'Deactivate' : 'Reactivate'}
         </button>
@@ -287,6 +287,11 @@ async function createBar() {
   ['new-name','new-slug','new-pw','new-p1','new-p2','new-p3','new-email'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('new-target').value = '200';
   loadDashboard();
+}
+
+async function openEditById(id) {
+  const { data: bar } = await sb.from('bars').select('*').eq('id', id).single();
+  if (bar) openEdit(bar);
 }
 
 function openEdit(bar) {
