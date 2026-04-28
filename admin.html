@@ -71,6 +71,7 @@
       <button class="tab" onclick="switchTab('players', this)">Players</button>
       <button class="tab" onclick="switchTab('stats', this)">📊 Stats</button>
       <button class="tab" onclick="switchTab('hunt', this)">🔍 Hunt</button>
+      <button class="tab" onclick="switchTab('season', this)">🏆 Season</button>
     </div>
 
     <!-- EVENTS TAB -->
@@ -220,6 +221,33 @@
       <div id="hunt-list"></div>
     </div>
 
+    <!-- SEASON TAB -->
+    <div class="tab-panel" id="tab-season">
+      <div class="section-title">🏆 Season Management</div>
+
+      <!-- Current season stats -->
+      <div class="card card-gold" style="margin-bottom:1.5rem">
+        <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:0.75rem">Current Season</div>
+        <div id="current-season-stats" style="color:var(--text-muted);font-size:14px">Loading...</div>
+      </div>
+
+      <!-- Reset button -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div style="font-size:15px;font-weight:600;margin-bottom:0.5rem">Start New Season</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">This will archive the current results and reset all scores to zero. Player accounts are kept — nobody needs to re-register. QR codes keep working.</p>
+        <div style="margin-bottom:1rem">
+          <label>Notes for this season (optional)</label>
+          <input type="text" id="season-notes" placeholder="e.g. Spring 2025 season — Jamie K. won!"/>
+        </div>
+        <button class="btn" style="background:var(--red);color:#fff;font-weight:700" onclick="endSeason()">🏁 Archive season & reset scores</button>
+      </div>
+
+      <!-- Past seasons -->
+      <div class="section-title">Past Seasons</div>
+      <div id="seasons-loading" style="color:var(--text-muted);font-size:14px;padding:1rem 0">Loading...</div>
+      <div id="seasons-list"></div>
+    </div>
+
   </div>
 </div>
 
@@ -277,6 +305,7 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
   if (name === 'hunt') loadHuntSubmissions();
+  if (name === 'season') loadSeasonTab();
 }
 
 // --- Events ---
@@ -762,6 +791,129 @@ async function rejectHunt(submissionId) {
   if (!confirm('Reject this submission? The player will be notified.')) return;
   await sb.from('hunt_submissions').update({ status: 'rejected' }).eq('id', submissionId);
   loadHuntSubmissions();
+}
+
+// --- Season Management ---
+async function loadSeasonTab() {
+  // Load current season stats
+  const { data: scores } = await sb.from('player_bar_scores')
+    .select('total_points, player_id, player_profiles(name)')
+    .eq('bar_id', currentBar.id)
+    .order('total_points', { ascending: false });
+
+  const { data: checkins } = await sb.from('checkins')
+    .select('id').eq('bar_id', currentBar.id).eq('pending', false);
+
+  const top = (scores || []).filter(s => s.total_points > 0);
+  const statsEl = document.getElementById('current-season-stats');
+
+  if (!top.length) {
+    statsEl.innerHTML = '<p>No scores yet this season.</p>';
+  } else {
+    statsEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
+        <div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)">${top.length}</div><div style="font-size:12px;color:var(--text-muted)">Players on board</div></div>
+        <div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)">${(checkins||[]).length}</div><div style="font-size:12px;color:var(--text-muted)">Total check-ins</div></div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.5rem">Current top 3:</div>
+      ${top.slice(0,3).map((s,i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:16px">${['🥇','🥈','🥉'][i]}</span>
+          <span style="flex:1;font-weight:500">${esc(s.player_profiles?.name || '?')}</span>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold)">${s.total_points}</span>
+        </div>`).join('')}`;
+  }
+
+  // Load past seasons
+  await loadPastSeasons();
+}
+
+async function loadPastSeasons() {
+  const { data: seasons } = await sb.from('season_archives')
+    .select('*').eq('bar_id', currentBar.id)
+    .order('ended_at', { ascending: false });
+
+  document.getElementById('seasons-loading').style.display = 'none';
+  const list = document.getElementById('seasons-list');
+
+  if (!seasons?.length) {
+    list.innerHTML = '<p style="color:var(--text-muted);font-size:14px">No past seasons yet.</p>';
+    return;
+  }
+
+  list.innerHTML = seasons.map(s => `
+    <div class="card" style="margin-bottom:0.75rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+        <div style="font-weight:600">Season ${s.season_number}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${new Date(s.ended_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</div>
+      </div>
+      ${s.winner_name ? `
+      <div style="display:flex;gap:10px;margin-bottom:0.5rem">
+        <span style="font-size:16px">🥇</span>
+        <span style="flex:1;font-weight:500">${esc(s.winner_name)}</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)">${s.winner_points} pts</span>
+      </div>` : ''}
+      ${s.second_name ? `
+      <div style="display:flex;gap:10px;margin-bottom:0.5rem">
+        <span style="font-size:16px">🥈</span>
+        <span style="flex:1;color:var(--text-muted)">${esc(s.second_name)}</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text-muted)">${s.second_points} pts</span>
+      </div>` : ''}
+      ${s.third_name ? `
+      <div style="display:flex;gap:10px;margin-bottom:0.5rem">
+        <span style="font-size:16px">🥉</span>
+        <span style="flex:1;color:var(--text-muted)">${esc(s.third_name)}</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text-muted)">${s.third_points} pts</span>
+      </div>` : ''}
+      <div style="font-size:12px;color:var(--text-muted);margin-top:0.5rem">${s.total_players} players · ${s.total_checkins} check-ins${s.notes ? ` · ${esc(s.notes)}` : ''}</div>
+    </div>`).join('');
+}
+
+async function endSeason() {
+  if (!confirm('Archive this season and reset all scores to zero?\n\nPlayers keep their accounts but all points go back to 0. This cannot be undone.')) return;
+
+  // Get current top 3
+  const { data: scores } = await sb.from('player_bar_scores')
+    .select('total_points, player_id, player_profiles(name, phone)')
+    .eq('bar_id', currentBar.id)
+    .order('total_points', { ascending: false })
+    .limit(3);
+
+  const { data: checkins } = await sb.from('checkins').select('id').eq('bar_id', currentBar.id).eq('pending', false);
+  const { data: allScores } = await sb.from('player_bar_scores').select('id').eq('bar_id', currentBar.id).gt('total_points', 0);
+
+  // Get season number
+  const { data: pastSeasons } = await sb.from('season_archives').select('season_number').eq('bar_id', currentBar.id).order('season_number', { ascending: false }).limit(1);
+  const nextSeason = ((pastSeasons?.[0]?.season_number) || 0) + 1;
+
+  const top = scores || [];
+  const notes = document.getElementById('season-notes').value.trim() || null;
+
+  // Archive the season
+  await sb.from('season_archives').insert({
+    bar_id: currentBar.id,
+    season_number: nextSeason,
+    ended_at: new Date().toISOString(),
+    winner_name: top[0]?.player_profiles?.name || null,
+    winner_points: top[0]?.total_points || null,
+    winner_phone: top[0]?.player_profiles?.phone || null,
+    second_name: top[1]?.player_profiles?.name || null,
+    second_points: top[1]?.total_points || null,
+    third_name: top[2]?.player_profiles?.name || null,
+    third_points: top[2]?.total_points || null,
+    total_players: (allScores||[]).length,
+    total_checkins: (checkins||[]).length,
+    notes
+  });
+
+  // Reset all scores at this bar
+  await sb.from('player_bar_scores').update({ total_points: 0 }).eq('bar_id', currentBar.id);
+  await sb.from('checkins').delete().eq('bar_id', currentBar.id);
+  await sb.from('bonus_points').delete().eq('bar_id', currentBar.id);
+
+  alert(`Season ${nextSeason} archived! ${top[0]?.player_profiles?.name || 'No winner'} wins with ${top[0]?.total_points || 0} points. Scores reset to zero — new season started!`);
+  document.getElementById('season-notes').value = '';
+  loadSeasonTab();
 }
 
 function showMsg(id, text, type) {
