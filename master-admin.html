@@ -355,7 +355,7 @@ function showMsg(id, text, type) {
   setTimeout(() => el.classList.remove('show'), 4000);
 }
 
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
 
 // Auto-slug from name
 document.addEventListener('DOMContentLoaded', () => {
