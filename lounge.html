@@ -1054,8 +1054,6 @@ const HUNT_CLUES = [
   "Find a staff member wearing a uniform or name tag"
 ];
 
-let huntStream = null;
-
 function getTodayClue() {
   // Rotate clues by day of year so it changes daily automatically
   const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
