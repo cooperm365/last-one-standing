@@ -19,7 +19,7 @@
 5. Paste the entire contents of `schema.sql` and click **Run**
 
 ---
-
+ 
 ## Step 2 — Get your Supabase credentials
 
 1. In Supabase, go to **Settings → API**
