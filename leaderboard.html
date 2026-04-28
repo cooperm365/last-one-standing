@@ -237,30 +237,52 @@ function setPod(num, row, T) {
   if (!row) { document.getElementById('pod-'+num).classList.add('empty'); return; }
   document.getElementById('pod-'+num+'-av').textContent = initials(row.name);
   document.getElementById('pod-'+num+'-name').textContent = row.name;
-  document.getElementById('pod-'+num+'-pts').textContent = row.pts;
-  document.getElementById('pod-'+num+'-ci').textContent = row.checkins + ' check-in' + (row.checkins!==1?'s':'');
-  const pct = Math.min(100, Math.round((row.pts / T) * 100));
+  const displayPts = row.pts + row.pendingPts;
+  document.getElementById('pod-'+num+'-pts').textContent = row.pending ? '⏳' : displayPts;
+  document.getElementById('pod-'+num+'-ci').textContent = row.pending ? 'checking in...' : row.checkins + ' check-in' + (row.checkins!==1?'s':'');
+  const pct = Math.min(100, Math.round((displayPts / T) * 100));
   document.getElementById('pod-'+num+'-bar').style.width = pct + '%';
 }
 
 async function load() {
   if (!currentBar) return;
   const { data: scores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', currentBar.id);
-  const { data: checkins } = await sb.from('checkins').select('player_id').eq('pending', false).eq('bar_id', currentBar.id);
-  const { data: bonuses } = await sb.from('bonus_points').select('player_id, points').eq('bar_id', currentBar.id);
+  const { data: confirmedCI } = await sb.from('checkins').select('player_id').eq('pending', false).eq('bar_id', currentBar.id);
+  const { data: pendingCI } = await sb.from('checkins').select('player_id, points_earned, points_confirm_at').eq('pending', true).eq('bar_id', currentBar.id);
   const { data: profiles } = await sb.from('player_profiles').select('id, name, phone');
   const T = TARGET();
 
   const cins = {};
-  (checkins||[]).forEach(c => { cins[c.player_id]=(cins[c.player_id]||0)+1; });
+  (confirmedCI||[]).forEach(c => { cins[c.player_id]=(cins[c.player_id]||0)+1; });
+
+  // Build pending points map
+  const pendingPts = {};
+  (pendingCI||[]).forEach(c => { pendingPts[c.player_id]=(pendingPts[c.player_id]||0)+c.points_earned; });
 
   const pm = {};
   (profiles||[]).forEach(p => { pm[p.id] = p; });
 
-  const rows = (scores||[])
-    .map(s => ({ id: s.player_id, name: pm[s.player_id]?.name||'?', phone: pm[s.player_id]?.phone, pts: Math.max(0, s.total_points), checkins: cins[s.player_id]||0 }))
-    .filter(r => r.pts > 0)
-    .sort((a,b) => b.pts-a.pts);
+  // Combine confirmed scores with pending players
+  const scoreMap = {};
+  (scores||[]).forEach(s => { scoreMap[s.player_id] = s.total_points; });
+
+  // Add pending players who have 0 confirmed points
+  Object.keys(pendingPts).forEach(pid => {
+    if (scoreMap[pid] === undefined) scoreMap[pid] = 0;
+  });
+
+  const rows = Object.entries(scoreMap)
+    .map(([pid, pts]) => ({
+      id: pid,
+      name: pm[pid]?.name || '?',
+      phone: pm[pid]?.phone,
+      pts: Math.max(0, pts),
+      pendingPts: pendingPts[pid] || 0,
+      checkins: cins[pid] || 0,
+      pending: pts === 0 && (pendingPts[pid] || 0) > 0
+    }))
+    .filter(r => r.pts > 0 || r.pendingPts > 0)
+    .sort((a, b) => (b.pts + b.pendingPts) - (a.pts + a.pendingPts));
 
   document.getElementById('lb-loading').style.display = 'none';
 
@@ -271,18 +293,16 @@ async function load() {
   }
 
   const leader = rows[0];
-  const pct = Math.min(100, Math.round((leader.pts / T) * 100));
+  const displayLeaderPts = leader.pts + leader.pendingPts;
+  const pct = Math.min(100, Math.round((displayLeaderPts / T) * 100));
 
-  // Race bar
-  setTimeout(() => {
-    document.getElementById('race-fill').style.width = pct + '%';
-  }, 300);
+  setTimeout(() => { document.getElementById('race-fill').style.width = pct + '%'; }, 300);
 
-  const remaining = Math.max(0, T - leader.pts);
-  document.getElementById('race-leader').innerHTML =
-    `<span>${esc(leader.name)}</span> is leading with ${leader.pts} pts — <span>${remaining > 0 ? remaining + ' points from winning' : '🏆 Target reached!'}</span>`;
+  const remaining = Math.max(0, T - displayLeaderPts);
+  document.getElementById('race-leader').innerHTML = leader.pending
+    ? `<span>${esc(leader.name)}</span> just checked in — points confirm in 15 min ⏳`
+    : `<span>${esc(leader.name)}</span> is leading with ${displayLeaderPts} pts — <span>${remaining > 0 ? remaining + ' points from winning' : '🏆 Target reached!'}</span>`;
 
-  // Check for winner
   if (leader.pts >= T) {
     document.getElementById('winner-banner').style.display = 'block';
     document.getElementById('winner-name').textContent = leader.name.toUpperCase();
@@ -301,12 +321,13 @@ async function load() {
     restEl.innerHTML = rest.map((row, i) => {
       const rank = i + 4;
       const isMe = myPhone && row.phone === myPhone;
-      const pct = Math.min(100, Math.round((row.pts / T) * 100));
+      const displayPts = row.pts + row.pendingPts;
+      const pct = Math.min(100, Math.round((displayPts / T) * 100));
       return `<div class="lb-row${isMe?' me':''}">
         <div class="lb-rank">${rank}</div>
         <div class="lb-avatar">${initials(row.name)}</div>
         <div style="flex:1">
-          <div class="lb-name">${esc(row.name)}${isMe?'<span class="lb-you">(you)</span>':''}</div>
+          <div class="lb-name">${esc(row.name)}${isMe?'<span class="lb-you">(you)</span>':''}${row.pending?'<span style="font-size:11px;color:#f0a500;margin-left:6px">⏳ checking in...</span>':''}</div>
           <div class="lb-meta">${row.checkins} check-in${row.checkins!==1?'s':''}</div>
         </div>
         <div class="lb-right">
