@@ -230,12 +230,44 @@ function fireConfetti(intensity) {
 
 function animateCounter(el, target, duration) {
   if (!el) return;
-  const start = performance.now();
-  (function step(now) {
-    const p = Math.min((now - start) / duration, 1);
-    el.textContent = Math.round((1 - Math.pow(1-p, 3)) * target);
-    if (p < 1) requestAnimationFrame(step);
-  })(start);
+  const totalFrames = Math.floor(duration / 16);
+  const spinFrames = Math.floor(totalFrames * 0.7); // spin random for 70%
+  const settleFrames = totalFrames - spinFrames;    // settle to real value for 30%
+  let frame = 0;
+
+  // Add slot machine style to element temporarily
+  el.style.display = 'inline-block';
+  el.style.transition = 'transform 0.05s ease';
+
+  const interval = setInterval(() => {
+    frame++;
+    if (frame <= spinFrames) {
+      // Random spin — faster at start, slowing down
+      const speed = Math.max(1, Math.floor((spinFrames - frame) / 8));
+      if (frame % speed === 0) {
+        // Random number near target range
+        const spread = Math.max(5, Math.round(target * 1.5));
+        el.textContent = Math.floor(Math.random() * spread);
+        el.style.transform = `translateY(${Math.random() > 0.5 ? '-2px' : '2px'})`;
+      }
+    } else {
+      // Settle — count down to real value
+      const settleProgress = (frame - spinFrames) / settleFrames;
+      const eased = 1 - Math.pow(1 - settleProgress, 2);
+      el.textContent = Math.round(target * eased);
+      el.style.transform = 'translateY(0)';
+    }
+
+    if (frame >= totalFrames) {
+      clearInterval(interval);
+      el.textContent = target;
+      el.style.transform = 'translateY(0)';
+      // Flash gold on landing
+      el.style.transition = 'color 0.1s';
+      el.style.color = '#ffffff';
+      setTimeout(() => { el.style.color = ''; el.style.transition = ''; }, 150);
+    }
+  }, 16);
 }
 
 function celebrate(type, pts) {
