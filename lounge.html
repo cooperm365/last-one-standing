@@ -364,8 +364,49 @@ function setWager(val) {
   });
 }
 
-// ── TRIVIA ──────────────────────────────────────────────
-async function startTrivia() {
+// ── TRIVIA QUESTIONS ──────────────────────────────────
+const TRIVIA_QUESTIONS = [
+  { category:'Sports', question:'How many points is a touchdown worth in the NFL?', options:['4','6','7','8'], correct:1, explanation:'A touchdown is worth 6 points. The extra point kick adds 1 more, making 7 the common total.' },
+  { category:'Pop Culture', question:'Which artist released the album "Thriller" in 1982?', options:['Prince','Michael Jackson','David Bowie','Madonna'], correct:1, explanation:'Michael Jackson\'s Thriller is the best-selling album of all time with over 66 million copies sold.' },
+  { category:'Food & Drinks', question:'What is the main ingredient in guacamole?', options:['Tomato','Lime','Avocado','Onion'], correct:2, explanation:'Avocado is the star. The name comes from the Aztec word "ahuacatl."' },
+  { category:'General Knowledge', question:'How many sides does a hexagon have?', options:['5','6','7','8'], correct:1, explanation:'Hex means six in Greek. A hexagon has 6 sides and 6 angles.' },
+  { category:'Music', question:'Which band wrote "Bohemian Rhapsody"?', options:['The Beatles','Led Zeppelin','Queen','The Rolling Stones'], correct:2, explanation:'Queen released Bohemian Rhapsody in 1975. Freddie Mercury wrote it and it runs nearly 6 minutes.' },
+  { category:'Sports', question:'How many players are on a basketball team on the court at one time?', options:['4','5','6','7'], correct:1, explanation:'5 players per team, 10 total on the court. That\'s been the rule since the sport was invented.' },
+  { category:'Food & Drinks', question:'What country did whiskey originate in?', options:['USA','Scotland','Ireland','Canada'], correct:2, explanation:'Ireland claims to be the birthplace of whiskey, with records dating back to the 15th century.' },
+  { category:'Pop Culture', question:'What color is the Gatorade typically dumped on winning coaches?', options:['Red','Orange','Blue','Green'], correct:1, explanation:'Orange Gatorade is the most iconic color for the victory dump, though any color works in a pinch.' },
+  { category:'General Knowledge', question:'What is the capital of Australia?', options:['Sydney','Melbourne','Canberra','Brisbane'], correct:2, explanation:'Canberra — not Sydney. It was purpose-built as the capital in 1913 as a compromise between Sydney and Melbourne.' },
+  { category:'Music', question:'Which rapper released "The College Dropout" in 2004?', options:['Jay-Z','Kanye West','Eminem','Lil Wayne'], correct:1, explanation:'Kanye West\'s debut album launched one of the most influential careers in music history.' },
+  { category:'Sports', question:'In baseball, how many strikes does it take to strike out?', options:['2','3','4','5'], correct:1, explanation:'Three strikes and you\'re out. One of the most iconic rules in all of sports.' },
+  { category:'Food & Drinks', question:'What is the world\'s most consumed alcoholic drink by volume?', options:['Wine','Vodka','Beer','Whiskey'], correct:2, explanation:'Beer is #1 globally by volume. It\'s been brewed for over 5,000 years.' },
+  { category:'Pop Culture', question:'How many seasons did "Breaking Bad" run?', options:['4','5','6','7'], correct:1, explanation:'5 seasons from 2008-2013. Widely considered one of the greatest TV shows ever made.' },
+  { category:'General Knowledge', question:'What is the hardest natural substance on Earth?', options:['Gold','Iron','Diamond','Quartz'], correct:2, explanation:'Diamond scores 10 on the Mohs scale — the maximum. Only a diamond can scratch a diamond.' },
+  { category:'Sports', question:'How long is a marathon in miles?', options:['24.2','25.2','26.2','27.2'], correct:2, explanation:'26.2 miles — exactly. The distance was standardized at the 1908 London Olympics.' },
+  { category:'Music', question:'What instrument does a DJ primarily use to mix music?', options:['Guitar','Turntable','Keyboard','Drum machine'], correct:1, explanation:'Turntables — two of them, with a mixer in between. The classic DJ setup since hip-hop\'s early days.' },
+  { category:'Food & Drinks', question:'What gives red wine its color?', options:['Added coloring','The grape skin','The stems','The seeds'], correct:1, explanation:'The grape skin. Red wines ferment with the skins, which release pigments called anthocyanins.' },
+  { category:'Pop Culture', question:'Which movie features the line "I\'ll be back"?', options:['Rocky','Die Hard','The Terminator','Predator'], correct:2, explanation:'Arnold Schwarzenegger\'s iconic line from The Terminator (1984). One of the most quoted lines in film history.' },
+  { category:'General Knowledge', question:'How many feet are in a mile?', options:['4,280','5,280','6,280','3,280'], correct:1, explanation:'5,280 feet in a mile. Comes from 8 furlongs of 660 feet each — an old farming measurement.' },
+  { category:'Sports', question:'What sport is played at Wimbledon?', options:['Cricket','Rugby','Tennis','Golf'], correct:2, explanation:'Tennis. Wimbledon is the oldest tennis tournament in the world, first held in 1877.' }
+];
+
+let usedQuestions = [];
+
+function getNextQuestion() {
+  if (usedQuestions.length >= TRIVIA_QUESTIONS.length) usedQuestions = [];
+  const remaining = TRIVIA_QUESTIONS.filter((_, i) => !usedQuestions.includes(i));
+  const idx = TRIVIA_QUESTIONS.indexOf(remaining[Math.floor(Math.random() * remaining.length)]);
+  usedQuestions.push(idx);
+  return TRIVIA_QUESTIONS[idx];
+}
+
+// ── DRINKS ──────────────────────────────────────────────
+const DRINKS = {
+  celebrate: { emoji:'🥃', name:'Shot of the Week', description:'You\'re winning tonight — treat yourself to the shot of the week. Ask your bartender what it is. This one\'s on the house vibes.' },
+  focused:   { emoji:'🍺', name:'Draft Beer', description:'Keep it simple, keep it cold. A draft beer keeps you in the zone without slowing you down. Classic for a reason.' },
+  chill:     { emoji:'🍹', name:'Drink of the Month', description:'No rush tonight — try something new. Ask your bartender about the drink of the month. You might find your new go-to.' },
+  comeback:  { emoji:'🥃', name:'Whiskey & Coke', description:'Simple, strong, and gets the job done. Order a whiskey and Coke, take a breath, and start climbing that leaderboard.' },
+  social:    { emoji:'🍺', name:'Round of Beers', description:'Get a round in for the crew. Keep it simple — a round of drafts is the move when you\'re out with your people.' },
+  wild:      { emoji:'🔥', name:'Tequila Shot', description:'You said send it. One tequila shot, no overthinking it. Just make sure you can still hit that bullseye after.' }
+};
   if (!currentPlayer) {
     alert('Sign in first to play!'); return;
   }
@@ -376,42 +417,18 @@ async function startTrivia() {
   document.getElementById('trivia-setup').style.display = 'none';
   document.getElementById('trivia-loading').style.display = 'block';
 
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: `Generate a fun bar trivia question. It should be about sports, pop culture, food & drinks, music, or general knowledge — the kind of thing people debate at a bar. Make it genuinely challenging but fair.
+  await new Promise(r => setTimeout(r, 800));
+  currentQuestion = getNextQuestion();
 
-Respond ONLY with valid JSON in this exact format, no other text:
-{
-  "category": "category name",
-  "question": "the question text",
-  "options": ["A", "B", "C", "D"],
-  "correct": 0,
-  "explanation": "brief fun explanation of the answer"
-}`
-        }]
-      })
-    });
+  document.getElementById('trivia-loading').style.display = 'none';
+  document.getElementById('trivia-question').style.display = 'block';
+  document.getElementById('wager-in-play').textContent = currentWager;
+  document.getElementById('q-category').textContent = currentQuestion.category;
+  document.getElementById('q-text').textContent = currentQuestion.question;
 
-    const data = await response.json();
-    const text = data.content[0].text.replace(/```json|```/g,'').trim();
-    currentQuestion = JSON.parse(text);
-
-    document.getElementById('trivia-loading').style.display = 'none';
-    document.getElementById('trivia-question').style.display = 'block';
-    document.getElementById('wager-in-play').textContent = currentWager;
-    document.getElementById('q-category').textContent = currentQuestion.category;
-    document.getElementById('q-text').textContent = currentQuestion.question;
-
-    const opts = document.getElementById('q-options');
-    opts.innerHTML = '';
-    currentQuestion.options.forEach((opt, i) => {
+  const opts = document.getElementById('q-options');
+  opts.innerHTML = '';
+  currentQuestion.options.forEach((opt, i) => {
       const btn = document.createElement('button');
       btn.className = 'q-opt';
       btn.textContent = opt;
@@ -577,40 +594,15 @@ async function selectVibe(vibe, icon, label) {
   document.getElementById('drink-result').style.display = 'none';
   document.getElementById('drink-loading').style.display = 'block';
 
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 500,
-        messages: [{
-          role: 'user',
-          content: `Someone at a bar has the vibe: "${label}" (${vibe}). Recommend one specific drink for them. Be fun, specific, and bar-appropriate. Could be a beer, cocktail, shot, or non-alcoholic option.
+  // Brief pause for effect
+  await new Promise(r => setTimeout(r, 700));
 
-Respond ONLY with valid JSON, no other text:
-{
-  "emoji": "one emoji for the drink",
-  "name": "drink name",
-  "description": "2-3 fun sentences about why this drink fits their vibe right now. Be conversational and a bit witty."
-}`
-        }]
-      })
-    });
-
-    const data = await response.json();
-    const text = data.content[0].text.replace(/```json|```/g,'').trim();
-    const drink = JSON.parse(text);
-
-    document.getElementById('drink-loading').style.display = 'none';
-    document.getElementById('drink-result').style.display = 'block';
-    document.getElementById('drink-emoji').textContent = drink.emoji;
-    document.getElementById('drink-name').textContent = drink.name;
-    document.getElementById('drink-desc').textContent = drink.description;
-  } catch(e) {
-    document.getElementById('drink-loading').style.display = 'none';
-    alert('Could not load recommendation. Try again.');
-  }
+  const drink = DRINKS[vibe];
+  document.getElementById('drink-loading').style.display = 'none';
+  document.getElementById('drink-result').style.display = 'block';
+  document.getElementById('drink-emoji').textContent = drink.emoji;
+  document.getElementById('drink-name').textContent = drink.name;
+  document.getElementById('drink-desc').textContent = drink.description;
 }
 
 function resetOrder() {
