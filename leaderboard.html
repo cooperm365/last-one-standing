@@ -245,20 +245,21 @@ function setPod(num, row, T) {
 
 async function load() {
   if (!currentBar) return;
-  const { data: checkins } = await sb.from('checkins').select('player_id, points_earned').eq('pending', false).eq('bar_id', currentBar.id);
+  const { data: scores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', currentBar.id);
+  const { data: checkins } = await sb.from('checkins').select('player_id').eq('pending', false).eq('bar_id', currentBar.id);
   const { data: bonuses } = await sb.from('bonus_points').select('player_id, points').eq('bar_id', currentBar.id);
-  const { data: players } = await sb.from('players').select('id, name, phone').eq('bar_id', currentBar.id);
+  const { data: profiles } = await sb.from('player_profiles').select('id, name, phone');
   const T = TARGET();
 
-  const totals = {}, cins = {};
-  (checkins||[]).forEach(c => { totals[c.player_id]=(totals[c.player_id]||0)+c.points_earned; cins[c.player_id]=(cins[c.player_id]||0)+1; });
-  (bonuses||[]).forEach(b => { totals[b.player_id]=(totals[b.player_id]||0)+b.points; });
+  const cins = {};
+  (checkins||[]).forEach(c => { cins[c.player_id]=(cins[c.player_id]||0)+1; });
 
   const pm = {};
-  (players||[]).forEach(p => { pm[p.id] = p; });
+  (profiles||[]).forEach(p => { pm[p.id] = p; });
 
-  const rows = Object.keys(totals)
-    .map(id => ({ id, name:pm[id]?.name||'?', phone:pm[id]?.phone, pts:Math.max(0,totals[id]), checkins:cins[id]||0 }))
+  const rows = (scores||[])
+    .map(s => ({ id: s.player_id, name: pm[s.player_id]?.name||'?', phone: pm[s.player_id]?.phone, pts: Math.max(0, s.total_points), checkins: cins[s.player_id]||0 }))
+    .filter(r => r.pts > 0)
     .sort((a,b) => b.pts-a.pts);
 
   document.getElementById('lb-loading').style.display = 'none';
