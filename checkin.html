@@ -262,15 +262,7 @@ async function init() {
   const eventId = params.get('event');
   if (!eventId) { show('not-found'); hide('loading'); return; }
 
-  // If returning player, redirect immediately — no DB check needed
-  // my-points.html will handle the case where the player doesn't exist
-  const savedPhone = localStorage.getItem('br_phone');
-  if (savedPhone) {
-    window.location.replace('my-points.html?event=' + eventId);
-    return;
-  }
-
-  // Load event for new/unknown player
+  // Load event — no redirects, everyone sees the form
   const { data, error } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
   if (error || !data) { show('not-found'); hide('loading'); return; }
 
@@ -289,7 +281,15 @@ async function init() {
 
   hide('loading');
   show('main');
-  showNew();
+
+  // Pre-fill phone if saved — but always show the form
+  const savedPhone = localStorage.getItem('br_phone');
+  if (savedPhone) {
+    document.getElementById('ret-phone').value = savedPhone;
+    showReturning();
+  } else {
+    showNew();
+  }
 }
 
 async function getVisitScans(playerId) {
