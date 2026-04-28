@@ -266,6 +266,7 @@ const typeIcons = { darts:'🎯', pool:'🎱', trivia:'🧠', bingo:'🎰', live
 const typeLabels = { darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia', bingo:'🎰 Bingo', live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event' };
 
 let currentPlayer = null;
+let currentBar = null;
 let scanStream = null;
 let scanInterval = null;
 let ciTimerInterval = null;
@@ -609,7 +610,9 @@ async function lookup() {
   const raw = document.getElementById('lookup-phone').value.trim();
   const phone = raw.replace(/\D/g, '');
   if (phone.length < 10) { showMsg('lookup-msg', 'Please enter a valid mobile number.', 'error'); return; }
-  const { data: player } = await sb.from('players').select('*').eq('phone', phone).single();
+  let query = sb.from('players').select('*').eq('phone', phone);
+  if (currentBar) query = query.eq('bar_id', currentBar.id);
+  const { data: player } = await query.single();
   if (!player) { showMsg('lookup-msg', "We don't have that number. Have you checked in at an event yet?", 'error'); return; }
   localStorage.setItem('br_phone', phone);
   currentPlayer = player;
@@ -651,7 +654,8 @@ async function showDashboard(player) {
   }
 
   // Rank + change notification
-  const { data: allPlayers } = await sb.from('players').select('id, total_points').order('total_points',{ascending:false});
+  const barId = currentBar?.id || player.bar_id;
+  const { data: allPlayers } = await sb.from('players').select('id, total_points').eq('bar_id', barId).order('total_points',{ascending:false});
   const rank = (allPlayers||[]).findIndex(p=>p.id===player.id)+1;
   document.getElementById('stat-rank').textContent = rank > 0 ? `#${rank}` : '—';
 
@@ -795,17 +799,23 @@ function normalizePhone(raw) {
 
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// Auto-load
-const saved = localStorage.getItem('br_phone');
-if (saved) {
-  document.getElementById('lookup-phone').value = saved;
-  lookup();
-}
+// Auto-load with bar context
+(async () => {
+  const slug = getBarSlug();
+  if (slug) currentBar = await getBar(sb, slug);
+  const saved = localStorage.getItem('br_phone');
+  if (saved) {
+    document.getElementById('lookup-phone').value = saved;
+    lookup();
+  }
+})();
 
 async function lookupThenCheckin(phone, eventId) {
   const digits = phone.replace(/\D/g, '');
   try {
-    const { data: player } = await sb.from('players').select('*').eq('phone', digits).single();
+    let query = sb.from('players').select('*').eq('phone', digits);
+    if (currentBar) query = query.eq('bar_id', currentBar.id);
+    const { data: player } = await query.single();
     const loadingEl = document.getElementById('initial-loading');
     if (loadingEl) loadingEl.remove();
     if (!player) {
