@@ -456,6 +456,8 @@ let selfieStream = null;
 let huntStream = null;
 let facingMode = 'user';
 
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
+
 // Load bar immediately — before anything else
 (async () => {
   const slug = getBarSlug() || localStorage.getItem('br_bar_slug');
