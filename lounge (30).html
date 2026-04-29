@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Lounge - Bar Rank</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#111110;--bg2:#1a1a18;--bg3:#222220;
+  --border:rgba(255,255,255,0.08);
+  --gold:#f0a500;--gold-dim:#a87300;--gold-bg:rgba(240,165,0,0.1);
+  --text:#f0ede8;--muted:#888780;--dim:#444441;
+  --green:#3ecf8e;--red:#f56565;--radius:12px;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.5;min-height:100vh;overflow-x:hidden}
+.page{max-width:480px;margin:0 auto;padding:0 0 6rem}
+
+/* HEADER */
+.header{padding:1.5rem 1.25rem 0;display:flex;align-items:center;gap:12px;margin-bottom:0}
+.logo-mark{width:38px;height:38px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#111;flex-shrink:0}
+.site-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--gold)}
+.site-sub{font-size:11px;color:var(--muted)}
+.back-btn{margin-left:auto;background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:999px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none}
+
+/* TAB BAR */
+.tab-bar{display:flex;gap:4px;padding:1.25rem 1.25rem 0;position:sticky;top:0;background:var(--bg);z-index:10;padding-bottom:0.75rem;border-bottom:1px solid var(--border)}
+.tab-btn{flex:1;padding:0.6rem 0.5rem;border:1px solid var(--border);background:var(--bg2);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;line-height:1.3}
+.tab-btn.active{background:var(--gold);color:#111;border-color:var(--gold)}
+.tab-icon{font-size:18px;display:block;margin-bottom:2px}
+
+/* PANELS */
+.panel{display:none;padding:1.25rem;animation:fadeUp 0.3s ease both}
+.panel.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.card-gold{border-color:var(--gold-dim);background:var(--gold-bg)}
+
+/* BUTTONS */
+.btn{display:block;width:100%;padding:0.9rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;border:none;text-align:center;transition:all 0.15s;text-decoration:none}
+.btn:active{transform:scale(0.97)}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn-gold{background:var(--gold);color:#111}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-red{background:var(--red);color:#fff}
+.btn-green{background:var(--green);color:#111}
+.btn-sm{padding:0.5rem 1rem;font-size:13px;width:auto;display:inline-block}
+
+/* ── TRIVIA ── */
+.wager-section{margin-bottom:1.5rem}
+.wager-label{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem;font-weight:600}
+.wager-display{font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--gold);text-align:center;line-height:1;margin-bottom:0.5rem}
+.wager-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:1rem}
+input[type="range"]{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--bg3);outline:none;margin-bottom:0.5rem}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--gold);cursor:pointer;border:3px solid #111;box-shadow:0 0 0 2px var(--gold-dim)}
+.wager-presets{display:flex;gap:8px;margin-bottom:1.5rem}
+.preset{flex:1;padding:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s}
+.preset:hover,.preset.active{background:var(--gold-bg);border-color:var(--gold-dim);color:var(--gold)}
+
+.q-card{background:var(--bg2);border:2px solid var(--gold-dim);border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem;position:relative;overflow:hidden}
+.q-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#fff,var(--gold));animation:shimmer 2s infinite}
+@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+.q-category{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:0.75rem}
+.q-text{font-size:17px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:1.25rem}
+.q-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.q-opt{padding:0.75rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;text-align:center;transition:all 0.2s;font-family:'DM Sans',sans-serif;color:var(--text)}
+.q-opt:hover{border-color:var(--gold-dim);background:var(--gold-bg)}
+.q-opt.correct{background:rgba(62,207,142,0.2);border-color:var(--green);color:var(--green)}
+.q-opt.wrong{background:rgba(245,101,101,0.15);border-color:var(--red);color:var(--red)}
+.q-opt:disabled{cursor:not-allowed}
+
+.result-card{text-align:center;padding:2rem 1.25rem}
+.result-emoji{font-size:52px;margin-bottom:0.75rem}
+.result-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:1px;margin-bottom:0.5rem}
+.result-pts{font-family:'Bebas Neue',sans-serif;font-size:64px;line-height:1;margin-bottom:0.25rem}
+.result-sub{font-size:14px;color:var(--muted);margin-bottom:1.5rem}
+
+/* ── SELFIE ── */
+.selfie-wrap{position:relative;width:100%;border-radius:var(--radius);overflow:hidden;background:#000;aspect-ratio:3/4}
+#selfie-video{width:100%;height:100%;object-fit:cover;display:block}
+.selfie-overlay{position:absolute;inset:0;pointer-events:none}
+.frame-corner{position:absolute;width:40px;height:40px}
+.frame-corner.tl{top:12px;left:12px;border-top:3px solid var(--gold);border-left:3px solid var(--gold)}
+.frame-corner.tr{top:12px;right:12px;border-top:3px solid var(--gold);border-right:3px solid var(--gold)}
+.frame-corner.bl{bottom:12px;left:12px;border-bottom:3px solid var(--gold);border-left:3px solid var(--gold)}
+.frame-corner.br{bottom:12px;right:12px;border-bottom:3px solid var(--gold);border-right:3px solid var(--gold)}
+.selfie-nameplate{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.85));padding:2rem 1rem 1rem;text-align:center}
+.selfie-name{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--gold)}
+.selfie-rank{font-size:13px;color:rgba(255,255,255,0.7);margin-top:2px}
+.selfie-bar{font-size:11px;color:var(--gold-dim);margin-top:1px}
+.selfie-controls{display:flex;gap:10px;margin-top:1rem}
+.snap-btn{flex:1;padding:1rem;background:var(--gold);color:#111;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.flip-btn{width:52px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
+#selfie-canvas{display:none}
+.photo-preview{width:100%;border-radius:var(--radius);display:none;margin-bottom:1rem}
+
+/* ── ORDER UP ── */
+.vibe-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem}
+.vibe-btn{padding:1rem 0.75rem;background:var(--bg2);border:1px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s}
+.vibe-btn:hover,.vibe-btn.selected{border-color:var(--gold-dim);background:var(--gold-bg)}
+.vibe-icon{font-size:28px;margin-bottom:6px;display:block}
+.vibe-label{font-size:13px;font-weight:600;color:var(--text)}
+.vibe-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.drink-result{background:var(--bg2);border:2px solid var(--gold-dim);border-radius:var(--radius);padding:1.5rem;text-align:center;display:none}
+.drink-emoji{font-size:48px;margin-bottom:0.75rem}
+.drink-name{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold);letter-spacing:1px;margin-bottom:0.5rem}
+.drink-desc{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:1rem}
+.loading-dots{display:flex;gap:6px;justify-content:center;padding:1rem}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:bounce 0.6s infinite alternate}
+.dot:nth-child(2){animation-delay:0.2s}
+.dot:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{from{transform:translateY(0);opacity:0.4}to{transform:translateY(-8px);opacity:1}}
+
+/* SPINNER */
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* POINTS DISPLAY */
+.your-pts{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border-radius:10px;padding:0.75rem 1rem;margin-bottom:1.25rem}
+.your-pts-label{font-size:12px;color:var(--muted)}
+.your-pts-val{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="logo-mark">BR</div>
+    <div>
+      <div class="site-name">The Lounge</div>
+      <div class="site-sub">Hang out. Earn more.</div>
+    </div>
+    <a id="lounge-back-btn" href="my-points.html" class="back-btn">← My Score</a>
+    <script>
+      (function() {
+        const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
+        if (slug) document.getElementById('lounge-back-btn').href = `my-points.html?bar=${slug}`;
+      })();
+    </script>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('trivia',this)">
+      <span class="tab-icon">🎲</span>Trivia
+    </button>
+    <button class="tab-btn" onclick="switchTab('selfie',this)">
+      <span class="tab-icon">📸</span>Rep Rank
+    </button>
+    <button class="tab-btn" onclick="switchTab('order',this)">
+      <span class="tab-icon">🍺</span>Order Up
+    </button>
+    <button class="tab-btn" onclick="switchTab('challenge',this)" id="challenge-tab">
+      <span class="tab-icon">⚔️</span>Challenge
+    </button>
+    <button class="tab-btn" onclick="switchTab('hunt',this)">
+      <span class="tab-icon">🔍</span>Hunt
+    </button>
+  </div>
+
+  <!-- ── TRIVIA PANEL ── -->
+  <div class="panel active" id="panel-trivia">
+
+    <div id="trivia-cap-msg" style="display:none;text-align:center;padding:2rem 0;margin-top:1rem">
+      <div style="font-size:48px;margin-bottom:0.75rem">🎯</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);letter-spacing:1px;margin-bottom:0.5rem">3 rounds done!</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:1.25rem">You've used all your trivia rounds for this visit. Come back tomorrow for more bonus points!</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;font-size:13px;color:var(--muted)">Your trivia resets in 8 hours from your first round tonight.</div>
+    </div>
+
+    <div id="trivia-setup">
+      <div style="margin-top:1rem" class="your-pts">
+        <span class="your-pts-label">Your current points</span>
+        <span class="your-pts-val" id="trivia-pts-display">—</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border-radius:8px;padding:0.6rem 1rem;margin-bottom:1rem">
+        <span style="font-size:12px;color:var(--muted)">Trivia rounds tonight</span>
+        <span style="font-size:13px;font-weight:600;color:var(--gold)" id="trivia-rounds-left">3 rounds left</span>
+      </div>
+
+      <div style="background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:12px;padding:1.25rem;text-align:center;margin-bottom:1.25rem">
+        <div style="font-size:36px;margin-bottom:0.5rem">🎲</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);letter-spacing:1px;margin-bottom:0.25rem">Bar Trivia</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.5">Answer a bar trivia question correctly and earn <strong style="color:var(--text)">+5 bonus points</strong>. No penalty for wrong answers — just bragging rights.</div>
+      </div>
+
+      <button class="btn btn-gold" id="start-trivia-btn" onclick="startTrivia()">
+        🎲 Get a question
+      </button>
+      <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:0.75rem">You need an account to play. <a href="my-points.html" style="color:var(--gold)">Sign in first →</a></p>
+    </div>
+
+    <div id="trivia-loading" style="display:none;text-align:center;padding:2rem">
+      <div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <p style="color:var(--muted);font-size:14px;margin-top:0.5rem">Generating your question...</p>
+    </div>
+
+    <div id="trivia-question" style="display:none">
+      <div class="your-pts" style="margin-top:1rem">
+        <span class="your-pts-label">Your points</span>
+        <span class="your-pts-val" id="wager-in-play">—</span>
+      </div>
+      <div class="q-card">
+        <div class="q-category" id="q-category">Bar Trivia</div>
+        <div class="q-text" id="q-text">Loading question...</div>
+        <div class="q-options" id="q-options"></div>
+      </div>
+    </div>
+
+    <div id="trivia-result" style="display:none">
+      <div class="card result-card">
+        <div class="result-emoji" id="result-emoji"></div>
+        <div class="result-title" id="result-title"></div>
+        <div class="result-pts" id="result-pts"></div>
+        <div class="result-sub" id="result-sub"></div>
+        <div style="font-size:13px;color:var(--muted);background:var(--bg3);border-radius:8px;padding:0.75rem;margin-bottom:1.25rem;text-align:left" id="result-explanation"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline" onclick="resetTrivia()" style="flex:1">Play again</button>
+          <a href="my-points.html" class="btn btn-gold" style="flex:1">My score</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SELFIE PANEL ── -->
+  <div class="panel" id="panel-selfie">
+    <div style="margin-top:1rem">
+      <p style="font-size:14px;color:var(--muted);margin-bottom:1rem">Take a photo with your rank frame. Screenshot it and share — let everyone know where you stand.</p>
+
+      <div id="selfie-photo-preview" style="display:none;margin-bottom:1rem">
+        <canvas id="selfie-canvas" style="width:100%;border-radius:12px;display:block"></canvas>
+        <div style="display:flex;gap:8px;margin-top:0.75rem">
+          <button class="btn btn-outline" onclick="retakeSelfie()" style="flex:1">Retake</button>
+          <button class="btn btn-gold" onclick="downloadSelfie()" style="flex:1">📥 Save photo</button>
+        </div>
+      </div>
+
+      <div id="selfie-camera-wrap">
+        <div class="selfie-wrap">
+          <video id="selfie-video" autoplay playsinline muted></video>
+          <div class="selfie-overlay">
+            <div class="frame-corner tl"></div>
+            <div class="frame-corner tr"></div>
+            <div class="frame-corner bl"></div>
+            <div class="frame-corner br"></div>
+            <div class="selfie-nameplate">
+              <div class="selfie-name" id="selfie-name">BAR RANK PLAYER</div>
+              <div class="selfie-rank" id="selfie-rank">Rank #—</div>
+              <div class="selfie-bar">CJ's Tavern · Bar Rank</div>
+            </div>
+          </div>
+        </div>
+        <div class="selfie-controls">
+          <button class="snap-btn" onclick="snapPhoto()">📸 Take photo</button>
+          <button class="flip-btn" onclick="flipCamera()">🔄</button>
+        </div>
+      </div>
+
+      <div id="selfie-start" style="margin-top:0">
+        <button class="btn btn-gold" onclick="startSelfie()" id="selfie-start-btn">
+          📸 Open camera
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ORDER UP PANEL ── -->
+  <div class="panel" id="panel-order">
+    <div style="margin-top:1rem">
+      <p style="font-size:14px;color:var(--muted);margin-bottom:1.25rem">Tell us your vibe and we'll pick your next drink.</p>
+
+      <div class="vibe-grid">
+        <button class="vibe-btn" onclick="selectVibe('celebrate','🎉','On a roll')">
+          <span class="vibe-icon">🎉</span>
+          <div class="vibe-label">On a roll</div>
+          <div class="vibe-sub">Celebrating a win</div>
+        </button>
+        <button class="vibe-btn" onclick="selectVibe('focused','🎯','In the zone')">
+          <span class="vibe-icon">🎯</span>
+          <div class="vibe-label">In the zone</div>
+          <div class="vibe-sub">Game face on</div>
+        </button>
+        <button class="vibe-btn" onclick="selectVibe('chill','😎','Just vibing')">
+          <span class="vibe-icon">😎</span>
+          <div class="vibe-label">Just vibing</div>
+          <div class="vibe-sub">No rush tonight</div>
+        </button>
+        <button class="vibe-btn" onclick="selectVibe('comeback','💪','Comeback mode')">
+          <span class="vibe-icon">💪</span>
+          <div class="vibe-label">Comeback mode</div>
+          <div class="vibe-sub">Need to climb the board</div>
+        </button>
+        <button class="vibe-btn" onclick="selectVibe('social','🤝','Squad night')">
+          <span class="vibe-icon">🤝</span>
+          <div class="vibe-label">Squad night</div>
+          <div class="vibe-sub">Here with the crew</div>
+        </button>
+        <button class="vibe-btn" onclick="selectVibe('wild','🔥','Send it')">
+          <span class="vibe-icon">🔥</span>
+          <div class="vibe-label">Send it</div>
+          <div class="vibe-sub">No limits tonight</div>
+        </button>
+      </div>
+
+      <div id="drink-loading" style="display:none;text-align:center">
+        <div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <p style="color:var(--muted);font-size:14px;margin-top:0.5rem">Picking your drink...</p>
+      </div>
+
+      <div class="drink-result" id="drink-result">
+        <div class="drink-emoji" id="drink-emoji">🍺</div>
+        <div class="drink-name" id="drink-name">Loading...</div>
+        <div class="drink-desc" id="drink-desc"></div>
+        <button class="btn btn-outline" onclick="resetOrder()">Different vibe →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HUNT PANEL ── -->
+  <div class="panel" id="panel-hunt">
+    <div style="margin-top:1rem">
+
+      <div id="hunt-no-player" style="display:none;text-align:center;padding:2rem 0">
+        <div style="font-size:40px;margin-bottom:0.75rem">🔍</div>
+        <div style="font-size:14px;color:var(--muted)">Sign in on your My Score page first to join the hunt.</div>
+        <a href="my-points.html" class="btn btn-gold" style="margin-top:1rem;display:inline-block;width:auto;padding:0.75rem 1.5rem">Go to My Score →</a>
+      </div>
+
+      <div id="hunt-content" style="display:none">
+
+        <!-- Already submitted today -->
+        <div id="hunt-done" style="display:none;text-align:center;padding:2rem 0">
+          <div style="font-size:48px;margin-bottom:0.75rem">📸</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);letter-spacing:1px;margin-bottom:0.5rem">Photo submitted!</div>
+          <div id="hunt-done-msg" style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:1rem"></div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;font-size:13px;color:var(--muted)">Staff will review your photo and award your 20 points if verified. Check your score page later!</div>
+        </div>
+
+        <!-- Hunt clue -->
+        <div id="hunt-clue-section">
+          <div style="background:linear-gradient(135deg,#1f1c10,#2a2200);border:2px solid var(--gold-dim);border-radius:14px;padding:1.5rem;text-align:center;margin-bottom:1.25rem">
+            <div style="font-size:11px;color:var(--gold-dim);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:0.5rem">🔍 Tonight's Hunt</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--text);letter-spacing:1px;line-height:1.2;margin-bottom:0.75rem" id="hunt-clue-text">Loading clue...</div>
+            <div style="background:var(--gold-bg);border:1px solid rgba(240,165,0,0.2);border-radius:8px;padding:0.6rem 1rem;display:inline-block;margin-bottom:0.5rem">
+              <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold)">+20 points</span>
+              <span style="font-size:12px;color:var(--muted);margin-left:6px">if verified by staff</span>
+            </div>
+            <div style="font-size:13px;font-weight:700;margin-top:0.25rem" id="hunt-spots-left">3 spots left tonight</div>
+          </div>
+
+          <!-- Camera for photo -->
+          <div id="hunt-camera-wrap" style="display:none;margin-bottom:1rem">
+            <div style="position:relative;width:100%;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3">
+              <video id="hunt-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block"></video>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:0.75rem">
+              <button class="btn btn-gold" onclick="snapHuntPhoto()" style="flex:1">📸 Take photo</button>
+              <button class="btn btn-outline" onclick="closeHuntCamera()" style="width:52px;flex-shrink:0">✕</button>
+            </div>
+          </div>
+
+          <!-- Photo preview -->
+          <div id="hunt-preview-wrap" style="display:none;margin-bottom:1rem">
+            <canvas id="hunt-canvas" style="width:100%;border-radius:12px;display:block"></canvas>
+            <div style="display:flex;gap:8px;margin-top:0.75rem">
+              <button class="btn btn-outline" onclick="retakeHuntPhoto()" style="flex:1">Retake</button>
+              <button class="btn btn-gold" onclick="submitHuntPhoto()" style="flex:1">✅ Submit for review</button>
+            </div>
+          </div>
+
+          <div id="hunt-start-btn-wrap">
+            <button class="btn btn-gold" onclick="openHuntCamera()">📸 Take a photo to prove it</button>
+            <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:0.75rem">One submission per day. Staff reviews and awards your points.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CHALLENGE PANEL ── -->
+  <div class="panel" id="panel-challenge">
+    <div style="margin-top:1rem">
+
+      <!-- Incoming challenges -->
+      <div id="incoming-challenges" style="display:none;margin-bottom:1.25rem"></div>
+      <div id="sent-challenges" style="display:none;margin-bottom:1.25rem"></div>
+
+      <!-- Not logged in -->
+      <div id="challenge-no-player" style="display:none">
+        <div style="text-align:center;padding:2rem 0">
+          <div style="font-size:40px;margin-bottom:0.75rem">⚔️</div>
+          <div style="font-size:14px;color:var(--muted)">Sign in on your My Score page first to send challenges.</div>
+          <a href="my-points.html" class="btn btn-gold" style="margin-top:1rem;display:inline-block;width:auto;padding:0.75rem 1.5rem">Go to My Score →</a>
+        </div>
+      </div>
+
+      <!-- Challenge form -->
+      <div id="challenge-form">
+        <p style="font-size:14px;color:var(--muted);margin-bottom:1.25rem">Pick someone from the leaderboard and call them out. They'll see it next time they open the app.</p>
+
+        <div style="margin-bottom:1rem">
+          <label style="display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-weight:600">Who do you want to challenge?</label>
+          <div id="player-list" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto">
+            <div style="color:var(--muted);font-size:13px;padding:0.5rem">Loading players...</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:1rem">
+          <label style="display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-weight:600">Game</label>
+          <select id="challenge-game" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;padding:0.75rem 1rem;outline:none">
+            <option value="darts">🎯 Darts</option>
+            <option value="pool">🎱 Pool</option>
+            <option value="cornhole">🌽 Cornhole</option>
+            <option value="shuffleboard">🏒 Shuffleboard</option>
+            <option value="foosball">⚽ Foosball</option>
+            <option value="pingpong">🏓 Ping Pong</option>
+            <option value="trivia">🧠 Trivia Night</option>
+            <option value="any">⭐ Any skill game</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:1.25rem">
+          <label style="display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-weight:600">Trash talk (optional)</label>
+          <input type="text" id="challenge-msg" maxlength="60" placeholder="e.g. You're going down tonight 😤" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;padding:0.75rem 1rem;outline:none"/>
+        </div>
+
+        <button class="btn btn-gold" id="send-challenge-btn" onclick="sendChallenge()" disabled>
+          ⚔️ Send challenge
+        </button>
+
+        <div id="challenge-success" style="display:none;text-align:center;padding:1.5rem 0">
+          <div style="font-size:40px;margin-bottom:0.5rem">⚔️</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);margin-bottom:0.25rem">Challenge sent!</div>
+          <div style="font-size:14px;color:var(--muted);margin-bottom:1.25rem" id="challenge-sent-to"></div>
+          <button class="btn btn-outline" onclick="resetChallenge()">Send another</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script>
+const sb = getSupabase();
+let currentPlayer = null;
+let currentBar = null;
+let currentWager = 10;
+let currentQuestion = null;
+let selfieStream = null;
+let huntStream = null;
+let facingMode = 'user';
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
+
+// Load bar immediately — before anything else
+(async () => {
+  const slug = getBarSlug() || localStorage.getItem('br_bar_slug');
+  if (slug) {
+    localStorage.setItem('br_bar_slug', slug);
+    currentBar = await getBar(sb, slug);
+  }
+  await loadPlayer();
+  setupRealtimeChallenge();
+  checkChallengeNotification();
+})();
+
+// ── LOAD PLAYER ──────────────────────────────────────
+async function loadPlayer() {
+  const phone = localStorage.getItem('br_phone');
+  if (!phone) return;
+
+  // Look up global profile
+  const { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone.replace(/\D/g,'')).single();
+  if (!profile) return;
+
+  // Get bar score
+  let barPoints = 0;
+  if (currentBar) {
+    const { data: barScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
+    barPoints = barScore?.total_points || 0;
+  }
+
+  currentPlayer = { ...profile, total_points: barPoints };
+
+  // Update trivia display
+  document.getElementById('trivia-pts-display').textContent = barPoints;
+  const triviaRounds = getTriviaRoundsThisVisit();
+  const triviaRemaining = MAX_TRIVIA_PER_VISIT - triviaRounds.length;
+  const triviaCountEl = document.getElementById('trivia-rounds-left');
+  if (triviaCountEl) triviaCountEl.textContent = `${triviaRemaining} round${triviaRemaining !== 1 ? 's' : ''} left tonight`;
+
+  // Update selfie nameplate
+  const { data: allScores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', currentBar?.id || '').order('total_points', { ascending: false });
+  const rank = (allScores||[]).findIndex(s => s.player_id === profile.id) + 1;
+  document.getElementById('selfie-name').textContent = profile.name.toUpperCase();
+  document.getElementById('selfie-rank').textContent = rank > 0 ? `Rank #${rank} · ${barPoints} pts` : `${barPoints} pts`;
+}
+
+// ── TABS ──────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name !== 'selfie' && selfieStream) { selfieStream.getTracks().forEach(t=>t.stop()); selfieStream=null; }
+  if (name !== 'hunt' && huntStream) { huntStream.getTracks().forEach(t=>t.stop()); huntStream=null; }
+  if (name !== 'challenge' && window._challengeRefresh) { clearInterval(window._challengeRefresh); window._challengeRefresh=null; }
+  if (name === 'challenge') loadChallengeTab();
+  if (name === 'hunt') loadHuntTab();
+}
+
+// ── WAGER ──────────────────────────────────────────────
+function updateWager(val) {
+  currentWager = parseInt(val);
+  document.getElementById('wager-display').textContent = currentWager;
+  const slider = document.getElementById('wager-slider');
+  if (slider) slider.value = currentWager;
+  document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
+}
+function setWager(val) {
+  const max = currentPlayer ? Math.min(currentPlayer.total_points, 200) : 100;
+  const actual = val === 100 ? max : Math.min(val, max);
+  updateWager(actual);
+  document.querySelectorAll('.preset').forEach((p,i)=>{
+    if ([10,25,50][i]===val || (val===100&&i===3)) p.classList.add('active');
+  });
+}
+
+// ── TRIVIA QUESTIONS ──────────────────────────────────
+const TRIVIA_QUESTIONS = [
+  { category:'Sports', question:'How many points is a touchdown worth in the NFL?', options:['4','6','7','8'], correct:1, explanation:'A touchdown is worth 6 points. The extra point kick adds 1 more, making 7 the common total.' },
+  { category:'Pop Culture', question:'Which artist released the album "Thriller" in 1982?', options:['Prince','Michael Jackson','David Bowie','Madonna'], correct:1, explanation:'Michael Jackson\'s Thriller is the best-selling album of all time with over 66 million copies sold.' },
+  { category:'Food & Drinks', question:'What is the main ingredient in guacamole?', options:['Tomato','Lime','Avocado','Onion'], correct:2, explanation:'Avocado is the star. The name comes from the Aztec word "ahuacatl."' },
+  { category:'General Knowledge', question:'How many sides does a hexagon have?', options:['5','6','7','8'], correct:1, explanation:'Hex means six in Greek. A hexagon has 6 sides and 6 angles.' },
+  { category:'Music', question:'Which band wrote "Bohemian Rhapsody"?', options:['The Beatles','Led Zeppelin','Queen','The Rolling Stones'], correct:2, explanation:'Queen released Bohemian Rhapsody in 1975. Freddie Mercury wrote it and it runs nearly 6 minutes.' },
+  { category:'Sports', question:'How many players are on a basketball team on the court at one time?', options:['4','5','6','7'], correct:1, explanation:'5 players per team, 10 total on the court. That\'s been the rule since the sport was invented.' },
+  { category:'Food & Drinks', question:'What country did whiskey originate in?', options:['USA','Scotland','Ireland','Canada'], correct:2, explanation:'Ireland claims to be the birthplace of whiskey, with records dating back to the 15th century.' },
+  { category:'Pop Culture', question:'What color is the Gatorade typically dumped on winning coaches?', options:['Red','Orange','Blue','Green'], correct:1, explanation:'Orange Gatorade is the most iconic color for the victory dump, though any color works in a pinch.' },
+  { category:'General Knowledge', question:'What is the capital of Australia?', options:['Sydney','Melbourne','Canberra','Brisbane'], correct:2, explanation:'Canberra — not Sydney. It was purpose-built as the capital in 1913 as a compromise between Sydney and Melbourne.' },
+  { category:'Music', question:'Which rapper released "The College Dropout" in 2004?', options:['Jay-Z','Kanye West','Eminem','Lil Wayne'], correct:1, explanation:'Kanye West\'s debut album launched one of the most influential careers in music history.' },
+  { category:'Sports', question:'In baseball, how many strikes does it take to strike out?', options:['2','3','4','5'], correct:1, explanation:'Three strikes and you\'re out. One of the most iconic rules in all of sports.' },
+  { category:'Food & Drinks', question:'What is the world\'s most consumed alcoholic drink by volume?', options:['Wine','Vodka','Beer','Whiskey'], correct:2, explanation:'Beer is #1 globally by volume. It\'s been brewed for over 5,000 years.' },
+  { category:'Pop Culture', question:'How many seasons did "Breaking Bad" run?', options:['4','5','6','7'], correct:1, explanation:'5 seasons from 2008-2013. Widely considered one of the greatest TV shows ever made.' },
+  { category:'General Knowledge', question:'What is the hardest natural substance on Earth?', options:['Gold','Iron','Diamond','Quartz'], correct:2, explanation:'Diamond scores 10 on the Mohs scale — the maximum. Only a diamond can scratch a diamond.' },
+  { category:'Sports', question:'How long is a marathon in miles?', options:['24.2','25.2','26.2','27.2'], correct:2, explanation:'26.2 miles — exactly. The distance was standardized at the 1908 London Olympics.' },
+  { category:'Music', question:'What instrument does a DJ primarily use to mix music?', options:['Guitar','Turntable','Keyboard','Drum machine'], correct:1, explanation:'Turntables — two of them, with a mixer in between. The classic DJ setup since hip-hop\'s early days.' },
+  { category:'Food & Drinks', question:'What gives red wine its color?', options:['Added coloring','The grape skin','The stems','The seeds'], correct:1, explanation:'The grape skin. Red wines ferment with the skins, which release pigments called anthocyanins.' },
+  { category:'Pop Culture', question:'Which movie features the line "I\'ll be back"?', options:['Rocky','Die Hard','The Terminator','Predator'], correct:2, explanation:'Arnold Schwarzenegger\'s iconic line from The Terminator (1984). One of the most quoted lines in film history.' },
+  { category:'General Knowledge', question:'How many feet are in a mile?', options:['4,280','5,280','6,280','3,280'], correct:1, explanation:'5,280 feet in a mile. Comes from 8 furlongs of 660 feet each — an old farming measurement.' },
+  { category:'Sports', question:'What sport is played at Wimbledon?', options:['Cricket','Rugby','Tennis','Golf'], correct:2, explanation:'Tennis. Wimbledon is the oldest tennis tournament in the world, first held in 1877.' }
+];
+
+let usedQuestions = [];
+
+function getNextQuestion() {
+  if (usedQuestions.length >= TRIVIA_QUESTIONS.length) usedQuestions = [];
+  const remaining = TRIVIA_QUESTIONS.filter((_, i) => !usedQuestions.includes(i));
+  const idx = TRIVIA_QUESTIONS.indexOf(remaining[Math.floor(Math.random() * remaining.length)]);
+  usedQuestions.push(idx);
+  return TRIVIA_QUESTIONS[idx];
+}
+
+// ── DRINKS ──────────────────────────────────────────────
+const DRINKS = {
+  celebrate: { emoji:'🥃', name:'Shot of the Week', description:'You\'re winning tonight — treat yourself to the shot of the week. Ask your bartender what it is. This one\'s on the house vibes.' },
+  focused:   { emoji:'🍺', name:'Draft Beer', description:'Keep it simple, keep it cold. A draft beer keeps you in the zone without slowing you down. Classic for a reason.' },
+  chill:     { emoji:'🍹', name:'Drink of the Month', description:'No rush tonight — try something new. Ask your bartender about the drink of the month. You might find your new go-to.' },
+  comeback:  { emoji:'🥃', name:'Whiskey & Coke', description:'Simple, strong, and gets the job done. Order a whiskey and Coke, take a breath, and start climbing that leaderboard.' },
+  social:    { emoji:'🍺', name:'Round of Beers', description:'Get a round in for the crew. Keep it simple — a round of drafts is the move when you\'re out with your people.' },
+  wild:      { emoji:'🔥', name:'Tequila Shot', description:'You said send it. One tequila shot, no overthinking it. Just make sure you can still hit that bullseye after.' }
+};
+
+const MAX_TRIVIA_PER_VISIT = 3;
+
+function getTriviaRoundsThisVisit() {
+  const slug = getBarSlug() || 'default';
+  const key = `br_trivia_rounds_${slug}`;
+  const stored = JSON.parse(localStorage.getItem(key) || '[]');
+  const windowStart = Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000;
+  return stored.filter((ts) => ts > windowStart);
+}
+
+function recordTriviaRound() {
+  const slug = getBarSlug() || 'default';
+  const key = `br_trivia_rounds_${slug}`;
+  const rounds = getTriviaRoundsThisVisit();
+  rounds.push(Date.now());
+  localStorage.setItem(key, JSON.stringify(rounds));
+}
+
+async function startTrivia() {
+  if (!currentPlayer) { alert('Sign in first to play!'); return; }
+
+  const triviaRounds = getTriviaRoundsThisVisit();
+  if (triviaRounds.length >= MAX_TRIVIA_PER_VISIT) {
+    document.getElementById('trivia-cap-msg').style.display = 'block';
+    document.getElementById('trivia-setup').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('trivia-setup').style.display = 'none';
+  document.getElementById('trivia-loading').style.display = 'block';
+
+  await new Promise(r => setTimeout(r, 800));
+  currentQuestion = getNextQuestion();
+  recordTriviaRound();
+
+  document.getElementById('trivia-loading').style.display = 'none';
+  document.getElementById('trivia-question').style.display = 'block';
+  document.getElementById('wager-in-play').textContent = currentPlayer.total_points;
+  document.getElementById('q-category').textContent = currentQuestion.category;
+  document.getElementById('q-text').textContent = currentQuestion.question;
+
+  const opts = document.getElementById('q-options');
+  opts.innerHTML = '';
+  currentQuestion.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'q-opt';
+    btn.textContent = opt;
+    btn.onclick = () => answerTrivia(i, btn);
+    opts.appendChild(btn);
+  });
+}
+
+async function answerTrivia(idx, btn) {
+  // Disable all buttons
+  document.querySelectorAll('.q-opt').forEach(b => b.disabled = true);
+
+  const correct = idx === currentQuestion.correct;
+  const correctBtn = document.querySelectorAll('.q-opt')[currentQuestion.correct];
+
+  if (correct) {
+    btn.classList.add('correct');
+  } else {
+    btn.classList.add('wrong');
+    correctBtn.classList.add('correct');
+  }
+
+  await new Promise(r => setTimeout(r, 1200));
+
+  const BONUS = 5;
+  document.getElementById('trivia-question').style.display = 'none';
+  document.getElementById('trivia-result').style.display = 'block';
+
+  if (correct) {
+    const newTotal = currentPlayer.total_points + BONUS;
+    await sb.from('player_bar_scores').update({ total_points: newTotal }).eq('player_id', currentPlayer.id).eq('bar_id', currentBar?.id || '');
+    await sb.from('bonus_points').insert({
+      player_id: currentPlayer.id,
+      points: BONUS,
+      reason: 'Got a trivia question right',
+      bar_id: currentBar?.id || null
+    });
+    currentPlayer.total_points = newTotal;
+    document.getElementById('result-emoji').textContent = '🎉';
+    document.getElementById('result-title').textContent = 'CORRECT!';
+    document.getElementById('result-title').style.color = 'var(--green)';
+    document.getElementById('result-pts').textContent = '+' + BONUS;
+    document.getElementById('result-pts').style.color = 'var(--green)';
+    document.getElementById('result-sub').textContent = `+${BONUS} bonus points added to your score!`;
+  } else {
+    document.getElementById('result-emoji').textContent = '😬';
+    document.getElementById('result-title').textContent = 'WRONG!';
+    document.getElementById('result-title').style.color = 'var(--red)';
+    document.getElementById('result-pts').textContent = 'No points';
+    document.getElementById('result-pts').style.color = 'var(--muted)';
+    document.getElementById('result-sub').textContent = 'Better luck next question — no points lost.';
+  }
+  document.getElementById('result-explanation').textContent = '💡 ' + currentQuestion.explanation;
+  document.getElementById('trivia-pts-display').textContent = currentPlayer.total_points;
+}
+
+function resetTrivia() {
+  document.getElementById('trivia-result').style.display = 'none';
+  const triviaRounds = getTriviaRoundsThisVisit();
+  const triviaRemaining = MAX_TRIVIA_PER_VISIT - triviaRounds.length;
+  const roundsEl = document.getElementById('trivia-rounds-left');
+  if (roundsEl) roundsEl.textContent = `${triviaRemaining} round${triviaRemaining !== 1 ? 's' : ''} left tonight`;
+  if (triviaRemaining > 0) {
+    document.getElementById('trivia-cap-msg').style.display = 'none';
+    document.getElementById('trivia-setup').style.display = 'block';
+  } else {
+    document.getElementById('trivia-setup').style.display = 'none';
+    document.getElementById('trivia-cap-msg').style.display = 'block';
+  }
+  document.getElementById('trivia-pts-display').textContent = currentPlayer?.total_points || '—';
+  currentQuestion = null;
+}
+
+// ── SELFIE ──────────────────────────────────────────────
+async function startSelfie() {
+  document.getElementById('selfie-start').style.display = 'none';
+  document.getElementById('selfie-camera-wrap').style.display = 'block';
+  await openCamera();
+}
+
+async function openCamera() {
+  try {
+    if (selfieStream) selfieStream.getTracks().forEach(t=>t.stop());
+    selfieStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width: { ideal: 1280 }, height: { ideal: 1600 } }
+    });
+    document.getElementById('selfie-video').srcObject = selfieStream;
+  } catch(e) {
+    alert('Camera access denied. Please allow camera access and try again.');
+  }
+}
+
+async function flipCamera() {
+  facingMode = facingMode === 'user' ? 'environment' : 'user';
+  await openCamera();
+}
+
+function snapPhoto() {
+  const video = document.getElementById('selfie-video');
+  const canvas = document.getElementById('selfie-canvas');
+  const w = video.videoWidth, h = video.videoHeight;
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+
+  // Mirror if front camera
+  if (facingMode === 'user') { ctx.scale(-1,1); ctx.drawImage(video,-w,0,w,h); ctx.scale(-1,1); }
+  else { ctx.drawImage(video,0,0,w,h); }
+
+  // Gold corner frames
+  ctx.strokeStyle = '#f0a500'; ctx.lineWidth = Math.max(4, w*0.008);
+  const cs = w * 0.1, m = w * 0.04;
+  [[m,m,1,1],[w-m,m,-1,1],[m,h-m,1,-1],[w-m,h-m,-1,-1]].forEach(([x,y,dx,dy]) => {
+    ctx.beginPath(); ctx.moveTo(x+cs*dx,y); ctx.lineTo(x,y); ctx.lineTo(x,y+cs*dy); ctx.stroke();
+  });
+
+  // Bottom nameplate
+  const grad = ctx.createLinearGradient(0,h-h*0.25,0,h);
+  grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,'rgba(0,0,0,0.85)');
+  ctx.fillStyle = grad; ctx.fillRect(0,h-h*0.3,w,h*0.3);
+
+  const name = document.getElementById('selfie-name').textContent;
+  const rank = document.getElementById('selfie-rank').textContent;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f0a500'; ctx.font = `bold ${w*0.072}px 'Bebas Neue', sans-serif`;
+  ctx.fillText(name, w/2, h - h*0.1);
+  ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `${w*0.035}px 'DM Sans', sans-serif`;
+  ctx.fillText(rank, w/2, h - h*0.065);
+  ctx.fillStyle = '#a87300'; ctx.font = `${w*0.028}px 'DM Sans', sans-serif`;
+  ctx.fillText("CJ's Tavern · Bar Rank", w/2, h - h*0.04);
+
+  // Show preview
+  if (selfieStream) { selfieStream.getTracks().forEach(t=>t.stop()); selfieStream=null; }
+  document.getElementById('selfie-camera-wrap').style.display = 'none';
+  document.getElementById('selfie-photo-preview').style.display = 'block';
+}
+
+function retakeSelfie() {
+  document.getElementById('selfie-photo-preview').style.display = 'none';
+  document.getElementById('selfie-camera-wrap').style.display = 'block';
+  openCamera();
+}
+
+function downloadSelfie() {
+  const canvas = document.getElementById('selfie-canvas');
+  const a = document.createElement('a');
+  a.download = 'bar-rank-selfie.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+// ── ORDER UP ──────────────────────────────────────────────
+async function selectVibe(vibe, icon, label) {
+  document.querySelectorAll('.vibe-btn').forEach(b=>b.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.getElementById('drink-result').style.display = 'none';
+  document.getElementById('drink-loading').style.display = 'block';
+
+  // Brief pause for effect
+  await new Promise(r => setTimeout(r, 700));
+
+  const drink = DRINKS[vibe];
+  document.getElementById('drink-loading').style.display = 'none';
+  document.getElementById('drink-result').style.display = 'block';
+  document.getElementById('drink-emoji').textContent = drink.emoji;
+  document.getElementById('drink-name').textContent = drink.name;
+  document.getElementById('drink-desc').textContent = drink.description;
+}
+
+function resetOrder() {
+  document.getElementById('drink-result').style.display = 'none';
+  document.querySelectorAll('.vibe-btn').forEach(b=>b.classList.remove('selected'));
+}
+
+// Hide camera wrap initially
+document.getElementById('selfie-camera-wrap').style.display = 'none';
+
+// ── CHALLENGE SYSTEM ──────────────────────────────────────────
+const GAME_LABELS = { darts:'🎯 Darts', pool:'🎱 Pool', cornhole:'🌽 Cornhole', shuffleboard:'🏒 Shuffleboard', foosball:'⚽ Foosball', pingpong:'🏓 Ping Pong', trivia:'🧠 Trivia Night', any:'⭐ Any skill game' };
+const CHALLENGE_POINTS = 25;
+let selectedChallengedId = null;
+
+async function loadChallengeTab() {
+  if (!currentPlayer) {
+    document.getElementById('challenge-no-player').style.display = 'block';
+    document.getElementById('challenge-form').style.display = 'none';
+    return;
+  }
+  document.getElementById('challenge-no-player').style.display = 'none';
+  document.getElementById('challenge-form').style.display = 'block';
+  await renderAllChallenges();
+  await loadPlayerList();
+  if (window._challengeRefresh) clearInterval(window._challengeRefresh);
+  window._challengeRefresh = setInterval(renderAllChallenges, 4000);
+}
+
+// Single function that renders ALL active challenges for current player
+async function renderAllChallenges() {
+  if (!currentPlayer) return;
+
+  // Fetch all active challenges involving current player
+  const { data: asChallenger } = await sb.from('challenges')
+    .select('*, challenged:challenged_id(id,name)')
+    .eq('challenger_id', currentPlayer.id)
+    .eq('bar_id', currentBar?.id || '')
+    .in('status', ['pending','accepted','reporting'])
+    .order('created_at', { ascending: false });
+
+  const { data: asChallenged } = await sb.from('challenges')
+    .select('*, challenger:challenger_id(id,name)')
+    .eq('challenged_id', currentPlayer.id)
+    .eq('bar_id', currentBar?.id || '')
+    .in('status', ['pending','accepted','reporting'])
+    .order('created_at', { ascending: false });
+
+  const incomingEl = document.getElementById('incoming-challenges');
+  const sentEl = document.getElementById('sent-challenges');
+
+  // ── CHALLENGES I RECEIVED ──
+  const incoming = asChallenged || [];
+  if (!incoming.length) {
+    incomingEl.style.display = 'none';
+  } else {
+    incomingEl.style.display = 'block';
+    incomingEl.innerHTML = incoming.map(c => {
+      if (c.status === 'pending') {
+        return `<div style="background:rgba(240,165,0,0.08);border:1px solid var(--gold-dim);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">⚔️ Incoming Challenge</div>
+          <div style="font-weight:600;margin-bottom:2px">${esc(c.challenger?.name||'?')} challenged you to ${GAME_LABELS[c.game]||c.game}</div>
+          ${c.message?`<div style="font-size:13px;color:var(--muted);font-style:italic;margin-bottom:8px">"${esc(c.message)}"</div>`:'<div style="margin-bottom:8px"></div>'}
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-gold btn-sm" onclick="acceptChallenge('${c.id}')">Accept ⚔️</button>
+            <button class="btn btn-outline btn-sm" onclick="declineChallenge('${c.id}')">Decline</button>
+          </div>
+        </div>`;
+      }
+      // accepted or reporting — show report buttons for challenged player
+      const myReport = c.challenged_reported;
+      const iReported = myReport !== null && myReport !== undefined;
+      const theyReported = c.challenger_reported !== null && c.challenger_reported !== undefined;
+      if (c.status === 'accepted') {
+        return `<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🤝 Challenge Accepted</div>
+          <div style="font-weight:600;margin-bottom:8px">vs ${esc(c.challenger?.name||'?')} · ${GAME_LABELS[c.game]||c.game}</div>
+          ${iReported
+            ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenger?.name||'them')} to confirm...</div>`
+            : theyReported
+            ? `<div style="font-size:13px;color:var(--gold);margin-bottom:8px">⚡ They already reported — your turn:</div>
+               <div style="display:flex;gap:8px">
+                 <button class="btn btn-green btn-sm" onclick="doReport('${c.id}','won','challenged')">I Won 🏆</button>
+                 <button class="btn btn-red btn-sm" onclick="doReport('${c.id}','lost','challenged')">I Lost</button>
+               </div>`
+            : `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Game done? Report the result:</div>
+               <div style="display:flex;gap:8px">
+                 <button class="btn btn-green btn-sm" onclick="doReport('${c.id}','won','challenged')">I Won 🏆</button>
+                 <button class="btn btn-red btn-sm" onclick="doReport('${c.id}','lost','challenged')">I Lost</button>
+               </div>`
+          }
+        </div>`;
+      }
+      if (c.status === 'reporting') {
+        return `<div style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--red);font-weight:700;margin-bottom:4px">⚠️ Disputed Result</div>
+          <div style="font-weight:600;margin-bottom:4px">vs ${esc(c.challenger?.name||'?')} · ${GAME_LABELS[c.game]||c.game}</div>
+          <div style="font-size:13px;color:var(--muted)">Both reported different winners. Ask staff to settle it.</div>
+        </div>`;
+      }
+      return '';
+    }).join('');
+  }
+
+  // ── CHALLENGES I SENT ──
+  const sent = (asChallenger || []).filter(c => c.status !== 'pending' || true); // show all
+  const activeSent = (asChallenger || []).filter(c => ['pending','accepted','reporting'].includes(c.status));
+
+  // If any accepted challenge exists, hide the success screen
+  const hasAccepted = activeSent.some(c => c.status === 'accepted' || c.status === 'reporting');
+  if (hasAccepted) {
+    document.getElementById('challenge-success').style.display = 'none';
+  }
+
+  if (!activeSent.length) {
+    sentEl.style.display = 'none';
+  } else {
+    sentEl.style.display = 'block';
+    sentEl.innerHTML = activeSent.map(c => {
+      if (c.status === 'pending') {
+        return `<div style="background:rgba(240,165,0,0.06);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">⏳ Challenge Pending</div>
+          <div style="font-weight:600;margin-bottom:4px">Waiting for ${esc(c.challenged?.name||'?')} to accept · ${GAME_LABELS[c.game]||c.game}</div>
+          <div style="font-size:13px;color:var(--muted)">They'll get a notification when they open the Lounge.</div>
+        </div>`;
+      }
+      if (c.status === 'accepted') {
+        // challenger's reporting state
+        const myReport = c.challenger_reported;
+        const iReported = myReport !== null && myReport !== undefined;
+        const theyReported = c.challenged_reported !== null && c.challenged_reported !== undefined;
+        return `<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🤝 Your Challenge Accepted</div>
+          <div style="font-weight:600;margin-bottom:8px">${esc(c.challenged?.name||'?')} · ${GAME_LABELS[c.game]||c.game}</div>
+          ${iReported
+            ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenged?.name||'them')} to confirm...</div>`
+            : theyReported
+            ? `<div style="font-size:13px;color:var(--gold);margin-bottom:8px">⚡ They already reported — your turn:</div>
+               <div style="display:flex;gap:8px">
+                 <button class="btn btn-green btn-sm" onclick="doReport('${c.id}','won','challenger')">I Won 🏆</button>
+                 <button class="btn btn-red btn-sm" onclick="doReport('${c.id}','lost','challenger')">I Lost</button>
+               </div>`
+            : `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Game done? Report the result:</div>
+               <div style="display:flex;gap:8px">
+                 <button class="btn btn-green btn-sm" onclick="doReport('${c.id}','won','challenger')">I Won 🏆</button>
+                 <button class="btn btn-red btn-sm" onclick="doReport('${c.id}','lost','challenger')">I Lost</button>
+               </div>`
+          }
+        </div>`;
+      }
+      if (c.status === 'reporting') {
+        return `<div style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--red);font-weight:700;margin-bottom:4px">⚠️ Disputed Result</div>
+          <div style="font-weight:600;margin-bottom:4px">vs ${esc(c.challenged?.name||'?')} · ${GAME_LABELS[c.game]||c.game}</div>
+          <div style="font-size:13px;color:var(--muted)">Both reported different winners. Ask staff to settle it.</div>
+        </div>`;
+      }
+      return '';
+    }).join('');
+  }
+}
+
+// Clean report function — role is 'challenger' or 'challenged'
+async function doReport(challengeId, result, role) {
+  const { data: c } = await sb.from('challenges').select('*').eq('id', challengeId).single();
+  if (!c) return;
+
+  // Determine who won based on result and role
+  let winnerId;
+  if (result === 'won') {
+    winnerId = currentPlayer.id;
+  } else {
+    // I lost = opponent won
+    winnerId = role === 'challenger' ? c.challenged_id : c.challenger_id;
+  }
+
+  const field = role === 'challenger' ? 'challenger_reported' : 'challenged_reported';
+  await sb.from('challenges').update({ [field]: winnerId }).eq('id', challengeId);
+
+  // Check if both reported
+  const { data: updated } = await sb.from('challenges').select('*').eq('id', challengeId).single();
+  const bothReported = updated.challenger_reported && updated.challenged_reported;
+
+  if (bothReported) {
+    if (updated.challenger_reported === updated.challenged_reported) {
+      // Agreement — award points
+      const finalWinnerId = updated.challenger_reported;
+      await sb.from('challenges').update({ status: 'completed', winner_id: finalWinnerId }).eq('id', challengeId);
+      await sb.from('bonus_points').insert({ player_id: finalWinnerId, points: CHALLENGE_POINTS, reason: `Won a challenge (${GAME_LABELS[c.game]||c.game})`, bar_id: currentBar?.id || null });
+      const { data: ws } = await sb.from('player_bar_scores').select('total_points').eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'').single();
+      await sb.from('player_bar_scores').update({ total_points: (ws?.total_points||0) + CHALLENGE_POINTS }).eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'');
+      showChallengeToast(finalWinnerId === currentPlayer.id ? `🏆 You won! +${CHALLENGE_POINTS} points!` : `Result confirmed. Better luck next time!`);
+    } else {
+      // Dispute
+      await sb.from('challenges').update({ status: 'reporting' }).eq('id', challengeId);
+      showChallengeToast('⚠️ Disputed — ask staff to settle it.');
+    }
+  } else {
+    showChallengeToast('✅ Reported. Waiting for the other player.');
+  }
+
+  await renderAllChallenges();
+}
+
+async function loadIncomingChallenges() {
+  await renderAllChallenges();
+}
+
+async function acceptChallenge(challengeId) {
+  await sb.from('challenges').update({ status: 'accepted', seen: true }).eq('id', challengeId);
+  showChallengeToast('⚔️ Challenge accepted! Play the game and report who won.');
+  await renderAllChallenges();
+}
+
+async function declineChallenge(challengeId) {
+  await sb.from('challenges').update({ status: 'declined' }).eq('id', challengeId);
+  await renderAllChallenges();
+}
+
+async function loadPlayerList() {
+  const barId = currentBar?.id || '';
+
+  // Get all player IDs who have scanned at this bar (confirmed or pending)
+  const { data: allCheckins } = await sb.from('checkins')
+    .select('player_id')
+    .eq('bar_id', barId);
+
+  const { data: scores } = await sb.from('player_bar_scores')
+    .select('player_id, total_points')
+    .eq('bar_id', barId);
+
+  const scoreMap = {};
+  (scores||[]).forEach(s => { scoreMap[s.player_id] = s.total_points; });
+
+  // Get unique player IDs excluding current player
+  const otherIds = [...new Set((allCheckins||[]).map(c => c.player_id))]
+    .filter(id => id !== currentPlayer?.id);
+
+  const list = document.getElementById('player-list');
+  if (!otherIds.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:0.5rem">No other players here yet — challenge them after they scan in!</div>';
+    return;
+  }
+
+  // Fetch profiles for those players
+  const { data: profiles } = await sb.from('player_profiles')
+    .select('id, name')
+    .in('id', otherIds);
+
+  if (!profiles?.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:0.5rem">No other players here yet.</div>';
+    return;
+  }
+
+  list.innerHTML = profiles.map(profile => `
+    <div class="player-option" id="po-${profile.id}" onclick="selectPlayer('${profile.id}','${esc(profile.name)}')"
+      style="display:flex;align-items:center;gap:10px;padding:0.75rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:6px;transition:all 0.15s">
+      <div style="width:30px;height:30px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--muted);flex-shrink:0">${profile.name[0].toUpperCase()}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:500">${esc(profile.name)}</div>
+        <div style="font-size:11px;color:var(--muted)">${scoreMap[profile.id] || 0} pts</div>
+      </div>
+      <div style="font-size:16px;opacity:0" id="check-${profile.id}">✓</div>
+    </div>`).join('');
+}
+
+
+function selectPlayer(id, name) {
+  document.querySelectorAll('.player-option').forEach(el => {
+    el.style.borderColor = 'var(--border)';
+    el.style.background = 'var(--bg3)';
+  });
+  document.querySelectorAll('[id^="check-"]').forEach(el => el.style.opacity = '0');
+
+  selectedChallengedId = id;
+  const el = document.getElementById('po-' + id);
+  if (el) { el.style.borderColor = 'var(--gold-dim)'; el.style.background = 'rgba(240,165,0,0.08)'; }
+  const check = document.getElementById('check-' + id);
+  if (check) check.style.opacity = '1';
+  document.getElementById('send-challenge-btn').disabled = false;
+}
+
+async function sendChallenge() {
+  if (!selectedChallengedId) return;
+  const game = document.getElementById('challenge-game').value;
+  const message = document.getElementById('challenge-msg').value.trim();
+  const btn = document.getElementById('send-challenge-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+
+  const { error } = await sb.from('challenges').insert({
+    challenger_id: currentPlayer.id,
+    challenged_id: selectedChallengedId,
+    bar_id: currentBar?.id || null,
+    game, message: message || null,
+    status: 'pending'
+  });
+
+  if (error) { btn.disabled = false; btn.textContent = '⚔️ Send challenge'; alert('Could not send. Try again.'); return; }
+
+  const challengedName = document.querySelector(`#po-${selectedChallengedId} div div`)?.textContent || 'your opponent';
+  document.getElementById('challenge-form').style.display = 'none';
+  document.getElementById('challenge-success').style.display = 'block';
+  document.getElementById('challenge-sent-to').textContent = `Challenge sent to ${challengedName}! Waiting for them to accept...`;
+
+  // Auto-refresh so challenger sees when challenge is accepted
+  if (window._challengeRefresh) clearInterval(window._challengeRefresh);
+  window._challengeRefresh = setInterval(() => renderAllChallenges(), 3000);
+}
+
+function showChallengeToast(msg) {
+  let toast = document.getElementById('challenge-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'challenge-toast';
+    toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--gold);color:#111;padding:12px 20px;border-radius:10px;font-weight:700;font-size:14px;z-index:9999;max-width:320px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.4)';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 4000);
+}
+
+function resetChallenge() {
+  selectedChallengedId = null;
+  document.getElementById('challenge-success').style.display = 'none';
+  document.getElementById('challenge-form').style.display = 'block';
+  document.getElementById('challenge-msg').value = '';
+  document.getElementById('send-challenge-btn').disabled = true;
+  loadPlayerList();
+}
+
+// Poll for incoming challenges every 5 seconds from anywhere in the lounge
+let _lastChallengeCount = 0;
+async function checkChallengeNotification() {
+  if (!currentPlayer || !currentBar) return;
+  const { data } = await sb.from('challenges')
+    .select('id, challenger_id, game, player_profiles!challenges_challenger_id_fkey(name)')
+    .eq('challenged_id', currentPlayer.id)
+    .eq('bar_id', currentBar.id)
+    .eq('status', 'pending');
+
+  const count = data?.length || 0;
+  const tab = document.getElementById('challenge-tab');
+
+  if (count > 0 && tab) {
+    if (!document.getElementById('challenge-badge')) {
+      const badge = document.createElement('span');
+      badge.id = 'challenge-badge';
+      badge.style.cssText = 'position:absolute;top:4px;right:4px;background:var(--red);color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center';
+      tab.style.position = 'relative';
+      tab.appendChild(badge);
+    }
+    document.getElementById('challenge-badge').textContent = count;
+
+    // Show toast only when count increases
+    if (count > _lastChallengeCount) {
+      const challenger = data[0]?.player_profiles?.name || 'Someone';
+      const game = GAME_LABELS[data[0]?.game] || data[0]?.game || 'a game';
+      showChallengeToast(`⚔️ ${challenger} challenged you to ${game}! Open the Challenge tab.`);
+    }
+  } else {
+    const badge = document.getElementById('challenge-badge');
+    if (badge) badge.remove();
+  }
+  _lastChallengeCount = count;
+
+  // Keep polling every 5 seconds
+  setTimeout(checkChallengeNotification, 5000);
+}
+
+// ── SCAVENGER HUNT ──────────────────────────────────────────
+const HUNT_CLUES = [
+  "Find something with the bar's logo on it",
+  "Find a dartboard in the bar",
+  "Find a menu or specials board",
+  "Find a TV showing a live game",
+  "Find a bar stool with a unique design",
+  "Find a neon sign in the bar",
+  "Find a pool cue rack",
+  "Find the jukebox or music speaker",
+  "Find a drink special written on a chalkboard",
+  "Find a framed photo or artwork on the wall",
+  "Find a pinball machine or arcade game",
+  "Find the bar's social media handle posted anywhere",
+  "Find a tap handle with a beer brand on it",
+  "Find a trophy or award displayed in the bar",
+  "Find the bathrooms sign",
+  "Find a bar game you haven't played yet tonight",
+  "Find somewhere to sit with a view of the leaderboard",
+  "Find the oldest looking item in the bar",
+  "Find a coaster or napkin with the bar's branding",
+  "Find a staff member wearing a uniform or name tag"
+];
+
+function getTodayClue() {
+  // Rotate clues by day of year so it changes daily automatically
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  return { text: HUNT_CLUES[dayOfYear % HUNT_CLUES.length], day: dayOfYear };
+}
+
+async function loadHuntTab() {
+  if (!currentPlayer) {
+    document.getElementById('hunt-no-player').style.display = 'block';
+    document.getElementById('hunt-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('hunt-no-player').style.display = 'none';
+  document.getElementById('hunt-content').style.display = 'block';
+
+  const clue = getTodayClue();
+  document.getElementById('hunt-clue-text').textContent = clue.text;
+
+  // Check winners cap — scoped to this bar
+  const { data: approvedToday } = await sb.from('hunt_submissions')
+    .select('id').eq('clue_day', clue.day).eq('status', 'approved').eq('bar_id', currentBar?.id || '');
+  const winnersToday = (approvedToday || []).length;
+  const MAX_WINNERS = 3;
+  const spotsLeft = MAX_WINNERS - winnersToday;
+
+  // Check if already submitted today at THIS bar
+  const { data: existing } = await sb.from('hunt_submissions')
+    .select('*').eq('player_id', currentPlayer.id).eq('clue_day', clue.day).eq('bar_id', currentBar?.id || '').single();
+
+  if (existing) {
+    document.getElementById('hunt-clue-section').style.display = 'none';
+    document.getElementById('hunt-done').style.display = 'block';
+    const statusMsg = existing.status === 'approved'
+      ? '✅ Approved! Your 20 points have been awarded.'
+      : existing.status === 'rejected'
+      ? '❌ Staff couldn\'t verify this one. Better luck tomorrow!'
+      : '⏳ Pending staff review — check back soon for your points.';
+    document.getElementById('hunt-done-msg').textContent = statusMsg;
+    return;
+  }
+
+  // Hunt is full — no more winners tonight
+  if (spotsLeft <= 0) {
+    document.getElementById('hunt-clue-section').style.display = 'none';
+    document.getElementById('hunt-done').style.display = 'block';
+    document.getElementById('hunt-done-msg').textContent = '🎯 All 3 winners have been found tonight! Come back tomorrow for a new clue.';
+    return;
+  }
+
+  // Show clue with spots remaining
+  document.getElementById('hunt-clue-section').style.display = 'block';
+  document.getElementById('hunt-done').style.display = 'none';
+
+  // Update spots remaining indicator
+  const spotsEl = document.getElementById('hunt-spots-left');
+  if (spotsEl) {
+    spotsEl.textContent = spotsLeft === 1 ? '⚡ Last spot tonight!' : `${spotsLeft} spots left tonight`;
+    spotsEl.style.color = spotsLeft === 1 ? 'var(--red)' : 'var(--gold)';
+  }
+}
+
+async function openHuntCamera() {
+  document.getElementById('hunt-start-btn-wrap').style.display = 'none';
+  document.getElementById('hunt-camera-wrap').style.display = 'block';
+  try {
+    huntStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 } }
+    });
+    document.getElementById('hunt-video').srcObject = huntStream;
+  } catch(e) {
+    alert('Camera access denied. Please allow camera access.');
+    document.getElementById('hunt-start-btn-wrap').style.display = 'block';
+    document.getElementById('hunt-camera-wrap').style.display = 'none';
+  }
+}
+
+function closeHuntCamera() {
+  if (huntStream) { huntStream.getTracks().forEach(t=>t.stop()); huntStream = null; }
+  document.getElementById('hunt-camera-wrap').style.display = 'none';
+  document.getElementById('hunt-start-btn-wrap').style.display = 'block';
+}
+
+function snapHuntPhoto() {
+  const video = document.getElementById('hunt-video');
+  const canvas = document.getElementById('hunt-canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  if (huntStream) { huntStream.getTracks().forEach(t=>t.stop()); huntStream = null; }
+  document.getElementById('hunt-camera-wrap').style.display = 'none';
+  document.getElementById('hunt-preview-wrap').style.display = 'block';
+}
+
+function retakeHuntPhoto() {
+  document.getElementById('hunt-preview-wrap').style.display = 'none';
+  openHuntCamera();
+}
+
+async function submitHuntPhoto() {
+  const canvas = document.getElementById('hunt-canvas');
+  const clue = getTodayClue();
+  const btn = document.querySelector('#hunt-preview-wrap .btn-gold');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+
+  const photoData = canvas.toDataURL('image/jpeg', 0.7);
+
+  const { error } = await sb.from('hunt_submissions').insert({
+    player_id: currentPlayer.id,
+    clue_day: clue.day,
+    clue_text: clue.text,
+    photo_data: photoData,
+    status: 'pending',
+    bar_id: currentBar?.id || null
+  });
+
+  if (error) {
+    btn.disabled = false; btn.textContent = '✅ Submit for review';
+    alert('Could not submit. Try again.');
+    return;
+  }
+
+  document.getElementById('hunt-clue-section').style.display = 'none';
+  document.getElementById('hunt-preview-wrap').style.display = 'none';
+  document.getElementById('hunt-done').style.display = 'block';
+  document.getElementById('hunt-done-msg').textContent = '⏳ Pending staff review — check back soon for your points.';
+}
+
+// ── REALTIME CHALLENGE NOTIFICATIONS ──────────────────
+function setupRealtimeChallenge() {
+  if (!currentPlayer || !currentBar) return;
+
+  sb.channel('challenges-' + currentPlayer.id)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'challenges',
+      filter: `challenged_id=eq.${currentPlayer.id}`
+    }, (payload) => {
+      // Someone challenged me — show notification immediately
+      showChallengeToast('⚔️ You\'ve been challenged! Open the Challenge tab.');
+      checkChallengeNotification();
+      if (document.getElementById('panel-challenge')?.classList.contains('active')) {
+        loadIncomingChallenges();
+      }
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'challenges',
+      filter: `challenger_id=eq.${currentPlayer.id}`
+    }, (payload) => {
+      const c = payload.new;
+      if (c.status === 'accepted') {
+        // My challenge was accepted
+        showChallengeToast('🤝 Your challenge was accepted! Go report the result.');
+        if (document.getElementById('panel-challenge')?.classList.contains('active')) {
+          loadIncomingChallenges();
+        }
+      } else if (c.status === 'completed') {
+        showChallengeToast('🏆 Challenge result confirmed! Check your points.');
+      }
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'challenges',
+      filter: `challenged_id=eq.${currentPlayer.id}`
+    }, (payload) => {
+      const c = payload.new;
+      if (c.status === 'accepted' || c.status === 'reporting') {
+        if (document.getElementById('panel-challenge')?.classList.contains('active')) {
+          loadIncomingChallenges();
+        }
+      } else if (c.status === 'completed') {
+        showChallengeToast('🏆 Challenge result confirmed! Check your points.');
+      }
+    })
+    .subscribe();
+}
+
+function showChallengeToast(message) {
+  // Remove existing toast
+  const existing = document.getElementById('challenge-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'challenge-toast';
+  toast.textContent = message;
+  toast.style.cssText = `
+    position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:var(--gold);color:#111;font-weight:700;font-size:14px;
+    padding:12px 20px;border-radius:10px;z-index:9999;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    animation:slideDown 0.3s ease;max-width:320px;text-align:center;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4000);
+}
+</script>
+<style>
+@keyframes slideDown {
+  from { opacity:0; transform:translateX(-50%) translateY(-10px); }
+  to { opacity:1; transform:translateX(-50%) translateY(0); }
+}
+</style>
+</body>
+</html>
