@@ -844,11 +844,18 @@ async function loadIncomingChallenges() {
     }
     if (c.status === 'accepted') {
       const iReported = c.challenged_reported !== null && c.challenged_reported !== undefined;
+      const theyReported = c.challenger_reported !== null && c.challenger_reported !== undefined;
       return `<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
         <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🤝 Challenge Accepted</div>
-        <div style="font-weight:600;margin-bottom:8px">vs ${esc(c.challenger.name)} · ${GAME_LABELS[c.game]||c.game}</div>
-        ${iReported
-          ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for the other player to confirm the result...</div>`
+        <div style="font-weight:600;margin-bottom:8px">vs ${esc(c.challenger?.name || '?')} · ${GAME_LABELS[c.game]||c.game}</div>
+        ${theyReported && !iReported
+          ? `<div style="font-size:13px;color:var(--gold);margin-bottom:8px">⚡ ${esc(c.challenger?.name || 'They')} already reported. Your turn:</div>
+             <div style="display:flex;gap:8px">
+               <button class="btn btn-green btn-sm" onclick="reportResult('${c.id}','${currentPlayer.id}')">I Won 🏆</button>
+               <button class="btn btn-red btn-sm" onclick="reportResult('${c.id}','opponent')">I Lost</button>
+             </div>`
+          : iReported
+          ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenger?.name || 'them')} to confirm...</div>`
           : `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Game done? Report the result:</div>
              <div style="display:flex;gap:8px">
                <button class="btn btn-green btn-sm" onclick="reportResult('${c.id}','${currentPlayer.id}')">I Won 🏆</button>
@@ -882,13 +889,23 @@ async function loadIncomingChallenges() {
 
   sentContainer.style.display = 'block';
   sentContainer.innerHTML = sent.map(c => {
+    // challenger has reported if challenger_reported is not null
     const iReported = c.challenger_reported !== null && c.challenger_reported !== undefined;
+    // other player has reported
+    const theyReported = c.challenged_reported !== null && c.challenged_reported !== undefined;
+
     if (c.status === 'accepted') {
       return `<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
         <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🤝 Your Challenge Accepted</div>
-        <div style="font-weight:600;margin-bottom:8px">${esc(c.challenged.name)} accepted · ${GAME_LABELS[c.game]||c.game}</div>
-        ${iReported
-          ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenged.name)} to confirm...</div>`
+        <div style="font-weight:600;margin-bottom:8px">${esc(c.challenged?.name || '?')} · ${GAME_LABELS[c.game]||c.game}</div>
+        ${theyReported && !iReported
+          ? `<div style="font-size:13px;color:var(--gold);margin-bottom:8px">⚡ ${esc(c.challenged?.name || 'They')} already reported. Your turn:</div>
+             <div style="display:flex;gap:8px">
+               <button class="btn btn-green btn-sm" onclick="reportResult('${c.id}','${currentPlayer.id}')">I Won 🏆</button>
+               <button class="btn btn-red btn-sm" onclick="reportResult('${c.id}','opponent')">I Lost</button>
+             </div>`
+          : iReported
+          ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenged?.name || 'them')} to confirm...</div>`
           : `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Game done? Report the result:</div>
              <div style="display:flex;gap:8px">
                <button class="btn btn-green btn-sm" onclick="reportResult('${c.id}','${currentPlayer.id}')">I Won 🏆</button>
