@@ -192,7 +192,7 @@
       // Set links immediately from URL — before any async code runs
       (function() {
         const p = new URLSearchParams(location.search);
-        const slug = p.get('bar');
+        const slug = p.get('bar') || localStorage.getItem('br_bar_slug');
         if (slug) {
           document.getElementById('link-tutorial').href = `tutorial.html?bar=${slug}`;
           document.getElementById('link-lounge').href = `lounge.html?bar=${slug}`;
@@ -869,13 +869,23 @@ function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 
 // Auto-load with bar context
 (async () => {
-  const slug = getBarSlug();
+  // Get slug from URL, fallback to localStorage
+  let slug = getBarSlug();
+  if (!slug) slug = localStorage.getItem('br_bar_slug');
+  
   if (slug) {
+    localStorage.setItem('br_bar_slug', slug); // Always persist it
     currentBar = await getBar(sb, slug);
     // Update header links with bar slug
     document.getElementById('link-tutorial').href = `tutorial.html?bar=${slug}`;
     document.getElementById('link-lounge').href = `lounge.html?bar=${slug}`;
     document.getElementById('link-leaderboard').href = `leaderboard.html?bar=${slug}`;
+    // Fix URL if slug was missing
+    if (!getBarSlug() && slug) {
+      const url = new URL(location.href);
+      url.searchParams.set('bar', slug);
+      history.replaceState({}, '', url.toString());
+    }
   }
   const saved = localStorage.getItem('br_phone');
   if (saved) {
