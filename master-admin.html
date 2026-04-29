@@ -197,6 +197,28 @@ input:focus,select:focus{border-color:var(--gold-dim)}
     </div>
   </div>
 
+  <hr class="divider"/>
+
+  <!-- Player Management -->
+  <div class="section-title">Player Management</div>
+  <div class="card" style="margin-bottom:1rem">
+    <label>Find & remove player by phone number</label>
+    <div style="display:flex;gap:8px;margin-bottom:1rem">
+      <input type="tel" id="ban-phone" placeholder="e.g. 6125550001" style="margin-bottom:0;flex:1"/>
+      <button class="btn btn-outline btn-sm" onclick="findPlayer()" style="white-space:nowrap">Find player</button>
+    </div>
+    <div id="ban-player-info" style="display:none;margin-bottom:1rem"></div>
+    <div id="ban-msg" class="msg"></div>
+  </div>
+
+  <!-- Danger Zone -->
+  <div class="section-title" style="color:var(--red)">⚠️ Danger Zone</div>
+  <div class="card" style="border-color:rgba(245,101,101,0.3)">
+    <div style="font-size:14px;font-weight:600;margin-bottom:0.5rem">Wipe all player data</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Deletes all players, scores, check-ins, and history across every bar. Bars and their events stay intact. Use for a clean slate or before launch.</p>
+    <button class="btn" style="background:var(--red);color:#fff;font-weight:700;width:auto;padding:0.7rem 1.5rem" onclick="wipeAllPlayers()">🗑️ Wipe all player data</button>
+  </div>
+
 </div>
 </div>
 
@@ -350,6 +372,55 @@ async function deleteBar(id) {
   await sb.from('season_archives').delete().eq('bar_id', id);
   await sb.from('bars').delete().eq('id', id);
 
+  loadDashboard();
+}
+
+async function findPlayer() {
+  const phone = document.getElementById('ban-phone').value.replace(/\D/g,'');
+  if (!phone) return;
+  const { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone).single();
+  const info = document.getElementById('ban-player-info');
+  if (!profile) { info.style.display='block'; info.innerHTML='<p style="color:var(--red);font-size:13px">No player found with that number.</p>'; return; }
+
+  const { data: scores } = await sb.from('player_bar_scores').select('total_points, bars(name, slug)').eq('player_id', profile.id);
+  const barList = (scores||[]).map(s => `${s.bars?.name || 'Unknown'} (${s.total_points} pts)`).join(', ') || 'No bars';
+
+  info.style.display = 'block';
+  info.innerHTML = `
+    <div style="background:var(--bg3);border-radius:8px;padding:1rem;margin-bottom:0.75rem">
+      <div style="font-weight:600;font-size:15px">${esc(profile.name)}</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:2px">${profile.phone}</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Active at: ${esc(barList)}</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:rgba(245,101,101,0.3)" onclick="removePlayerGlobally('${profile.id}','${esc(profile.name)}')">🗑️ Remove from entire platform</button>
+    </div>`;
+}
+
+async function removePlayerGlobally(playerId, name) {
+  if (!confirm(`Permanently remove ${name} from the entire platform?\n\nThis deletes their profile, all scores, and all check-ins at every bar. Cannot be undone.`)) return;
+  await sb.from('challenges').delete().or(`challenger_id.eq.${playerId},challenged_id.eq.${playerId}`);
+  await sb.from('hunt_submissions').delete().eq('player_id', playerId);
+  await sb.from('bonus_points').delete().eq('player_id', playerId);
+  await sb.from('checkins').delete().eq('player_id', playerId);
+  await sb.from('player_bar_scores').delete().eq('player_id', playerId);
+  await sb.from('player_profiles').delete().eq('id', playerId);
+  document.getElementById('ban-player-info').style.display = 'none';
+  document.getElementById('ban-phone').value = '';
+  showMsg('ban-msg', `${name} has been removed from the platform.`, 'success');
+  loadDashboard();
+}
+
+async function wipeAllPlayers() {
+  if (!confirm('Wipe ALL player data across every bar?\n\nThis deletes every player, score, check-in, challenge, and hunt submission. Bars and events stay. Cannot be undone.')) return;
+  if (!confirm('Are you absolutely sure? This affects every bar on the platform.')) return;
+  await sb.from('challenges').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await sb.from('hunt_submissions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await sb.from('bonus_points').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await sb.from('checkins').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await sb.from('player_bar_scores').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await sb.from('player_profiles').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  alert('All player data wiped. Clean slate.');
   loadDashboard();
 }
 
