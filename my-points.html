@@ -545,7 +545,8 @@ async function ciDoCheckin(player) {
     event_id: ciEventData.id,
     points_earned: ciEventData.points_value,
     pending: true,
-    points_confirm_at: confirmAt.toISOString()
+    points_confirm_at: confirmAt.toISOString(),
+    bar_id: currentBar?.id || ciEventData.bar_id
   }).select().single();
 
   if (error) { alert('Something went wrong. Please try again.'); return; }
