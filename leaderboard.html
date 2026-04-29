@@ -116,7 +116,13 @@
 
   <!-- TOP BAR -->
   <div class="top-bar">
-    <a href="my-points.html" style="background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:8px;font-size:13px;text-decoration:none;flex-shrink:0">← Back</a>
+    <a id="lb-back-btn" href="my-points.html" style="background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:8px;font-size:13px;text-decoration:none;flex-shrink:0">← Back</a>
+    <script>
+      (function() {
+        const slug = new URLSearchParams(location.search).get('bar');
+        if (slug) document.getElementById('lb-back-btn').href = 'my-points.html?bar=' + slug;
+      })();
+    </script>
     <div class="logo-mark">BR</div>
     <div class="title-block">
       <div class="title-main" id="bar-title">Leaderboard Legends</div>
