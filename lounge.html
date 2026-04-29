@@ -810,6 +810,7 @@ async function loadIncomingChallenges() {
   const { data } = await sb.from('challenges')
     .select('*, challenger:challenger_id(name), challenged:challenged_id(name)')
     .eq('challenged_id', currentPlayer.id)
+    .eq('bar_id', currentBar?.id || '')
     .in('status', ['pending', 'accepted', 'reporting'])
     .order('created_at', { ascending: false });
 
@@ -859,6 +860,7 @@ async function loadIncomingChallenges() {
   const { data: sent } = await sb.from('challenges')
     .select('*, challenged:challenged_id(name)')
     .eq('challenger_id', currentPlayer.id)
+    .eq('bar_id', currentBar?.id || '')
     .in('status', ['accepted', 'reporting'])
     .order('created_at', { ascending: false });
 
@@ -960,6 +962,7 @@ async function sendChallenge() {
   const { error } = await sb.from('challenges').insert({
     challenger_id: currentPlayer.id,
     challenged_id: selectedChallengedId,
+    bar_id: currentBar?.id || null,
     game, message: message || null,
     status: 'pending'
   });
@@ -1035,9 +1038,9 @@ function resetChallenge() {
 
 // Badge on challenge tab if incoming pending
 async function checkChallengeNotification() {
-  if (!currentPlayer) return;
+  if (!currentPlayer || !currentBar) return;
   const { data } = await sb.from('challenges')
-    .select('id').eq('challenged_id', currentPlayer.id).eq('status', 'pending').eq('seen', false);
+    .select('id').eq('challenged_id', currentPlayer.id).eq('bar_id', currentBar.id).eq('status', 'pending').eq('seen', false);
   const tab = document.getElementById('challenge-tab');
   if (data?.length && tab) {
     tab.querySelector('.tab-icon').textContent = '⚔️';
