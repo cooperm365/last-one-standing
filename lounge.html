@@ -897,45 +897,49 @@ async function loadIncomingChallenges() {
 }
 
 async function loadPlayerList() {
-  // Get all players who have checked in at this bar (confirmed OR pending)
-  const { data: checkins } = await sb.from('checkins')
-    .select('player_id, player_profiles(id, name)')
-    .eq('bar_id', currentBar?.id || '')
-    .eq('pending', false);
+  const barId = currentBar?.id || '';
 
-  const { data: pending } = await sb.from('checkins')
-    .select('player_id, player_profiles(id, name)')
-    .eq('bar_id', currentBar?.id || '')
-    .eq('pending', true);
+  // Get all player IDs who have scanned at this bar (confirmed or pending)
+  const { data: allCheckins } = await sb.from('checkins')
+    .select('player_id')
+    .eq('bar_id', barId);
 
   const { data: scores } = await sb.from('player_bar_scores')
     .select('player_id, total_points')
-    .eq('bar_id', currentBar?.id || '');
+    .eq('bar_id', barId);
 
   const scoreMap = {};
   (scores||[]).forEach(s => { scoreMap[s.player_id] = s.total_points; });
 
-  // Combine all players who have scanned at this bar
-  const seen = {};
-  [...(checkins||[]), ...(pending||[])].forEach(c => {
-    if (c.player_profiles && c.player_id !== currentPlayer?.id) {
-      seen[c.player_id] = c.player_profiles;
-    }
-  });
+  // Get unique player IDs excluding current player
+  const otherIds = [...new Set((allCheckins||[]).map(c => c.player_id))]
+    .filter(id => id !== currentPlayer?.id);
 
   const list = document.getElementById('player-list');
-  const players = Object.entries(seen);
-  if (!players.length) { list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:0.5rem">No other players here yet — challenge them after they scan in!</div>'; return; }
+  if (!otherIds.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:0.5rem">No other players here yet — challenge them after they scan in!</div>';
+    return;
+  }
 
-  list.innerHTML = players.map(([pid, profile], i) => `
-    <div class="player-option" id="po-${pid}" onclick="selectPlayer('${pid}','${esc(profile?.name || '?')}')"
-      style="display:flex;align-items:center;gap:10px;padding:0.75rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s">
-      <div style="width:30px;height:30px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--muted);flex-shrink:0">${(profile?.name||'?')[0].toUpperCase()}</div>
+  // Fetch profiles for those players
+  const { data: profiles } = await sb.from('player_profiles')
+    .select('id, name')
+    .in('id', otherIds);
+
+  if (!profiles?.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:0.5rem">No other players here yet.</div>';
+    return;
+  }
+
+  list.innerHTML = profiles.map(profile => `
+    <div class="player-option" id="po-${profile.id}" onclick="selectPlayer('${profile.id}','${esc(profile.name)}')"
+      style="display:flex;align-items:center;gap:10px;padding:0.75rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:6px;transition:all 0.15s">
+      <div style="width:30px;height:30px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--muted);flex-shrink:0">${profile.name[0].toUpperCase()}</div>
       <div style="flex:1">
-        <div style="font-size:14px;font-weight:500">${esc(profile?.name || '?')}</div>
-        <div style="font-size:11px;color:var(--muted)">${scoreMap[pid] || 0} pts</div>
+        <div style="font-size:14px;font-weight:500">${esc(profile.name)}</div>
+        <div style="font-size:11px;color:var(--muted)">${scoreMap[profile.id] || 0} pts</div>
       </div>
-      <div style="font-size:16px;opacity:0" id="check-${pid}">✓</div>
+      <div style="font-size:16px;opacity:0" id="check-${profile.id}">✓</div>
     </div>`).join('');
 }
 
