@@ -466,6 +466,7 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
     currentBar = await getBar(sb, slug);
   }
   await loadPlayer();
+  setupRealtimeChallenge();
   checkChallengeNotification();
 })();
 
@@ -983,14 +984,20 @@ async function sendChallenge() {
 
   if (error) { btn.disabled = false; btn.textContent = '⚔️ Send challenge'; alert('Could not send. Try again.'); return; }
 
-  const challengedName = document.querySelector(`#po-${selectedChallengedId} div div`)?.textContent || 'them';
+  const challengedName = document.querySelector(`#po-${selectedChallengedId} div div`)?.textContent || 'your opponent';
   document.getElementById('challenge-form').style.display = 'none';
   document.getElementById('challenge-success').style.display = 'block';
-  document.getElementById('challenge-sent-to').textContent = `${challengedName} will see your challenge next time they open the app.`;
+  document.getElementById('challenge-sent-to').textContent = `Challenge sent to ${challengedName}! Waiting for them to accept...`;
+
+  // Auto-refresh so challenger sees when challenge is accepted
+  if (window._challengeRefresh) clearInterval(window._challengeRefresh);
+  window._challengeRefresh = setInterval(() => loadIncomingChallenges(), 3000);
 }
 
 async function acceptChallenge(challengeId) {
   await sb.from('challenges').update({ status: 'accepted', seen: true }).eq('id', challengeId);
+  // Show toast to accepted player
+  showChallengeToast('⚔️ Challenge accepted! Play the game and report who won.');
   await loadIncomingChallenges();
 }
 
@@ -999,44 +1006,52 @@ async function declineChallenge(challengeId) {
   await loadIncomingChallenges();
 }
 
+function showChallengeToast(msg) {
+  let toast = document.getElementById('challenge-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'challenge-toast';
+    toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--gold);color:#111;padding:12px 20px;border-radius:10px;font-weight:700;font-size:14px;z-index:9999;max-width:320px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.4)';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 4000);
+}
+
 async function reportResult(challengeId, winnerId) {
   const { data: challenge } = await sb.from('challenges').select('*').eq('id', challengeId).single();
   if (!challenge) return;
 
-  // Determine actual winner id
   const actualWinnerId = winnerId === 'opponent'
     ? (challenge.challenger_id === currentPlayer.id ? challenge.challenged_id : challenge.challenger_id)
     : currentPlayer.id;
 
-  // Record this player's report
   const isChallenger = challenge.challenger_id === currentPlayer.id;
   const updateField = isChallenger ? 'challenger_reported' : 'challenged_reported';
   await sb.from('challenges').update({ [updateField]: actualWinnerId }).eq('id', challengeId);
 
-  // Refetch to check if both reported
   const { data: updated } = await sb.from('challenges').select('*').eq('id', challengeId).single();
   if (updated.challenger_reported && updated.challenged_reported) {
     if (updated.challenger_reported === updated.challenged_reported) {
-      // Both agree — award points
-      const winnerId = updated.challenger_reported;
-      await sb.from('challenges').update({ status: 'completed', winner_id: winnerId }).eq('id', challengeId);
+      const finalWinnerId = updated.challenger_reported;
+      await sb.from('challenges').update({ status: 'completed', winner_id: finalWinnerId }).eq('id', challengeId);
       await sb.from('bonus_points').insert({
-        player_id: winnerId, points: CHALLENGE_POINTS,
+        player_id: finalWinnerId, points: CHALLENGE_POINTS,
         reason: `Won a player challenge (${GAME_LABELS[challenge.game]||challenge.game})`,
         bar_id: currentBar?.id || null
       });
-      const { data: winnerScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', winnerId).eq('bar_id', currentBar?.id || '').single();
-      await sb.from('player_bar_scores').update({ total_points: (winnerScore?.total_points||0) + CHALLENGE_POINTS }).eq('player_id', winnerId).eq('bar_id', currentBar?.id || '');
-
-      const iWon = winnerId === currentPlayer.id;
-      alert(iWon ? `🏆 Result confirmed! +${CHALLENGE_POINTS} points added to your score!` : `Result confirmed. Better luck next time!`);
+      const { data: winnerScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id || '').single();
+      await sb.from('player_bar_scores').update({ total_points: (winnerScore?.total_points||0) + CHALLENGE_POINTS }).eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id || '');
+      const iWon = finalWinnerId === currentPlayer.id;
+      showChallengeToast(iWon ? `🏆 You won! +${CHALLENGE_POINTS} points added!` : `Result confirmed. Better luck next time!`);
     } else {
-      // Dispute
       await sb.from('challenges').update({ status: 'reporting' }).eq('id', challengeId);
-      alert('⚠️ You both reported different winners. Ask a staff member to settle it and award bonus points manually.');
+      showChallengeToast('⚠️ Disputed result — ask staff to settle it.');
     }
   } else {
-    alert('Your result has been recorded. Waiting for the other player to confirm.');
+    showChallengeToast('✅ Result recorded. Waiting for the other player to confirm.');
   }
   await loadIncomingChallenges();
 }
@@ -1050,23 +1065,43 @@ function resetChallenge() {
   loadPlayerList();
 }
 
-// Badge on challenge tab if incoming pending
+// Poll for incoming challenges every 5 seconds from anywhere in the lounge
+let _lastChallengeCount = 0;
 async function checkChallengeNotification() {
   if (!currentPlayer || !currentBar) return;
   const { data } = await sb.from('challenges')
-    .select('id').eq('challenged_id', currentPlayer.id).eq('bar_id', currentBar.id).eq('status', 'pending').eq('seen', false);
+    .select('id, challenger_id, game, player_profiles!challenges_challenger_id_fkey(name)')
+    .eq('challenged_id', currentPlayer.id)
+    .eq('bar_id', currentBar.id)
+    .eq('status', 'pending');
+
+  const count = data?.length || 0;
   const tab = document.getElementById('challenge-tab');
-  if (data?.length && tab) {
-    tab.querySelector('.tab-icon').textContent = '⚔️';
-    tab.style.position = 'relative';
+
+  if (count > 0 && tab) {
     if (!document.getElementById('challenge-badge')) {
       const badge = document.createElement('span');
       badge.id = 'challenge-badge';
-      badge.textContent = data.length;
       badge.style.cssText = 'position:absolute;top:4px;right:4px;background:var(--red);color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center';
+      tab.style.position = 'relative';
       tab.appendChild(badge);
     }
+    document.getElementById('challenge-badge').textContent = count;
+
+    // Show toast only when count increases
+    if (count > _lastChallengeCount) {
+      const challenger = data[0]?.player_profiles?.name || 'Someone';
+      const game = GAME_LABELS[data[0]?.game] || data[0]?.game || 'a game';
+      showChallengeToast(`⚔️ ${challenger} challenged you to ${game}! Open the Challenge tab.`);
+    }
+  } else {
+    const badge = document.getElementById('challenge-badge');
+    if (badge) badge.remove();
   }
+  _lastChallengeCount = count;
+
+  // Keep polling every 5 seconds
+  setTimeout(checkChallengeNotification, 5000);
 }
 
 // ── SCAVENGER HUNT ──────────────────────────────────────────
@@ -1197,7 +1232,6 @@ async function submitHuntPhoto() {
   const btn = document.querySelector('#hunt-preview-wrap .btn-gold');
   btn.disabled = true; btn.textContent = 'Submitting...';
 
-  // Store as base64 — staff reviews in admin
   const photoData = canvas.toDataURL('image/jpeg', 0.7);
 
   const { error } = await sb.from('hunt_submissions').insert({
@@ -1221,6 +1255,83 @@ async function submitHuntPhoto() {
   document.getElementById('hunt-done-msg').textContent = '⏳ Pending staff review — check back soon for your points.';
 }
 
+// ── REALTIME CHALLENGE NOTIFICATIONS ──────────────────
+function setupRealtimeChallenge() {
+  if (!currentPlayer || !currentBar) return;
+
+  sb.channel('challenges-' + currentPlayer.id)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'challenges',
+      filter: `challenged_id=eq.${currentPlayer.id}`
+    }, (payload) => {
+      // Someone challenged me — show notification immediately
+      showChallengeToast('⚔️ You\'ve been challenged! Open the Challenge tab.');
+      checkChallengeNotification();
+      if (document.getElementById('panel-challenge')?.classList.contains('active')) {
+        loadIncomingChallenges();
+      }
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'challenges',
+      filter: `challenger_id=eq.${currentPlayer.id}`
+    }, (payload) => {
+      const c = payload.new;
+      if (c.status === 'accepted') {
+        // My challenge was accepted
+        showChallengeToast('🤝 Your challenge was accepted! Go report the result.');
+        if (document.getElementById('panel-challenge')?.classList.contains('active')) {
+          loadIncomingChallenges();
+        }
+      } else if (c.status === 'completed') {
+        showChallengeToast('🏆 Challenge result confirmed! Check your points.');
+      }
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'challenges',
+      filter: `challenged_id=eq.${currentPlayer.id}`
+    }, (payload) => {
+      const c = payload.new;
+      if (c.status === 'accepted' || c.status === 'reporting') {
+        if (document.getElementById('panel-challenge')?.classList.contains('active')) {
+          loadIncomingChallenges();
+        }
+      } else if (c.status === 'completed') {
+        showChallengeToast('🏆 Challenge result confirmed! Check your points.');
+      }
+    })
+    .subscribe();
+}
+
+function showChallengeToast(message) {
+  // Remove existing toast
+  const existing = document.getElementById('challenge-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'challenge-toast';
+  toast.textContent = message;
+  toast.style.cssText = `
+    position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:var(--gold);color:#111;font-weight:700;font-size:14px;
+    padding:12px 20px;border-radius:10px;z-index:9999;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    animation:slideDown 0.3s ease;max-width:320px;text-align:center;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4000);
+}
 </script>
+<style>
+@keyframes slideDown {
+  from { opacity:0; transform:translateX(-50%) translateY(-10px); }
+  to { opacity:1; transform:translateX(-50%) translateY(0); }
+}
+</style>
 </body>
 </html>
