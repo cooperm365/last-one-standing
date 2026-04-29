@@ -509,6 +509,7 @@ function switchTab(name, btn) {
   btn.classList.add('active');
   if (name !== 'selfie' && selfieStream) { selfieStream.getTracks().forEach(t=>t.stop()); selfieStream=null; }
   if (name !== 'hunt' && huntStream) { huntStream.getTracks().forEach(t=>t.stop()); huntStream=null; }
+  if (name !== 'challenge' && window._challengeRefresh) { clearInterval(window._challengeRefresh); window._challengeRefresh=null; }
   if (name === 'challenge') loadChallengeTab();
   if (name === 'hunt') loadHuntTab();
 }
@@ -809,6 +810,10 @@ async function loadChallengeTab() {
   document.getElementById('challenge-form').style.display = 'block';
   await loadIncomingChallenges();
   await loadPlayerList();
+
+  // Auto-refresh every 5 seconds so both players see challenge updates
+  if (window._challengeRefresh) clearInterval(window._challengeRefresh);
+  window._challengeRefresh = setInterval(() => loadIncomingChallenges(), 5000);
 }
 
 async function loadIncomingChallenges() {
