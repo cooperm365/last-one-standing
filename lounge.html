@@ -387,6 +387,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
 
       <!-- Incoming challenges -->
       <div id="incoming-challenges" style="display:none;margin-bottom:1.25rem"></div>
+      <div id="sent-challenges" style="display:none;margin-bottom:1.25rem"></div>
 
       <!-- Not logged in -->
       <div id="challenge-no-player" style="display:none">
@@ -875,33 +876,37 @@ async function loadIncomingChallenges() {
     .in('status', ['accepted', 'reporting'])
     .order('created_at', { ascending: false });
 
-  if (sent?.length) {
-    container.innerHTML += sent.map(c => {
-      const iReported = c.challenger_reported === currentPlayer.id;
-      if (c.status === 'accepted') {
-        return `<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
-          <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🤝 Your Challenge Accepted</div>
-          <div style="font-weight:600;margin-bottom:8px">${esc(c.challenged.name)} accepted · ${GAME_LABELS[c.game]||c.game}</div>
-          ${iReported
-            ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenged.name)} to confirm...</div>`
-            : `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Game done? Report the result:</div>
-               <div style="display:flex;gap:8px">
-                 <button class="btn btn-green btn-sm" onclick="reportResult('${c.id}','${currentPlayer.id}')">I Won 🏆</button>
-                 <button class="btn btn-red btn-sm" onclick="reportResult('${c.id}','opponent')">I Lost</button>
-               </div>`
-          }
-        </div>`;
-      }
-      if (c.status === 'reporting') {
-        return `<div style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
-          <div style="font-size:12px;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">⚠️ Disputed Result</div>
-          <div style="font-weight:600;margin-bottom:4px">vs ${esc(c.challenged.name)} · ${GAME_LABELS[c.game]||c.game}</div>
-          <div style="font-size:13px;color:var(--muted)">Both players reported different winners. Ask a staff member to award bonus points manually.</div>
-        </div>`;
-      }
-      return '';
-    }).join('');
-  }
+  const sentContainer = document.getElementById('sent-challenges');
+  if (!sentContainer) return;
+
+  if (!sent?.length) { sentContainer.style.display = 'none'; return; }
+
+  sentContainer.style.display = 'block';
+  sentContainer.innerHTML = sent.map(c => {
+    const iReported = c.challenger_reported === currentPlayer.id;
+    if (c.status === 'accepted') {
+      return `<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
+        <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🤝 Your Challenge Accepted</div>
+        <div style="font-weight:600;margin-bottom:8px">${esc(c.challenged.name)} accepted · ${GAME_LABELS[c.game]||c.game}</div>
+        ${iReported
+          ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenged.name)} to confirm...</div>`
+          : `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Game done? Report the result:</div>
+             <div style="display:flex;gap:8px">
+               <button class="btn btn-green btn-sm" onclick="reportResult('${c.id}','${currentPlayer.id}')">I Won 🏆</button>
+               <button class="btn btn-red btn-sm" onclick="reportResult('${c.id}','opponent')">I Lost</button>
+             </div>`
+        }
+      </div>`;
+    }
+    if (c.status === 'reporting') {
+      return `<div style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
+        <div style="font-size:12px;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">⚠️ Disputed Result</div>
+        <div style="font-weight:600;margin-bottom:4px">vs ${esc(c.challenged.name)} · ${GAME_LABELS[c.game]||c.game}</div>
+        <div style="font-size:13px;color:var(--muted)">Both players reported different winners. Ask a staff member to award bonus points manually.</div>
+      </div>`;
+    }
+    return '';
+  }).join('');
 }
 
 async function loadPlayerList() {
