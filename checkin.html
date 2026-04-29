@@ -446,8 +446,10 @@ async function doCheckin(player) {
   hide('form-new'); hide('form-returning');
 
   // Redirect first-time users at THIS BAR to tutorial
+  // Use bar_id not slug — so if bar is deleted and recreated, tutorial fires fresh
   const barSlug = currentBar?.slug || getBarSlug() || 'default';
-  const tutorialKey = `br_tutorial_done_${barSlug}`;
+  const barKey = currentBar?.id || barSlug;
+  const tutorialKey = `br_tutorial_done_${barKey}`;
   const tutorialDone = localStorage.getItem(tutorialKey);
   if (!tutorialDone) {
     localStorage.setItem(tutorialKey, '1');
