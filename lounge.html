@@ -136,7 +136,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
     <a id="lounge-back-btn" href="my-points.html" class="back-btn">← My Score</a>
     <script>
       (function() {
-        const slug = new URLSearchParams(location.search).get('bar');
+        const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
         if (slug) document.getElementById('lounge-back-btn').href = `my-points.html?bar=${slug}`;
       })();
     </script>
@@ -458,8 +458,11 @@ let facingMode = 'user';
 
 // Load bar immediately — before anything else
 (async () => {
-  const slug = getBarSlug();
-  if (slug) currentBar = await getBar(sb, slug);
+  const slug = getBarSlug() || localStorage.getItem('br_bar_slug');
+  if (slug) {
+    localStorage.setItem('br_bar_slug', slug);
+    currentBar = await getBar(sb, slug);
+  }
   await loadPlayer();
   checkChallengeNotification();
 })();
