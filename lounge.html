@@ -888,6 +888,14 @@ async function loadIncomingChallenges() {
   if (!sent?.length) { sentContainer.style.display = 'none'; return; }
 
   sentContainer.style.display = 'block';
+
+  // If any sent challenge is now accepted, hide the success screen so challenger can see buttons
+  const hasAccepted = sent.some(c => c.status === 'accepted' || c.status === 'reporting');
+  if (hasAccepted) {
+    document.getElementById('challenge-success').style.display = 'none';
+    document.getElementById('challenge-form').style.display = 'block';
+  }
+
   sentContainer.innerHTML = sent.map(c => {
     // challenger has reported if challenger_reported is not null
     const iReported = c.challenger_reported !== null && c.challenger_reported !== undefined;
