@@ -261,11 +261,7 @@
     </div>
     <div id="history-list" class="card" style="display:none;padding:0.5rem 1rem"></div>
 
-    <!-- My other bars -->
-    <div id="other-bars-section" style="display:none;margin-top:1.5rem">
-      <div class="section-title">My other bars</div>
-      <div id="other-bars-list"></div>
-    </div>
+    <!-- other bars section removed -->
 
     <hr class="divider"/>
     <button class="btn btn-outline" onclick="switchPlayer()" style="font-size:13px">Switch account</button>
@@ -666,9 +662,9 @@ async function showDashboard(player) {
   document.getElementById('player-name').textContent = player.name;
 
   const { data: checkins } = await sb.from('checkins').select('*, events(name, type)')
-    .eq('player_id', player.id).order('scanned_at', { ascending: false });
+    .eq('player_id', player.id).eq('bar_id', currentBar.id).order('scanned_at', { ascending: false });
   const { data: bonuses } = await sb.from('bonus_points').select('*, events(name)')
-    .eq('player_id', player.id).order('awarded_at', { ascending: false });
+    .eq('player_id', player.id).eq('bar_id', currentBar.id).order('awarded_at', { ascending: false });
 
   const checkinPts = (checkins||[]).filter(c=>!c.pending).reduce((s,c)=>s+c.points_earned, 0);
   const pendingPts = (checkins||[]).filter(c=>c.pending).reduce((s,c)=>s+c.points_earned, 0);
@@ -749,8 +745,7 @@ async function showDashboard(player) {
   // Save current rank for next visit
   if (rank > 0) localStorage.setItem(rankKey, String(rank));
 
-  // Load other bars this player has visited — pass bar ID to avoid timing issue
-  loadOtherBars(player.id, currentBar?.id);
+  // Cross-bar visibility removed — each bar is independent
 
   // Tonight's scans
   const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000);
