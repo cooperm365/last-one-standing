@@ -6,26 +6,19 @@
   <title>Admin - Bar Rank</title>
   <link rel="stylesheet" href="css/style.css"/>
   <style>
-    .tab-bar { display:flex; gap:4px; margin-bottom:1.5rem; border-bottom:1px solid var(--border); }
+    .tab-bar { display:flex; gap:4px; margin-bottom:1.5rem; border-bottom:1px solid var(--border); flex-wrap:wrap; }
     .tab { padding:0.6rem 1rem; font-size:14px; cursor:pointer; border:none; background:none;
            color:var(--text-muted); font-family:'DM Sans',sans-serif; border-bottom:2px solid transparent;
            transition:all 0.15s; }
     .tab.active { color:var(--gold); border-bottom-color:var(--gold); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
-
-    .event-row {
-      display:flex; align-items:center; gap:10px;
-      padding:0.75rem 0; border-bottom:1px solid var(--border);
-    }
+    .event-row { display:flex; align-items:center; gap:10px; padding:0.75rem 0; border-bottom:1px solid var(--border); }
     .event-row:last-child { border-bottom:none; }
-
     table { width:100%; border-collapse:collapse; font-size:13px; }
-    th { text-align:left; color:var(--text-muted); font-weight:500; padding:0.5rem 0.5rem 0.75rem;
-         border-bottom:1px solid var(--border); }
+    th { text-align:left; color:var(--text-muted); font-weight:500; padding:0.5rem 0.5rem 0.75rem; border-bottom:1px solid var(--border); }
     td { padding:0.6rem 0.5rem; border-bottom:1px solid var(--border); vertical-align:middle; }
     tr:last-child td { border-bottom:none; }
-
     #qr-output { text-align:center; margin-top:1rem; }
     #qr-output canvas { border-radius:8px; }
     .qr-url { font-size:11px; color:var(--text-muted); word-break:break-all; margin-top:0.5rem; }
@@ -39,7 +32,6 @@
 <body>
 <div class="page-wide">
 
-  <!-- Login gate -->
   <div id="login-gate">
     <div class="header">
       <div class="logo-mark">BR</div>
@@ -53,14 +45,12 @@
     </div>
   </div>
 
-  <!-- Admin dashboard -->
   <div id="admin-dashboard" style="display:none">
-
     <div class="header">
       <div class="logo-mark">BR</div>
-      <div><div class="site-name">Bar Rank</div><div class="site-sub">Admin Panel</div></div>
+      <div><div class="site-name" id="admin-bar-name">Bar Rank</div><div class="site-sub">Admin Panel</div></div>
       <div style="margin-left:auto;display:flex;gap:8px">
-        <a href="leaderboard.html" class="btn btn-outline btn-sm" target="_blank">Leaderboard ↗</a>
+        <a id="lb-link" href="leaderboard.html" class="btn btn-outline btn-sm" target="_blank">Leaderboard ↗</a>
         <button class="btn btn-outline btn-sm" onclick="signOut()">Sign out</button>
       </div>
     </div>
@@ -76,7 +66,6 @@
 
     <!-- EVENTS TAB -->
     <div class="tab-panel active" id="tab-events">
-
       <div class="section-title">Create Event</div>
       <div class="card" style="margin-bottom:1.5rem">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -103,16 +92,13 @@
         <button class="btn btn-primary" onclick="submitNewEvent()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">
           Create event + generate QR
         </button>
-
         <div id="qr-output"></div>
       </div>
-
       <div class="section-title">Active Events</div>
       <div class="card" style="padding:0 1rem">
         <div id="events-loading" style="padding:1rem 0;color:var(--text-muted);font-size:14px">Loading...</div>
         <div id="events-list"></div>
       </div>
-
     </div>
 
     <!-- BONUS TAB -->
@@ -121,49 +107,30 @@
       <div class="card" style="margin-bottom:1.5rem">
         <label>Player phone number</label>
         <input type="tel" id="bonus-phone" placeholder="07700 900000"/>
-        <div id="bonus-player-info" style="display:none;margin-bottom:1rem" class="card" style="background:var(--bg3)"></div>
+        <div id="bonus-player-info" style="display:none;margin-bottom:1rem" class="card"></div>
         <button class="btn btn-outline btn-sm" onclick="lookupBonusPlayer()" style="margin-bottom:1rem">Find player</button>
-
         <label>Bonus points</label>
         <input type="text" id="bonus-pts" placeholder="e.g. 25" style="width:150px"/>
-
         <label>Reason (optional)</label>
         <input type="text" id="bonus-reason" placeholder="e.g. Won darts tournament"/>
-
         <label>Event (optional)</label>
-        <select id="bonus-event">
-          <option value="">— No specific event —</option>
-        </select>
-
+        <select id="bonus-event"><option value="">— No specific event —</option></select>
         <div id="bonus-msg" class="msg"></div>
-        <button class="btn btn-primary" onclick="awardBonus()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">
-          Award bonus points
-        </button>
+        <button class="btn btn-primary" onclick="awardBonus()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">Award bonus points</button>
       </div>
     </div>
 
     <!-- PLAYERS TAB -->
     <div class="tab-panel" id="tab-players">
-
       <div class="section-title">Activity Stats</div>
       <div id="activity-stats" class="card" style="padding:0 1rem;margin-bottom:1.5rem">
         <div id="activity-loading" style="padding:1rem 0;color:var(--text-muted);font-size:14px">Loading...</div>
       </div>
-
       <div class="section-title">All Players</div>
       <div class="card" style="padding:0.5rem 1rem;overflow-x:auto">
         <div id="players-loading" style="padding:1rem 0;color:var(--text-muted);font-size:14px">Loading...</div>
         <table id="players-table" style="display:none">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Phone</th>
-              <th style="text-align:right">Total pts</th>
-              <th style="text-align:right">Check-ins</th>
-              <th>Joined</th>
-            </tr>
-          </thead>
+          <thead><tr></tr></thead>
           <tbody id="players-tbody"></tbody>
         </table>
       </div>
@@ -172,51 +139,38 @@
     <!-- STATS TAB -->
     <div class="tab-panel" id="tab-stats">
       <div class="section-title">Bar Owner Report</div>
-
-      <!-- Period selector -->
       <div style="display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap">
         <button class="period-btn active" onclick="setStatsPeriod(7, this)">Last 7 days</button>
         <button class="period-btn" onclick="setStatsPeriod(30, this)">Last 30 days</button>
         <button class="period-btn" onclick="setStatsPeriod(0, this)">All time</button>
       </div>
-
-      <!-- Key metrics row -->
       <div id="stats-metrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.5rem"></div>
-
-      <!-- Return rate explanation -->
       <div id="stats-return-card" class="card card-gold" style="margin-bottom:1.5rem;display:none">
         <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:0.25rem">Return visit rate</div>
         <div id="stats-return-val" style="font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--gold);line-height:1"></div>
         <div style="font-size:13px;color:var(--text-muted);margin-top:0.25rem" id="stats-return-desc"></div>
       </div>
-
-      <!-- Busiest days -->
       <div class="section-title" style="margin-top:1.5rem">Busiest days</div>
       <div class="card" style="padding:0.75rem 1rem;margin-bottom:1.5rem">
         <div id="stats-days-loading" style="color:var(--text-muted);font-size:14px">Loading...</div>
         <div id="stats-days"></div>
       </div>
-
-      <!-- Activity breakdown -->
       <div class="section-title">Activity breakdown</div>
       <div class="card" style="padding:0.75rem 1rem;margin-bottom:1.5rem">
         <div id="stats-activity-loading" style="color:var(--text-muted);font-size:14px">Loading...</div>
         <div id="stats-activity"></div>
       </div>
-
-      <!-- New vs returning -->
       <div class="section-title">New vs returning players</div>
       <div class="card" style="padding:0.75rem 1rem;margin-bottom:1.5rem">
         <div id="stats-newret-loading" style="color:var(--text-muted);font-size:14px">Loading...</div>
         <div id="stats-newret"></div>
       </div>
-
     </div>
 
     <!-- HUNT TAB -->
     <div class="tab-panel" id="tab-hunt">
       <div class="section-title">🔍 Hunt Submissions</div>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Players submit photos to prove they found today's item. Award 20 points via the Award Bonus tab for verified ones.</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Review photo submissions. First 3 verified players per night get +20 points.</p>
       <div id="hunt-loading" style="color:var(--text-muted);font-size:14px;padding:1rem 0">Loading submissions...</div>
       <div id="hunt-list"></div>
     </div>
@@ -224,25 +178,19 @@
     <!-- SEASON TAB -->
     <div class="tab-panel" id="tab-season">
       <div class="section-title">🏆 Season Management</div>
-
-      <!-- Current season stats -->
       <div class="card card-gold" style="margin-bottom:1.5rem">
         <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:0.75rem">Current Season</div>
         <div id="current-season-stats" style="color:var(--text-muted);font-size:14px">Loading...</div>
       </div>
-
-      <!-- Reset button -->
       <div class="card" style="margin-bottom:1.5rem">
         <div style="font-size:15px;font-weight:600;margin-bottom:0.5rem">Start New Season</div>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">This will archive the current results and reset all scores to zero. Player accounts are kept — nobody needs to re-register. QR codes keep working.</p>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Archives current results and resets all scores to zero. Player accounts stay intact.</p>
         <div style="margin-bottom:1rem">
-          <label>Notes for this season (optional)</label>
-          <input type="text" id="season-notes" placeholder="e.g. Spring 2025 season — Jamie K. won!"/>
+          <label>Notes (optional)</label>
+          <input type="text" id="season-notes" placeholder="e.g. Spring 2025 — Jamie K. won!"/>
         </div>
         <button class="btn" style="background:var(--red);color:#fff;font-weight:700" onclick="endSeason()">🏁 Archive season & reset scores</button>
       </div>
-
-      <!-- Past seasons -->
       <div class="section-title">Past Seasons</div>
       <div id="seasons-loading" style="color:var(--text-muted);font-size:14px;padding:1rem 0">Loading...</div>
       <div id="seasons-list"></div>
@@ -252,7 +200,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="js/config.js"></script>
 <script>
 const sb = getSupabase();
@@ -260,7 +208,41 @@ let authedAdmin = false;
 let bonusPlayerId = null;
 let currentBar = null;
 
-// --- Init: load bar from URL ---
+// QR generation using qrcode-generator library
+function generateQR(eventId, eventName) {
+  const base = location.origin + location.pathname.replace('admin.html','checkin.html');
+  const url = base + '?bar=' + currentBar.slug + '&event=' + eventId;
+  const out = document.getElementById('qr-output');
+
+  const qr = qrcode(0, 'M');
+  qr.addData(url);
+  qr.make();
+
+  out.innerHTML = `
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem">QR for: <strong style="color:var(--text)">${esc(eventName)}</strong></p>
+    <div id="qr-img-wrap" style="display:inline-block;border-radius:8px;overflow:hidden">${qr.createImgTag(4, 8)}</div>
+    <div class="qr-url">${url}</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:0.75rem">
+      <button class="btn btn-outline btn-sm" onclick="downloadQR()">Download PNG</button>
+      <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${url}').then(()=>alert('URL copied!'))">Copy URL</button>
+    </div>`;
+}
+
+function downloadQR() {
+  const img = document.querySelector('#qr-img-wrap img');
+  if (!img) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth || img.width;
+  canvas.height = img.naturalHeight || img.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const a = document.createElement('a');
+  a.download = 'barrank-qr.png';
+  a.href = canvas.toDataURL();
+  a.click();
+}
+
+// --- Init ---
 async function initAdmin() {
   const slug = getBarSlug();
   if (!slug) {
@@ -272,18 +254,17 @@ async function initAdmin() {
     document.getElementById('login-gate').innerHTML = '<div style="padding:2rem;color:var(--red)">Bar not found: ' + slug + '</div>';
     return;
   }
-  // Update title
-  document.querySelectorAll('.site-name').forEach(el => el.textContent = currentBar.name);
+  document.getElementById('admin-bar-name').textContent = currentBar.name;
+  document.getElementById('lb-link').href = 'leaderboard.html?bar=' + slug;
 }
 
-// --- Login ---
 function doLogin() {
   const pw = document.getElementById('pw-input').value;
   if (currentBar && pw === currentBar.admin_password) {
     authedAdmin = true;
     document.getElementById('login-gate').style.display = 'none';
     document.getElementById('admin-dashboard').style.display = 'block';
-    loadEvents(); loadPlayers(); loadEventsForBonus(); loadActivityStats(); loadStats(); loadHuntSubmissions();
+    loadEvents(); loadPlayers(); loadEventsForBonus(); loadActivityStats(); loadStats();
   } else {
     showMsg('pw-msg', 'Wrong password.', 'error');
   }
@@ -298,7 +279,6 @@ function signOut() {
 
 initAdmin();
 
-// --- Tabs ---
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
@@ -314,14 +294,13 @@ async function loadEvents() {
   document.getElementById('events-loading').style.display = 'none';
   const list = document.getElementById('events-list');
   if (!data?.length) { list.innerHTML = '<p style="color:var(--text-muted);padding:1rem 0;font-size:14px">No active events yet.</p>'; return; }
-
   const typeLabels = { darts:'🎯', pool:'🎱', trivia:'🧠', bingo:'🎰', live_music:'🎵', blackjack:'🃏', other:'⭐' };
   list.innerHTML = data.map(ev => `
     <div class="event-row">
-      <span style="font-size:20px">${typeLabels[ev.type] || '⭐'}</span>
+      <span style="font-size:20px">${typeLabels[ev.type]||'⭐'}</span>
       <div style="flex:1">
         <div style="font-size:14px;font-weight:500">${esc(ev.name)}</div>
-        <div style="font-size:12px;color:var(--text-muted)">${ev.points_value} pts · ID: ${ev.id.slice(0,8)}...</div>
+        <div style="font-size:12px;color:var(--text-muted)">${ev.points_value} pts</div>
       </div>
       <button class="btn btn-outline btn-sm" onclick="showQRForEvent('${ev.id}','${esc(ev.name)}')">QR</button>
       <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:rgba(245,101,101,0.3)" onclick="deactivateEvent('${ev.id}')">End</button>
@@ -333,14 +312,11 @@ async function submitNewEvent() {
   const type = document.getElementById('ev-type').value;
   const pts = parseInt(document.getElementById('ev-pts').value) || 10;
   if (!name) { showMsg('ev-msg', 'Enter an event name.', 'error'); return; }
-
   const { data, error } = await sb.from('events').insert({ name, type, points_value: pts, bar_id: currentBar.id }).select().single();
   if (error) { showMsg('ev-msg', 'Error creating event.', 'error'); return; }
-
   showMsg('ev-msg', 'Event created!', 'success');
   document.getElementById('ev-name').value = '';
-  loadEvents();
-  loadEventsForBonus();
+  loadEvents(); loadEventsForBonus();
   generateQR(data.id, name);
 }
 
@@ -349,32 +325,8 @@ function showQRForEvent(id, name) {
   document.getElementById('tab-events').scrollIntoView({ behavior:'smooth' });
 }
 
-function generateQR(eventId, eventName) {
-  const base = `${location.origin}${location.pathname.replace('admin.html','checkin.html')}`;
-  const url = `${base}?bar=${currentBar.slug}&event=${eventId}`;
-  const out = document.getElementById('qr-output');
-  out.innerHTML = `
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem">QR for: <strong style="color:var(--text)">${esc(eventName)}</strong></p>
-    <canvas id="qr-canvas"></canvas>
-    <div class="qr-url">${url}</div>
-    <div style="display:flex;gap:8px;justify-content:center;margin-top:0.75rem">
-      <button class="btn btn-outline btn-sm" onclick="downloadQR()">Download PNG</button>
-      <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${url}').then(()=>alert('URL copied!'))">Copy URL</button>
-    </div>`;
-  QRCode.toCanvas(document.getElementById('qr-canvas'), url, { width:200, margin:2, color:{dark:'#111110',light:'#f0ede8'} });
-}
-
-function downloadQR() {
-  const canvas = document.getElementById('qr-canvas');
-  if (!canvas) return;
-  const a = document.createElement('a');
-  a.download = 'last-one-standing-qr.png';
-  a.href = canvas.toDataURL();
-  a.click();
-}
-
 async function deactivateEvent(id) {
-  if (!confirm('End this event? Players can no longer scan it.')) return;
+  if (!confirm('End this event?')) return;
   await sb.from('events').update({ active: false }).eq('id', id);
   loadEvents();
 }
@@ -384,285 +336,181 @@ async function loadEventsForBonus() {
   const { data } = await sb.from('events').select('id, name').eq('bar_id', currentBar.id).eq('active', true);
   const sel = document.getElementById('bonus-event');
   sel.innerHTML = '<option value="">— No specific event —</option>';
-  (data || []).forEach(ev => {
-    sel.innerHTML += `<option value="${ev.id}">${esc(ev.name)}</option>`;
-  });
+  (data||[]).forEach(ev => { sel.innerHTML += `<option value="${ev.id}">${esc(ev.name)}</option>`; });
 }
 
 async function lookupBonusPlayer() {
-  const phone = document.getElementById('bonus-phone').value.replace(/\D/g, '');
+  const phone = document.getElementById('bonus-phone').value.replace(/\D/g,'');
   if (!phone) return;
   const { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone).single();
   const info = document.getElementById('bonus-player-info');
-  if (!profile) { info.style.display = 'block'; info.innerHTML = '<p style="color:var(--red);font-size:13px">Player not found.</p>'; bonusPlayerId = null; return; }
-  
-  // Get their score at this bar
+  if (!profile) { info.style.display='block'; info.innerHTML='<p style="color:var(--red);font-size:13px">Player not found.</p>'; bonusPlayerId=null; return; }
   const { data: barScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
   bonusPlayerId = profile.id;
   info.style.display = 'block';
-  info.innerHTML = `<p style="font-size:14px"><strong>${esc(profile.name)}</strong> · ${barScore?.total_points || 0} pts at this bar</p>`;
+  info.innerHTML = `<p style="font-size:14px"><strong>${esc(profile.name)}</strong> · ${barScore?.total_points||0} pts at this bar</p>`;
 }
 
 async function awardBonus() {
-  if (!bonusPlayerId) { showMsg('bonus-msg', 'Look up a player first.', 'error'); return; }
+  if (!bonusPlayerId) { showMsg('bonus-msg','Look up a player first.','error'); return; }
   const pts = parseInt(document.getElementById('bonus-pts').value);
-  if (!pts || pts <= 0) { showMsg('bonus-msg', 'Enter a valid points amount.', 'error'); return; }
-  const reason = document.getElementById('bonus-reason').value.trim() || null;
-  const eventId = document.getElementById('bonus-event').value || null;
-
-  const { error } = await sb.from('bonus_points').insert({ player_id: bonusPlayerId, points: pts, reason, event_id: eventId, bar_id: currentBar.id });
-  if (error) { showMsg('bonus-msg', 'Error awarding points.', 'error'); return; }
-
-  // Update bar score
+  if (!pts||pts<=0) { showMsg('bonus-msg','Enter a valid points amount.','error'); return; }
+  const reason = document.getElementById('bonus-reason').value.trim()||null;
+  const eventId = document.getElementById('bonus-event').value||null;
+  const { error } = await sb.from('bonus_points').insert({ player_id:bonusPlayerId, points:pts, reason, event_id:eventId, bar_id:currentBar.id });
+  if (error) { showMsg('bonus-msg','Error awarding points.','error'); return; }
   const { data: barScore } = await sb.from('player_bar_scores').select('total_points, id').eq('player_id', bonusPlayerId).eq('bar_id', currentBar.id).single();
   if (barScore) {
-    await sb.from('player_bar_scores').update({ total_points: (barScore.total_points || 0) + pts }).eq('id', barScore.id);
+    await sb.from('player_bar_scores').update({ total_points:(barScore.total_points||0)+pts }).eq('id', barScore.id);
   } else {
-    await sb.from('player_bar_scores').insert({ player_id: bonusPlayerId, bar_id: currentBar.id, total_points: pts });
+    await sb.from('player_bar_scores').insert({ player_id:bonusPlayerId, bar_id:currentBar.id, total_points:pts });
   }
-
-  showMsg('bonus-msg', `${pts} bonus points awarded!`, 'success');
-  document.getElementById('bonus-pts').value = '';
-  document.getElementById('bonus-reason').value = '';
-  bonusPlayerId = null;
-  document.getElementById('bonus-player-info').style.display = 'none';
-  document.getElementById('bonus-phone').value = '';
+  showMsg('bonus-msg',`${pts} bonus points awarded!`,'success');
+  document.getElementById('bonus-pts').value='';
+  document.getElementById('bonus-reason').value='';
+  bonusPlayerId=null;
+  document.getElementById('bonus-player-info').style.display='none';
+  document.getElementById('bonus-phone').value='';
 }
 
 // --- Activity Stats ---
 async function loadActivityStats() {
   const { data: checkins } = await sb.from('checkins').select('event_id, events(name, type)').eq('bar_id', currentBar.id);
-  document.getElementById('activity-loading').style.display = 'none';
-
-  if (!checkins?.length) {
-    document.getElementById('activity-stats').innerHTML = '<p style="color:var(--text-muted);padding:1rem 0;font-size:14px">No check-ins yet.</p>';
-    return;
-  }
-
-  const counts = {};
-  const names = {};
-  const types = {};
-  checkins.forEach(c => {
-    const id = c.event_id;
-    counts[id] = (counts[id] || 0) + 1;
-    names[id] = c.events?.name || 'Unknown';
-    types[id] = c.events?.type || 'other';
-  });
-
-  const typeIcons = { darts:'🎯', pool:'🎱', trivia:'🧠', bingo:'🎰', live_music:'🎵', blackjack:'🃏', other:'⭐' };
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  const max = sorted[0][1];
-
-  const html = sorted.map(([id, count], i) => `
-    <div style="padding:0.75rem 0;border-bottom:1px solid var(--border);">
+  document.getElementById('activity-loading').style.display='none';
+  if (!checkins?.length) { document.getElementById('activity-stats').innerHTML='<p style="color:var(--text-muted);padding:1rem 0;font-size:14px">No check-ins yet.</p>'; return; }
+  const counts={}, names={}, types={};
+  checkins.forEach(c=>{ counts[c.event_id]=(counts[c.event_id]||0)+1; names[c.event_id]=c.events?.name||'Unknown'; types[c.event_id]=c.events?.type||'other'; });
+  const typeIcons={ darts:'🎯', pool:'🎱', trivia:'🧠', bingo:'🎰', live_music:'🎵', blackjack:'🃏', other:'⭐' };
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const max=sorted[0][1];
+  document.getElementById('activity-stats').innerHTML=`<div style="padding:0 0 0.5rem">${sorted.map(([id,count])=>`
+    <div style="padding:0.75rem 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <span style="font-size:18px">${typeIcons[types[id]] || '⭐'}</span>
+        <span style="font-size:18px">${typeIcons[types[id]]||'⭐'}</span>
         <span style="font-size:14px;font-weight:500;flex:1">${esc(names[id])}</span>
         <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold)">${count}</span>
-        <span style="font-size:11px;color:var(--text-muted)">check-in${count !== 1 ? 's' : ''}</span>
       </div>
       <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${Math.round((count/max)*100)}%;background:var(--gold);border-radius:3px;transition:width 0.4s"></div>
+        <div style="height:100%;width:${Math.round((count/max)*100)}%;background:var(--gold);border-radius:3px"></div>
       </div>
-    </div>`).join('');
-
-  document.getElementById('activity-stats').innerHTML = `<div style="padding:0 0 0.5rem">${html}</div>`;
+    </div>`).join('')}</div>`;
 }
 
 // --- Players ---
 async function loadPlayers() {
-  const { data: scores } = await sb.from('player_bar_scores').select('*, player_profiles(id, name, phone, created_at)').eq('bar_id', currentBar.id).order('total_points', { ascending: false });
+  const { data: scores } = await sb.from('player_bar_scores').select('*, player_profiles(id, name, phone, created_at)').eq('bar_id', currentBar.id).order('total_points', { ascending:false });
   const { data: checkins } = await sb.from('checkins').select('player_id').eq('bar_id', currentBar.id);
-  const countMap = {};
-  (checkins || []).forEach(c => { countMap[c.player_id] = (countMap[c.player_id] || 0) + 1; });
-
-  document.getElementById('players-loading').style.display = 'none';
-
-  const tableEl = document.getElementById('players-table');
-  tableEl.querySelector('thead tr').innerHTML = `
-    <th>#</th><th>Name</th><th>Phone</th>
-    <th style="text-align:right">Total pts</th>
-    <th style="text-align:right">Check-ins</th>
-    <th>Joined</th>
-    <th style="text-align:right">Actions</th>`;
-
-  const tbody = document.getElementById('players-tbody');
-  tbody.innerHTML = (scores || []).map((s, i) => {
-    const p = s.player_profiles;
-    if (!p) return '';
+  const countMap={};
+  (checkins||[]).forEach(c=>{ countMap[c.player_id]=(countMap[c.player_id]||0)+1; });
+  document.getElementById('players-loading').style.display='none';
+  const tableEl=document.getElementById('players-table');
+  tableEl.querySelector('thead tr').innerHTML=`<th>#</th><th>Name</th><th>Phone</th><th style="text-align:right">Total pts</th><th style="text-align:right">Check-ins</th><th>Joined</th><th style="text-align:right">Actions</th>`;
+  document.getElementById('players-tbody').innerHTML=(scores||[]).map((s,i)=>{
+    const p=s.player_profiles; if(!p) return '';
     return `<tr>
-      <td style="color:var(--text-muted)">${i + 1}</td>
+      <td style="color:var(--text-muted)">${i+1}</td>
       <td style="font-weight:500">${esc(p.name)}</td>
       <td style="color:var(--text-muted)">${p.phone}</td>
       <td style="text-align:right;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:18px">${s.total_points}</td>
-      <td style="text-align:right">${countMap[p.id] || 0}</td>
+      <td style="text-align:right">${countMap[p.id]||0}</td>
       <td style="color:var(--text-muted)">${new Date(p.created_at).toLocaleDateString('en-US')}</td>
       <td style="text-align:right;white-space:nowrap">
-        <button class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 8px;color:var(--text-muted)" onclick="resetPlayerScans('${p.id}','${esc(p.name)}')">Reset scans</button>
+        <button class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 8px;color:var(--text-muted)" onclick="resetPlayerScans('${p.id}','${esc(p.name)}')">Reset</button>
         <button class="btn btn-outline btn-sm" style="font-size:11px;padding:3px 8px;color:var(--red);border-color:rgba(245,101,101,0.3);margin-left:4px" onclick="deletePlayerFromBar('${p.id}','${esc(p.name)}')">Remove</button>
-      </td>
-    </tr>`;
+      </td></tr>`;
   }).join('');
-  tableEl.style.display = 'table';
+  tableEl.style.display='table';
 }
 
 async function resetPlayerScans(playerId, name) {
   if (!confirm(`Reset all check-ins for ${name} at this bar?`)) return;
   await sb.from('checkins').delete().eq('player_id', playerId).eq('bar_id', currentBar.id);
   await sb.from('bonus_points').delete().eq('player_id', playerId).eq('bar_id', currentBar.id);
-  await sb.from('player_bar_scores').update({ total_points: 0 }).eq('player_id', playerId).eq('bar_id', currentBar.id);
-  showMsg('players-loading', `${name}'s scans cleared.`, 'success');
+  await sb.from('player_bar_scores').update({ total_points:0 }).eq('player_id', playerId).eq('bar_id', currentBar.id);
   loadPlayers();
 }
 
 async function deletePlayerFromBar(playerId, name) {
-  if (!confirm(`Remove ${name} from this bar? Their profile at other bars will remain.`)) return;
+  if (!confirm(`Remove ${name} from this bar?`)) return;
   await sb.from('checkins').delete().eq('player_id', playerId).eq('bar_id', currentBar.id);
   await sb.from('bonus_points').delete().eq('player_id', playerId).eq('bar_id', currentBar.id);
   await sb.from('player_bar_scores').delete().eq('player_id', playerId).eq('bar_id', currentBar.id);
   loadPlayers();
 }
 
-// --- Stats Dashboard ---
+// --- Stats ---
 let statsDays = 7;
-
 function setStatsPeriod(days, btn) {
-  statsDays = days;
-  document.querySelectorAll('#tab-stats .period-btn').forEach(b => b.classList.remove('active'));
+  statsDays=days;
+  document.querySelectorAll('#tab-stats .period-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   loadStats();
 }
 
 async function loadStats() {
-  const since = statsDays > 0
-    ? new Date(Date.now() - statsDays * 86400000).toISOString()
-    : null;
-
-  let cq = sb.from('checkins').select('player_id, scanned_at, event_id, events(name, type)');
-  if (since) cq = cq.gte('scanned_at', since);
+  const since=statsDays>0 ? new Date(Date.now()-statsDays*86400000).toISOString() : null;
+  let cq=sb.from('checkins').select('player_id, scanned_at, event_id, events(name, type)').eq('bar_id', currentBar.id);
+  if (since) cq=cq.gte('scanned_at', since);
   const { data: checkins } = await cq;
-
   const { data: allPlayers } = await sb.from('player_profiles').select('id, created_at');
-
-  const ci = checkins || [];
-  const players = allPlayers || [];
-
-  // --- Key metrics ---
-  const uniquePlayerIds = [...new Set(ci.map(c => c.player_id))];
-  const totalCheckins = ci.length;
-  const avgPerPlayer = uniquePlayerIds.length > 0
-    ? (totalCheckins / uniquePlayerIds.length).toFixed(1)
-    : 0;
-
-  // Return rate: players who checked in more than once (in period)
-  const perPlayer = {};
-  ci.forEach(c => { perPlayer[c.player_id] = (perPlayer[c.player_id] || 0) + 1; });
-  const returners = Object.values(perPlayer).filter(v => v > 1).length;
-  const returnRate = uniquePlayerIds.length > 0
-    ? Math.round((returners / uniquePlayerIds.length) * 100)
-    : 0;
-
-  document.getElementById('stats-metrics').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-card-val">${uniquePlayerIds.length}</div>
-      <div class="stat-card-label">unique players</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card-val">${totalCheckins}</div>
-      <div class="stat-card-label">total check-ins</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card-val">${avgPerPlayer}</div>
-      <div class="stat-card-label">scans per player</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card-val">${returnRate}%</div>
-      <div class="stat-card-label">return rate</div>
-    </div>`;
-
-  // Return rate card
-  const retCard = document.getElementById('stats-return-card');
-  retCard.style.display = 'block';
-  document.getElementById('stats-return-val').textContent = returnRate + '%';
-  document.getElementById('stats-return-desc').textContent =
-    returnRate === 0
-      ? 'No return visits yet — early days.'
-      : `${returners} of ${uniquePlayerIds.length} players came back more than once${statsDays > 0 ? ` in the last ${statsDays} days` : ''}.`;
-
-  // --- Busiest days ---
-  const dayCounts = {};
-  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  ci.forEach(c => {
-    const day = dayNames[new Date(c.scanned_at).getDay()];
-    dayCounts[day] = (dayCounts[day] || 0) + 1;
-  });
-  const daysSorted = Object.entries(dayCounts).sort((a, b) => b[1] - a[1]);
-  const maxDay = daysSorted[0]?.[1] || 1;
-  document.getElementById('stats-days-loading').style.display = 'none';
-  document.getElementById('stats-days').innerHTML = daysSorted.length
-    ? daysSorted.map(([day, count]) => `
-        <div style="padding:0.6rem 0;border-bottom:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-            <span style="font-size:13px;font-weight:500">${day}</span>
-            <span style="font-size:13px;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:18px">${count}</span>
-          </div>
-          <div style="height:5px;background:var(--bg3);border-radius:3px">
-            <div style="height:100%;width:${Math.round((count/maxDay)*100)}%;background:var(--gold);border-radius:3px"></div>
-          </div>
-        </div>`).join('')
-    : '<p style="color:var(--text-muted);font-size:14px">No data yet.</p>';
-
-  // --- Activity breakdown ---
-  const actCounts = {};
-  const actNames = {};
-  const actTypes = {};
-  ci.forEach(c => {
-    const id = c.event_id;
-    actCounts[id] = (actCounts[id] || 0) + 1;
-    actNames[id] = c.events?.name || 'Unknown';
-    actTypes[id] = c.events?.type || 'other';
-  });
-  const actSorted = Object.entries(actCounts).sort((a, b) => b[1] - a[1]);
-  const maxAct = actSorted[0]?.[1] || 1;
-  const typeIcons = { darts:'🎯', pool:'🎱', trivia:'🧠', bingo:'🎰', live_music:'🎵', blackjack:'🃏', other:'⭐' };
-  const totalAct = Object.values(actCounts).reduce((a,b) => a+b, 0);
-  document.getElementById('stats-activity-loading').style.display = 'none';
-  document.getElementById('stats-activity').innerHTML = actSorted.length
-    ? actSorted.map(([id, count]) => `
-        <div style="padding:0.6rem 0;border-bottom:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-            <span style="font-size:16px">${typeIcons[actTypes[id]]||'⭐'}</span>
-            <span style="font-size:13px;font-weight:500;flex:1">${esc(actNames[id])}</span>
-            <span style="font-size:13px;color:var(--text-muted)">${Math.round((count/totalAct)*100)}%</span>
-            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)">${count}</span>
-          </div>
-          <div style="height:5px;background:var(--bg3);border-radius:3px">
-            <div style="height:100%;width:${Math.round((count/maxAct)*100)}%;background:var(--gold);border-radius:3px"></div>
-          </div>
-        </div>`).join('')
-    : '<p style="color:var(--text-muted);font-size:14px">No check-ins yet.</p>';
-
-  // --- New vs returning ---
-  const periodStart = since ? new Date(since) : new Date(0);
-  const newInPeriod = players.filter(p => new Date(p.created_at) >= periodStart).length;
-  const returningInPeriod = uniquePlayerIds.length - newInPeriod;
-  const retPct = uniquePlayerIds.length > 0 ? Math.round((Math.max(0,returningInPeriod) / uniquePlayerIds.length) * 100) : 0;
-  const newPct = 100 - retPct;
-  document.getElementById('stats-newret-loading').style.display = 'none';
-  document.getElementById('stats-newret').innerHTML = uniquePlayerIds.length ? `
+  const ci=checkins||[], players=allPlayers||[];
+  const uniquePlayerIds=[...new Set(ci.map(c=>c.player_id))];
+  const totalCheckins=ci.length;
+  const avgPerPlayer=uniquePlayerIds.length>0 ? (totalCheckins/uniquePlayerIds.length).toFixed(1) : 0;
+  const perPlayer={};
+  ci.forEach(c=>{ perPlayer[c.player_id]=(perPlayer[c.player_id]||0)+1; });
+  const returners=Object.values(perPlayer).filter(v=>v>1).length;
+  const returnRate=uniquePlayerIds.length>0 ? Math.round((returners/uniquePlayerIds.length)*100) : 0;
+  document.getElementById('stats-metrics').innerHTML=`
+    <div class="stat-card"><div class="stat-card-val">${uniquePlayerIds.length}</div><div class="stat-card-label">unique players</div></div>
+    <div class="stat-card"><div class="stat-card-val">${totalCheckins}</div><div class="stat-card-label">total check-ins</div></div>
+    <div class="stat-card"><div class="stat-card-val">${avgPerPlayer}</div><div class="stat-card-label">scans per player</div></div>
+    <div class="stat-card"><div class="stat-card-val">${returnRate}%</div><div class="stat-card-label">return rate</div></div>`;
+  const retCard=document.getElementById('stats-return-card'); retCard.style.display='block';
+  document.getElementById('stats-return-val').textContent=returnRate+'%';
+  document.getElementById('stats-return-desc').textContent=returnRate===0?'No return visits yet.':`${returners} of ${uniquePlayerIds.length} players came back more than once.`;
+  const dayCounts={};
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  ci.forEach(c=>{ const day=dayNames[new Date(c.scanned_at).getDay()]; dayCounts[day]=(dayCounts[day]||0)+1; });
+  const daysSorted=Object.entries(dayCounts).sort((a,b)=>b[1]-a[1]);
+  const maxDay=daysSorted[0]?.[1]||1;
+  document.getElementById('stats-days-loading').style.display='none';
+  document.getElementById('stats-days').innerHTML=daysSorted.length ? daysSorted.map(([day,count])=>`
+    <div style="padding:0.6rem 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:13px;font-weight:500">${day}</span><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)">${count}</span></div>
+      <div style="height:5px;background:var(--bg3);border-radius:3px"><div style="height:100%;width:${Math.round((count/maxDay)*100)}%;background:var(--gold);border-radius:3px"></div></div>
+    </div>`).join('') : '<p style="color:var(--text-muted);font-size:14px">No data yet.</p>';
+  const actCounts={}, actNames={}, actTypes={};
+  ci.forEach(c=>{ actCounts[c.event_id]=(actCounts[c.event_id]||0)+1; actNames[c.event_id]=c.events?.name||'Unknown'; actTypes[c.event_id]=c.events?.type||'other'; });
+  const actSorted=Object.entries(actCounts).sort((a,b)=>b[1]-a[1]);
+  const maxAct=actSorted[0]?.[1]||1;
+  const typeIcons={ darts:'🎯', pool:'🎱', trivia:'🧠', bingo:'🎰', live_music:'🎵', blackjack:'🃏', other:'⭐' };
+  const totalAct=Object.values(actCounts).reduce((a,b)=>a+b,0);
+  document.getElementById('stats-activity-loading').style.display='none';
+  document.getElementById('stats-activity').innerHTML=actSorted.length ? actSorted.map(([id,count])=>`
+    <div style="padding:0.6rem 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <span style="font-size:16px">${typeIcons[actTypes[id]]||'⭐'}</span>
+        <span style="font-size:13px;font-weight:500;flex:1">${esc(actNames[id])}</span>
+        <span style="font-size:13px;color:var(--text-muted)">${Math.round((count/totalAct)*100)}%</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)">${count}</span>
+      </div>
+      <div style="height:5px;background:var(--bg3);border-radius:3px"><div style="height:100%;width:${Math.round((count/maxAct)*100)}%;background:var(--gold);border-radius:3px"></div></div>
+    </div>`).join('') : '<p style="color:var(--text-muted);font-size:14px">No check-ins yet.</p>';
+  const periodStart=since?new Date(since):new Date(0);
+  const newInPeriod=players.filter(p=>new Date(p.created_at)>=periodStart).length;
+  const returningInPeriod=uniquePlayerIds.length-newInPeriod;
+  const retPct=uniquePlayerIds.length>0?Math.round((Math.max(0,returningInPeriod)/uniquePlayerIds.length)*100):0;
+  const newPct=100-retPct;
+  document.getElementById('stats-newret-loading').style.display='none';
+  document.getElementById('stats-newret').innerHTML=uniquePlayerIds.length?`
     <div style="display:flex;gap:1rem;margin-bottom:0.75rem">
-      <div style="flex:1;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--green)">${Math.max(0,newInPeriod)}</div>
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">new players</div>
-      </div>
-      <div style="flex:1;text-align:center">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold)">${Math.max(0,returningInPeriod)}</div>
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">returning</div>
-      </div>
+      <div style="flex:1;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--green)">${Math.max(0,newInPeriod)}</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase">new players</div></div>
+      <div style="flex:1;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold)">${Math.max(0,returningInPeriod)}</div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase">returning</div></div>
     </div>
     <div style="height:10px;border-radius:5px;overflow:hidden;display:flex">
-      <div style="width:${newPct}%;background:var(--green);transition:width 0.4s"></div>
-      <div style="width:${retPct}%;background:var(--gold);transition:width 0.4s"></div>
+      <div style="width:${newPct}%;background:var(--green)"></div>
+      <div style="width:${retPct}%;background:var(--gold)"></div>
     </div>
     <div style="display:flex;justify-content:space-between;margin-top:6px">
       <span style="font-size:11px;color:var(--text-muted)">${newPct}% new</span>
@@ -672,266 +520,136 @@ async function loadStats() {
 
 // --- Hunt Submissions ---
 async function loadHuntSubmissions() {
-  document.getElementById('hunt-loading').style.display = 'block';
-  document.getElementById('hunt-list').innerHTML = '';
-
-  const { data } = await sb.from('hunt_submissions')
-    .select('*, players(name, phone)')
-    .order('created_at', { ascending: false });
-
-  document.getElementById('hunt-loading').style.display = 'none';
-
-  if (!data?.length) {
-    document.getElementById('hunt-list').innerHTML = '<p style="color:var(--text-muted);font-size:14px;padding:1rem 0">No submissions yet.</p>';
-    return;
-  }
-
-  const statusColors = { pending:'var(--gold)', approved:'var(--green)', rejected:'var(--red)' };
-
-  document.getElementById('hunt-list').innerHTML = data.map(s => `
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-        <div>
-          <div style="font-weight:600;font-size:14px">${esc(s.players?.name||'Unknown')}</div>
-          <div style="font-size:12px;color:var(--text-muted)">${s.players?.phone||''} · ${new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
-        </div>
-        <span style="font-size:11px;font-weight:700;color:${statusColors[s.status]||'var(--gold)'};text-transform:uppercase;background:var(--bg3);padding:3px 10px;border-radius:999px">${s.status}</span>
-      </div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;font-style:italic">"${esc(s.clue_text)}"</div>
-      ${s.photo_data ? `<img src="${s.photo_data}" style="width:100%;border-radius:8px;margin-bottom:0.75rem;max-height:300px;object-fit:cover"/>` : '<p style="color:var(--text-muted);font-size:13px;margin-bottom:0.75rem">No photo attached</p>'}
-      ${s.status === 'pending' ? `
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-outline btn-sm" style="color:var(--green);border-color:rgba(62,207,142,0.3);flex:1" onclick="reviewHunt('${s.id}','approved','${s.players?.id}')">✅ Approve (+20 pts)</button>
-        <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:rgba(245,101,101,0.3);flex:1" onclick="reviewHunt('${s.id}','rejected','${s.players?.id}')">❌ Reject</button>
-      </div>` : ''}
-    </div>`).join('');
-}
-
-async function reviewHunt(submissionId, status, playerId) {
-  await sb.from('hunt_submissions').update({ status }).eq('id', submissionId);
-
-  if (status === 'approved' && playerId) {
-    const { data: barScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', playerId).eq('bar_id', currentBar.id).single();
-    if (barScore) {
-      await sb.from('player_bar_scores').update({ total_points: (barScore.total_points||0) + 20 }).eq('player_id', playerId).eq('bar_id', currentBar.id);
-    } else {
-      await sb.from('player_bar_scores').insert({ player_id: playerId, bar_id: currentBar.id, total_points: 20 });
-    }
-    await sb.from('bonus_points').insert({ player_id: playerId, points: 20, reason: 'Scavenger hunt verified ✓', bar_id: currentBar.id });
-  }
-
-  loadHuntSubmissions();
-}
-
-// --- Hunt Submissions ---
-async function loadHuntSubmissions() {
-  document.getElementById('hunt-loading').style.display = 'block';
-  document.getElementById('hunt-list').innerHTML = '';
-
-  // Get today's clue day
-  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-
+  document.getElementById('hunt-loading').style.display='block';
+  document.getElementById('hunt-list').innerHTML='';
+  const dayOfYear=Math.floor((new Date()-new Date(new Date().getFullYear(),0,0))/86400000);
   const { data } = await sb.from('hunt_submissions')
     .select('*, player_profiles(id, name, phone)')
     .eq('clue_day', dayOfYear)
-    .order('created_at', { ascending: false });
-
-  document.getElementById('hunt-loading').style.display = 'none';
-
-  const approvedCount = (data||[]).filter(s => s.status === 'approved').length;
-  const MAX_WINNERS = 3;
-  const spotsLeft = MAX_WINNERS - approvedCount;
-
-  // Status bar
-  const statusBar = `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem">
+    .eq('bar_id', currentBar.id)
+    .order('created_at', { ascending:false });
+  document.getElementById('hunt-loading').style.display='none';
+  const approvedCount=(data||[]).filter(s=>s.status==='approved').length;
+  const MAX_WINNERS=3, spotsLeft=MAX_WINNERS-approvedCount;
+  const statusBar=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem">
     <span style="font-size:13px;color:var(--text-muted)">Winners awarded today</span>
-    <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${spotsLeft > 0 ? 'var(--gold)' : 'var(--green)'}">${approvedCount} / ${MAX_WINNERS}</span>
-  </div>
-  ${spotsLeft <= 0 ? '<div style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:13px;color:var(--green)">✅ Hunt is closed for tonight — 3 winners found. New clue tomorrow.</div>' : ''}`;
-
-  if (!data?.length) {
-    document.getElementById('hunt-list').innerHTML = statusBar + '<p style="color:var(--text-muted);font-size:14px">No submissions yet today.</p>';
-    return;
-  }
-
-  const list = document.getElementById('hunt-list');
-  list.innerHTML = statusBar + data.map(s => {
-    const statusColor = s.status === 'approved' ? 'var(--green)' : s.status === 'rejected' ? 'var(--red)' : 'var(--gold)';
-    const statusLabel = s.status === 'approved' ? '✅ Approved' : s.status === 'rejected' ? '❌ Rejected' : '⏳ Pending';
-    const date = new Date(s.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const canApprove = s.status === 'pending' && spotsLeft > 0;
+    <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${spotsLeft>0?'var(--gold)':'var(--green)'}">${approvedCount} / ${MAX_WINNERS}</span>
+  </div>${spotsLeft<=0?'<div style="background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:13px;color:var(--green)">✅ Hunt closed tonight — 3 winners found.</div>':''}`;
+  if (!data?.length) { document.getElementById('hunt-list').innerHTML=statusBar+'<p style="color:var(--text-muted);font-size:14px">No submissions yet today.</p>'; return; }
+  document.getElementById('hunt-list').innerHTML=statusBar+data.map(s=>{
+    const sc=s.status==='approved'?'var(--green)':s.status==='rejected'?'var(--red)':'var(--gold)';
+    const sl=s.status==='approved'?'✅ Approved':s.status==='rejected'?'❌ Rejected':'⏳ Pending';
+    const dt=new Date(s.created_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    const canApprove=s.status==='pending'&&spotsLeft>0;
     return `<div class="card" style="margin-bottom:1rem">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem">
         <div>
-          <div style="font-weight:600;font-size:15px">${esc(s.player_profiles?.name || '?')}</div>
-          <div style="font-size:12px;color:var(--text-muted)">${s.player_profiles?.phone || ''} · ${date}</div>
-          <div style="font-size:12px;color:var(--gold);margin-top:3px">🔍 ${esc(s.clue_text || '')}</div>
+          <div style="font-weight:600;font-size:15px">${esc(s.player_profiles?.name||'?')}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${s.player_profiles?.phone||''} · ${dt}</div>
+          <div style="font-size:12px;color:var(--gold);margin-top:3px">🔍 ${esc(s.clue_text||'')}</div>
         </div>
-        <span style="font-size:12px;font-weight:600;color:${statusColor}">${statusLabel}</span>
+        <span style="font-size:12px;font-weight:600;color:${sc}">${sl}</span>
       </div>
-      ${s.photo_data ? `<img src="${s.photo_data}" style="width:100%;border-radius:8px;margin-bottom:0.75rem;max-height:280px;object-fit:cover"/>` : '<p style="color:var(--text-muted);font-size:13px;margin-bottom:0.75rem">No photo attached</p>'}
-      ${s.status === 'pending' ? `
-      <div style="display:flex;gap:8px">
-        ${canApprove
-          ? `<button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:rgba(62,207,142,0.3)" onclick="approveHunt('${s.id}','${s.player_profiles?.id}','${esc(s.player_profiles?.name||'')}')">✅ Approve & award 20pts</button>`
-          : `<button class="btn btn-outline btn-sm" style="flex:1;opacity:0.4;cursor:not-allowed" disabled>Max winners reached</button>`
-        }
+      ${s.photo_data?`<img src="${s.photo_data}" style="width:100%;border-radius:8px;margin-bottom:0.75rem;max-height:280px;object-fit:cover"/>`:'<p style="color:var(--text-muted);font-size:13px;margin-bottom:0.75rem">No photo</p>'}
+      ${s.status==='pending'?`<div style="display:flex;gap:8px">
+        ${canApprove?`<button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:rgba(62,207,142,0.3)" onclick="approveHunt('${s.id}','${s.player_profiles?.id}','${esc(s.player_profiles?.name||'')}')">✅ Approve +20pts</button>`:`<button class="btn btn-outline btn-sm" style="flex:1;opacity:0.4;cursor:not-allowed" disabled>Max winners reached</button>`}
         <button class="btn btn-outline btn-sm" style="flex:1;color:var(--red);border-color:rgba(245,101,101,0.3)" onclick="rejectHunt('${s.id}')">❌ Reject</button>
-      </div>` : ''}
+      </div>`:''}
     </div>`;
   }).join('');
 }
 
 async function approveHunt(submissionId, playerId, playerName) {
-  if (!confirm(`Award 20 points to ${playerName} for this submission?`)) return;
-  await sb.from('hunt_submissions').update({ status: 'approved' }).eq('id', submissionId);
-  const { data: barScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', playerId).eq('bar_id', currentBar.id).single();
-  if (barScore) {
-    await sb.from('player_bar_scores').update({ total_points: (barScore.total_points||0) + 20 }).eq('player_id', playerId).eq('bar_id', currentBar.id);
-  } else {
-    await sb.from('player_bar_scores').insert({ player_id: playerId, bar_id: currentBar.id, total_points: 20 });
-  }
-  await sb.from('bonus_points').insert({ player_id: playerId, points: 20, reason: 'Scavenger hunt — photo verified', bar_id: currentBar.id });
+  if (!confirm(`Award 20 points to ${playerName}?`)) return;
+  await sb.from('hunt_submissions').update({ status:'approved' }).eq('id', submissionId);
+  const { data: bs } = await sb.from('player_bar_scores').select('total_points').eq('player_id', playerId).eq('bar_id', currentBar.id).single();
+  if (bs) { await sb.from('player_bar_scores').update({ total_points:(bs.total_points||0)+20 }).eq('player_id', playerId).eq('bar_id', currentBar.id); }
+  else { await sb.from('player_bar_scores').insert({ player_id:playerId, bar_id:currentBar.id, total_points:20 }); }
+  await sb.from('bonus_points').insert({ player_id:playerId, points:20, reason:'Scavenger hunt verified', bar_id:currentBar.id });
   loadHuntSubmissions();
 }
 
 async function rejectHunt(submissionId) {
-  if (!confirm('Reject this submission? The player will be notified.')) return;
-  await sb.from('hunt_submissions').update({ status: 'rejected' }).eq('id', submissionId);
+  if (!confirm('Reject this submission?')) return;
+  await sb.from('hunt_submissions').update({ status:'rejected' }).eq('id', submissionId);
   loadHuntSubmissions();
 }
 
-// --- Season Management ---
+// --- Season ---
 async function loadSeasonTab() {
-  // Load current season stats
-  const { data: scores } = await sb.from('player_bar_scores')
-    .select('total_points, player_id, player_profiles(name)')
-    .eq('bar_id', currentBar.id)
-    .order('total_points', { ascending: false });
-
-  const { data: checkins } = await sb.from('checkins')
-    .select('id').eq('bar_id', currentBar.id).eq('pending', false);
-
-  const top = (scores || []).filter(s => s.total_points > 0);
-  const statsEl = document.getElementById('current-season-stats');
-
-  if (!top.length) {
-    statsEl.innerHTML = '<p>No scores yet this season.</p>';
-  } else {
-    statsEl.innerHTML = `
+  const { data: scores } = await sb.from('player_bar_scores').select('total_points, player_id, player_profiles(name)').eq('bar_id', currentBar.id).order('total_points', { ascending:false });
+  const { data: checkins } = await sb.from('checkins').select('id').eq('bar_id', currentBar.id).eq('pending', false);
+  const top=(scores||[]).filter(s=>s.total_points>0);
+  const statsEl=document.getElementById('current-season-stats');
+  if (!top.length) { statsEl.innerHTML='<p>No scores yet this season.</p>'; }
+  else {
+    statsEl.innerHTML=`
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
         <div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)">${top.length}</div><div style="font-size:12px;color:var(--text-muted)">Players on board</div></div>
         <div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)">${(checkins||[]).length}</div><div style="font-size:12px;color:var(--text-muted)">Total check-ins</div></div>
       </div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.5rem">Current top 3:</div>
-      ${top.slice(0,3).map((s,i) => `
+      ${top.slice(0,3).map((s,i)=>`
         <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
           <span style="font-size:16px">${['🥇','🥈','🥉'][i]}</span>
-          <span style="flex:1;font-weight:500">${esc(s.player_profiles?.name || '?')}</span>
+          <span style="flex:1;font-weight:500">${esc(s.player_profiles?.name||'?')}</span>
           <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold)">${s.total_points}</span>
         </div>`).join('')}`;
   }
-
-  // Load past seasons
   await loadPastSeasons();
 }
 
 async function loadPastSeasons() {
-  const { data: seasons } = await sb.from('season_archives')
-    .select('*').eq('bar_id', currentBar.id)
-    .order('ended_at', { ascending: false });
-
-  document.getElementById('seasons-loading').style.display = 'none';
-  const list = document.getElementById('seasons-list');
-
-  if (!seasons?.length) {
-    list.innerHTML = '<p style="color:var(--text-muted);font-size:14px">No past seasons yet.</p>';
-    return;
-  }
-
-  list.innerHTML = seasons.map(s => `
+  const { data: seasons } = await sb.from('season_archives').select('*').eq('bar_id', currentBar.id).order('ended_at', { ascending:false });
+  document.getElementById('seasons-loading').style.display='none';
+  const list=document.getElementById('seasons-list');
+  if (!seasons?.length) { list.innerHTML='<p style="color:var(--text-muted);font-size:14px">No past seasons yet.</p>'; return; }
+  list.innerHTML=seasons.map(s=>`
     <div class="card" style="margin-bottom:0.75rem">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
         <div style="font-weight:600">Season ${s.season_number}</div>
-        <div style="font-size:12px;color:var(--text-muted)">${new Date(s.ended_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${new Date(s.ended_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
       </div>
-      ${s.winner_name ? `
-      <div style="display:flex;gap:10px;margin-bottom:0.5rem">
-        <span style="font-size:16px">🥇</span>
-        <span style="flex:1;font-weight:500">${esc(s.winner_name)}</span>
-        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)">${s.winner_points} pts</span>
-      </div>` : ''}
-      ${s.second_name ? `
-      <div style="display:flex;gap:10px;margin-bottom:0.5rem">
-        <span style="font-size:16px">🥈</span>
-        <span style="flex:1;color:var(--text-muted)">${esc(s.second_name)}</span>
-        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text-muted)">${s.second_points} pts</span>
-      </div>` : ''}
-      ${s.third_name ? `
-      <div style="display:flex;gap:10px;margin-bottom:0.5rem">
-        <span style="font-size:16px">🥉</span>
-        <span style="flex:1;color:var(--text-muted)">${esc(s.third_name)}</span>
-        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text-muted)">${s.third_points} pts</span>
-      </div>` : ''}
-      <div style="font-size:12px;color:var(--text-muted);margin-top:0.5rem">${s.total_players} players · ${s.total_checkins} check-ins${s.notes ? ` · ${esc(s.notes)}` : ''}</div>
+      ${s.winner_name?`<div style="display:flex;gap:10px;margin-bottom:0.5rem"><span>🥇</span><span style="flex:1;font-weight:500">${esc(s.winner_name)}</span><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)">${s.winner_points} pts</span></div>`:''}
+      ${s.second_name?`<div style="display:flex;gap:10px;margin-bottom:0.5rem"><span>🥈</span><span style="flex:1;color:var(--text-muted)">${esc(s.second_name)}</span><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text-muted)">${s.second_points} pts</span></div>`:''}
+      ${s.third_name?`<div style="display:flex;gap:10px;margin-bottom:0.5rem"><span>🥉</span><span style="flex:1;color:var(--text-muted)">${esc(s.third_name)}</span><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text-muted)">${s.third_points} pts</span></div>`:''}
+      <div style="font-size:12px;color:var(--text-muted);margin-top:0.5rem">${s.total_players} players · ${s.total_checkins} check-ins${s.notes?` · ${esc(s.notes)}`:''}</div>
     </div>`).join('');
 }
 
 async function endSeason() {
-  if (!confirm('Archive this season and reset all scores to zero?\n\nPlayers keep their accounts but all points go back to 0. This cannot be undone.')) return;
-
-  // Get current top 3
-  const { data: scores } = await sb.from('player_bar_scores')
-    .select('total_points, player_id, player_profiles(name, phone)')
-    .eq('bar_id', currentBar.id)
-    .order('total_points', { ascending: false })
-    .limit(3);
-
+  if (!confirm('Archive this season and reset all scores to zero? This cannot be undone.')) return;
+  const { data: scores } = await sb.from('player_bar_scores').select('total_points, player_id, player_profiles(name, phone)').eq('bar_id', currentBar.id).order('total_points', { ascending:false }).limit(3);
   const { data: checkins } = await sb.from('checkins').select('id').eq('bar_id', currentBar.id).eq('pending', false);
   const { data: allScores } = await sb.from('player_bar_scores').select('id').eq('bar_id', currentBar.id).gt('total_points', 0);
-
-  // Get season number
-  const { data: pastSeasons } = await sb.from('season_archives').select('season_number').eq('bar_id', currentBar.id).order('season_number', { ascending: false }).limit(1);
-  const nextSeason = ((pastSeasons?.[0]?.season_number) || 0) + 1;
-
-  const top = scores || [];
-  const notes = document.getElementById('season-notes').value.trim() || null;
-
-  // Archive the season
+  const { data: pastSeasons } = await sb.from('season_archives').select('season_number').eq('bar_id', currentBar.id).order('season_number', { ascending:false }).limit(1);
+  const nextSeason=((pastSeasons?.[0]?.season_number)||0)+1;
+  const top=scores||[];
   await sb.from('season_archives').insert({
-    bar_id: currentBar.id,
-    season_number: nextSeason,
-    ended_at: new Date().toISOString(),
-    winner_name: top[0]?.player_profiles?.name || null,
-    winner_points: top[0]?.total_points || null,
-    winner_phone: top[0]?.player_profiles?.phone || null,
-    second_name: top[1]?.player_profiles?.name || null,
-    second_points: top[1]?.total_points || null,
-    third_name: top[2]?.player_profiles?.name || null,
-    third_points: top[2]?.total_points || null,
-    total_players: (allScores||[]).length,
-    total_checkins: (checkins||[]).length,
-    notes
+    bar_id:currentBar.id, season_number:nextSeason, ended_at:new Date().toISOString(),
+    winner_name:top[0]?.player_profiles?.name||null, winner_points:top[0]?.total_points||null, winner_phone:top[0]?.player_profiles?.phone||null,
+    second_name:top[1]?.player_profiles?.name||null, second_points:top[1]?.total_points||null,
+    third_name:top[2]?.player_profiles?.name||null, third_points:top[2]?.total_points||null,
+    total_players:(allScores||[]).length, total_checkins:(checkins||[]).length,
+    notes:document.getElementById('season-notes').value.trim()||null
   });
-
-  // Reset all scores at this bar
-  await sb.from('player_bar_scores').update({ total_points: 0 }).eq('bar_id', currentBar.id);
+  await sb.from('player_bar_scores').update({ total_points:0 }).eq('bar_id', currentBar.id);
   await sb.from('checkins').delete().eq('bar_id', currentBar.id);
   await sb.from('bonus_points').delete().eq('bar_id', currentBar.id);
-
-  alert(`Season ${nextSeason} archived! ${top[0]?.player_profiles?.name || 'No winner'} wins with ${top[0]?.total_points || 0} points. Scores reset to zero — new season started!`);
-  document.getElementById('season-notes').value = '';
+  alert(`Season ${nextSeason} archived! Scores reset.`);
+  document.getElementById('season-notes').value='';
   loadSeasonTab();
 }
 
 function showMsg(id, text, type) {
-  const el = document.getElementById(id);
-  el.textContent = text; el.className = `msg show msg-${type}`;
-  setTimeout(() => el.classList.remove('show'), 4000);
+  const el=document.getElementById(id);
+  if (!el) return;
+  el.textContent=text; el.className=`msg show msg-${type}`;
+  setTimeout(()=>el.classList.remove('show'), 4000);
 }
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');
 }
 </script>
 </body>
