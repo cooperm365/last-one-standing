@@ -810,127 +810,200 @@ async function loadChallengeTab() {
   }
   document.getElementById('challenge-no-player').style.display = 'none';
   document.getElementById('challenge-form').style.display = 'block';
-  await loadIncomingChallenges();
+  await renderAllChallenges();
   await loadPlayerList();
-
-  // Auto-refresh every 5 seconds so both players see challenge updates
   if (window._challengeRefresh) clearInterval(window._challengeRefresh);
-  window._challengeRefresh = setInterval(() => loadIncomingChallenges(), 5000);
+  window._challengeRefresh = setInterval(renderAllChallenges, 4000);
+}
+
+// Single function that renders ALL active challenges for current player
+async function renderAllChallenges() {
+  if (!currentPlayer) return;
+
+  // Fetch all active challenges involving current player
+  const { data: asChallenger } = await sb.from('challenges')
+    .select('*, challenged:challenged_id(id,name)')
+    .eq('challenger_id', currentPlayer.id)
+    .eq('bar_id', currentBar?.id || '')
+    .in('status', ['pending','accepted','reporting'])
+    .order('created_at', { ascending: false });
+
+  const { data: asChallenged } = await sb.from('challenges')
+    .select('*, challenger:challenger_id(id,name)')
+    .eq('challenged_id', currentPlayer.id)
+    .eq('bar_id', currentBar?.id || '')
+    .in('status', ['pending','accepted','reporting'])
+    .order('created_at', { ascending: false });
+
+  const incomingEl = document.getElementById('incoming-challenges');
+  const sentEl = document.getElementById('sent-challenges');
+
+  // ── CHALLENGES I RECEIVED ──
+  const incoming = asChallenged || [];
+  if (!incoming.length) {
+    incomingEl.style.display = 'none';
+  } else {
+    incomingEl.style.display = 'block';
+    incomingEl.innerHTML = incoming.map(c => {
+      if (c.status === 'pending') {
+        return `<div style="background:rgba(240,165,0,0.08);border:1px solid var(--gold-dim);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">⚔️ Incoming Challenge</div>
+          <div style="font-weight:600;margin-bottom:2px">${esc(c.challenger?.name||'?')} challenged you to ${GAME_LABELS[c.game]||c.game}</div>
+          ${c.message?`<div style="font-size:13px;color:var(--muted);font-style:italic;margin-bottom:8px">"${esc(c.message)}"</div>`:'<div style="margin-bottom:8px"></div>'}
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-gold btn-sm" onclick="acceptChallenge('${c.id}')">Accept ⚔️</button>
+            <button class="btn btn-outline btn-sm" onclick="declineChallenge('${c.id}')">Decline</button>
+          </div>
+        </div>`;
+      }
+      // accepted or reporting — show report buttons for challenged player
+      const myReport = c.challenged_reported;
+      const iReported = myReport !== null && myReport !== undefined;
+      const theyReported = c.challenger_reported !== null && c.challenger_reported !== undefined;
+      if (c.status === 'accepted') {
+        return `<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🤝 Challenge Accepted</div>
+          <div style="font-weight:600;margin-bottom:8px">vs ${esc(c.challenger?.name||'?')} · ${GAME_LABELS[c.game]||c.game}</div>
+          ${iReported
+            ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenger?.name||'them')} to confirm...</div>`
+            : theyReported
+            ? `<div style="font-size:13px;color:var(--gold);margin-bottom:8px">⚡ They already reported — your turn:</div>
+               <div style="display:flex;gap:8px">
+                 <button class="btn btn-green btn-sm" onclick="doReport('${c.id}','won','challenged')">I Won 🏆</button>
+                 <button class="btn btn-red btn-sm" onclick="doReport('${c.id}','lost','challenged')">I Lost</button>
+               </div>`
+            : `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Game done? Report the result:</div>
+               <div style="display:flex;gap:8px">
+                 <button class="btn btn-green btn-sm" onclick="doReport('${c.id}','won','challenged')">I Won 🏆</button>
+                 <button class="btn btn-red btn-sm" onclick="doReport('${c.id}','lost','challenged')">I Lost</button>
+               </div>`
+          }
+        </div>`;
+      }
+      if (c.status === 'reporting') {
+        return `<div style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--red);font-weight:700;margin-bottom:4px">⚠️ Disputed Result</div>
+          <div style="font-weight:600;margin-bottom:4px">vs ${esc(c.challenger?.name||'?')} · ${GAME_LABELS[c.game]||c.game}</div>
+          <div style="font-size:13px;color:var(--muted)">Both reported different winners. Ask staff to settle it.</div>
+        </div>`;
+      }
+      return '';
+    }).join('');
+  }
+
+  // ── CHALLENGES I SENT ──
+  const sent = (asChallenger || []).filter(c => c.status !== 'pending' || true); // show all
+  const activeSent = (asChallenger || []).filter(c => ['pending','accepted','reporting'].includes(c.status));
+
+  // If any accepted challenge exists, hide the success screen
+  const hasAccepted = activeSent.some(c => c.status === 'accepted' || c.status === 'reporting');
+  if (hasAccepted) {
+    document.getElementById('challenge-success').style.display = 'none';
+  }
+
+  if (!activeSent.length) {
+    sentEl.style.display = 'none';
+  } else {
+    sentEl.style.display = 'block';
+    sentEl.innerHTML = activeSent.map(c => {
+      if (c.status === 'pending') {
+        return `<div style="background:rgba(240,165,0,0.06);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">⏳ Challenge Pending</div>
+          <div style="font-weight:600;margin-bottom:4px">Waiting for ${esc(c.challenged?.name||'?')} to accept · ${GAME_LABELS[c.game]||c.game}</div>
+          <div style="font-size:13px;color:var(--muted)">They'll get a notification when they open the Lounge.</div>
+        </div>`;
+      }
+      if (c.status === 'accepted') {
+        // challenger's reporting state
+        const myReport = c.challenger_reported;
+        const iReported = myReport !== null && myReport !== undefined;
+        const theyReported = c.challenged_reported !== null && c.challenged_reported !== undefined;
+        return `<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🤝 Your Challenge Accepted</div>
+          <div style="font-weight:600;margin-bottom:8px">${esc(c.challenged?.name||'?')} · ${GAME_LABELS[c.game]||c.game}</div>
+          ${iReported
+            ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenged?.name||'them')} to confirm...</div>`
+            : theyReported
+            ? `<div style="font-size:13px;color:var(--gold);margin-bottom:8px">⚡ They already reported — your turn:</div>
+               <div style="display:flex;gap:8px">
+                 <button class="btn btn-green btn-sm" onclick="doReport('${c.id}','won','challenger')">I Won 🏆</button>
+                 <button class="btn btn-red btn-sm" onclick="doReport('${c.id}','lost','challenger')">I Lost</button>
+               </div>`
+            : `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Game done? Report the result:</div>
+               <div style="display:flex;gap:8px">
+                 <button class="btn btn-green btn-sm" onclick="doReport('${c.id}','won','challenger')">I Won 🏆</button>
+                 <button class="btn btn-red btn-sm" onclick="doReport('${c.id}','lost','challenger')">I Lost</button>
+               </div>`
+          }
+        </div>`;
+      }
+      if (c.status === 'reporting') {
+        return `<div style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--red);font-weight:700;margin-bottom:4px">⚠️ Disputed Result</div>
+          <div style="font-weight:600;margin-bottom:4px">vs ${esc(c.challenged?.name||'?')} · ${GAME_LABELS[c.game]||c.game}</div>
+          <div style="font-size:13px;color:var(--muted)">Both reported different winners. Ask staff to settle it.</div>
+        </div>`;
+      }
+      return '';
+    }).join('');
+  }
+}
+
+// Clean report function — role is 'challenger' or 'challenged'
+async function doReport(challengeId, result, role) {
+  const { data: c } = await sb.from('challenges').select('*').eq('id', challengeId).single();
+  if (!c) return;
+
+  // Determine who won based on result and role
+  let winnerId;
+  if (result === 'won') {
+    winnerId = currentPlayer.id;
+  } else {
+    // I lost = opponent won
+    winnerId = role === 'challenger' ? c.challenged_id : c.challenger_id;
+  }
+
+  const field = role === 'challenger' ? 'challenger_reported' : 'challenged_reported';
+  await sb.from('challenges').update({ [field]: winnerId }).eq('id', challengeId);
+
+  // Check if both reported
+  const { data: updated } = await sb.from('challenges').select('*').eq('id', challengeId).single();
+  const bothReported = updated.challenger_reported && updated.challenged_reported;
+
+  if (bothReported) {
+    if (updated.challenger_reported === updated.challenged_reported) {
+      // Agreement — award points
+      const finalWinnerId = updated.challenger_reported;
+      await sb.from('challenges').update({ status: 'completed', winner_id: finalWinnerId }).eq('id', challengeId);
+      await sb.from('bonus_points').insert({ player_id: finalWinnerId, points: CHALLENGE_POINTS, reason: `Won a challenge (${GAME_LABELS[c.game]||c.game})`, bar_id: currentBar?.id || null });
+      const { data: ws } = await sb.from('player_bar_scores').select('total_points').eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'').single();
+      await sb.from('player_bar_scores').update({ total_points: (ws?.total_points||0) + CHALLENGE_POINTS }).eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'');
+      showChallengeToast(finalWinnerId === currentPlayer.id ? `🏆 You won! +${CHALLENGE_POINTS} points!` : `Result confirmed. Better luck next time!`);
+    } else {
+      // Dispute
+      await sb.from('challenges').update({ status: 'reporting' }).eq('id', challengeId);
+      showChallengeToast('⚠️ Disputed — ask staff to settle it.');
+    }
+  } else {
+    showChallengeToast('✅ Reported. Waiting for the other player.');
+  }
+
+  await renderAllChallenges();
 }
 
 async function loadIncomingChallenges() {
-  const { data } = await sb.from('challenges')
-    .select('*, challenger:challenger_id(name), challenged:challenged_id(name)')
-    .eq('challenged_id', currentPlayer.id)
-    .eq('bar_id', currentBar?.id || '')
-    .in('status', ['pending', 'accepted', 'reporting'])
-    .order('created_at', { ascending: false });
+  await renderAllChallenges();
+}
 
-  const container = document.getElementById('incoming-challenges');
-  if (!data?.length) { container.style.display = 'none'; return; }
+async function acceptChallenge(challengeId) {
+  await sb.from('challenges').update({ status: 'accepted', seen: true }).eq('id', challengeId);
+  showChallengeToast('⚔️ Challenge accepted! Play the game and report who won.');
+  await renderAllChallenges();
+}
 
-  container.style.display = 'block';
-  container.innerHTML = data.map(c => {
-    if (c.status === 'pending') {
-      return `<div style="background:rgba(240,165,0,0.08);border:1px solid var(--gold-dim);border-radius:10px;padding:1rem;margin-bottom:8px">
-        <div style="font-size:12px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">⚔️ Incoming Challenge</div>
-        <div style="font-weight:600;margin-bottom:2px">${esc(c.challenger.name)} challenged you to ${GAME_LABELS[c.game]||c.game}</div>
-        ${c.message ? `<div style="font-size:13px;color:var(--muted);font-style:italic;margin-bottom:8px">"${esc(c.message)}"</div>` : '<div style="margin-bottom:8px"></div>'}
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-gold btn-sm" onclick="acceptChallenge('${c.id}')">Accept ⚔️</button>
-          <button class="btn btn-outline btn-sm" onclick="declineChallenge('${c.id}')">Decline</button>
-        </div>
-      </div>`;
-    }
-    if (c.status === 'accepted') {
-      const iReported = c.challenged_reported !== null && c.challenged_reported !== undefined;
-      const theyReported = c.challenger_reported !== null && c.challenger_reported !== undefined;
-      return `<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
-        <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🤝 Challenge Accepted</div>
-        <div style="font-weight:600;margin-bottom:8px">vs ${esc(c.challenger?.name || '?')} · ${GAME_LABELS[c.game]||c.game}</div>
-        ${theyReported && !iReported
-          ? `<div style="font-size:13px;color:var(--gold);margin-bottom:8px">⚡ ${esc(c.challenger?.name || 'They')} already reported. Your turn:</div>
-             <div style="display:flex;gap:8px">
-               <button class="btn btn-green btn-sm" onclick="reportResult('${c.id}','${currentPlayer.id}')">I Won 🏆</button>
-               <button class="btn btn-red btn-sm" onclick="reportResult('${c.id}','opponent')">I Lost</button>
-             </div>`
-          : iReported
-          ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenger?.name || 'them')} to confirm...</div>`
-          : `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Game done? Report the result:</div>
-             <div style="display:flex;gap:8px">
-               <button class="btn btn-green btn-sm" onclick="reportResult('${c.id}','${currentPlayer.id}')">I Won 🏆</button>
-               <button class="btn btn-red btn-sm" onclick="reportResult('${c.id}','opponent')">I Lost</button>
-             </div>`
-        }
-      </div>`;
-    }
-    if (c.status === 'reporting') {
-      return `<div style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
-        <div style="font-size:12px;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">⚠️ Disputed Result</div>
-        <div style="font-weight:600;margin-bottom:4px">vs ${esc(c.challenger.name)} · ${GAME_LABELS[c.game]||c.game}</div>
-        <div style="font-size:13px;color:var(--muted)">Both players reported different winners. Ask a staff member to award bonus points manually.</div>
-      </div>`;
-    }
-    return '';
-  }).join('');
-
-  // Also check challenges I sent that are accepted/reporting
-  const { data: sent } = await sb.from('challenges')
-    .select('*, challenged:challenged_id(name), challenger:challenger_id(name)')
-    .eq('challenger_id', currentPlayer.id)
-    .eq('bar_id', currentBar?.id || '')
-    .in('status', ['accepted', 'reporting'])
-    .order('created_at', { ascending: false });
-
-  const sentContainer = document.getElementById('sent-challenges');
-  if (!sentContainer) return;
-
-  if (!sent?.length) { sentContainer.style.display = 'none'; return; }
-
-  sentContainer.style.display = 'block';
-
-  // If any sent challenge is now accepted, hide the success screen so challenger can see buttons
-  const hasAccepted = sent.some(c => c.status === 'accepted' || c.status === 'reporting');
-  if (hasAccepted) {
-    document.getElementById('challenge-success').style.display = 'none';
-    document.getElementById('challenge-form').style.display = 'block';
-  }
-
-  sentContainer.innerHTML = sent.map(c => {
-    // challenger has reported if challenger_reported is not null
-    const iReported = c.challenger_reported !== null && c.challenger_reported !== undefined;
-    // other player has reported
-    const theyReported = c.challenged_reported !== null && c.challenged_reported !== undefined;
-
-    if (c.status === 'accepted') {
-      return `<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
-        <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">🤝 Your Challenge Accepted</div>
-        <div style="font-weight:600;margin-bottom:8px">${esc(c.challenged?.name || '?')} · ${GAME_LABELS[c.game]||c.game}</div>
-        ${theyReported && !iReported
-          ? `<div style="font-size:13px;color:var(--gold);margin-bottom:8px">⚡ ${esc(c.challenged?.name || 'They')} already reported. Your turn:</div>
-             <div style="display:flex;gap:8px">
-               <button class="btn btn-green btn-sm" onclick="reportResult('${c.id}','${currentPlayer.id}')">I Won 🏆</button>
-               <button class="btn btn-red btn-sm" onclick="reportResult('${c.id}','opponent')">I Lost</button>
-             </div>`
-          : iReported
-          ? `<div style="font-size:13px;color:var(--muted)">⏳ Waiting for ${esc(c.challenged?.name || 'them')} to confirm...</div>`
-          : `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">Game done? Report the result:</div>
-             <div style="display:flex;gap:8px">
-               <button class="btn btn-green btn-sm" onclick="reportResult('${c.id}','${currentPlayer.id}')">I Won 🏆</button>
-               <button class="btn btn-red btn-sm" onclick="reportResult('${c.id}','opponent')">I Lost</button>
-             </div>`
-        }
-      </div>`;
-    }
-    if (c.status === 'reporting') {
-      return `<div style="background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.3);border-radius:10px;padding:1rem;margin-bottom:8px">
-        <div style="font-size:12px;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">⚠️ Disputed Result</div>
-        <div style="font-weight:600;margin-bottom:4px">vs ${esc(c.challenged.name)} · ${GAME_LABELS[c.game]||c.game}</div>
-        <div style="font-size:13px;color:var(--muted)">Both players reported different winners. Ask a staff member to award bonus points manually.</div>
-      </div>`;
-    }
-    return '';
-  }).join('');
+async function declineChallenge(challengeId) {
+  await sb.from('challenges').update({ status: 'declined' }).eq('id', challengeId);
+  await renderAllChallenges();
 }
 
 async function loadPlayerList() {
@@ -1020,19 +1093,7 @@ async function sendChallenge() {
 
   // Auto-refresh so challenger sees when challenge is accepted
   if (window._challengeRefresh) clearInterval(window._challengeRefresh);
-  window._challengeRefresh = setInterval(() => loadIncomingChallenges(), 3000);
-}
-
-async function acceptChallenge(challengeId) {
-  await sb.from('challenges').update({ status: 'accepted', seen: true }).eq('id', challengeId);
-  // Show toast to accepted player
-  showChallengeToast('⚔️ Challenge accepted! Play the game and report who won.');
-  await loadIncomingChallenges();
-}
-
-async function declineChallenge(challengeId) {
-  await sb.from('challenges').update({ status: 'declined' }).eq('id', challengeId);
-  await loadIncomingChallenges();
+  window._challengeRefresh = setInterval(() => renderAllChallenges(), 3000);
 }
 
 function showChallengeToast(msg) {
@@ -1047,42 +1108,6 @@ function showChallengeToast(msg) {
   toast.style.display = 'block';
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 4000);
-}
-
-async function reportResult(challengeId, winnerId) {
-  const { data: challenge } = await sb.from('challenges').select('*').eq('id', challengeId).single();
-  if (!challenge) return;
-
-  const actualWinnerId = winnerId === 'opponent'
-    ? (challenge.challenger_id === currentPlayer.id ? challenge.challenged_id : challenge.challenger_id)
-    : currentPlayer.id;
-
-  const isChallenger = challenge.challenger_id === currentPlayer.id;
-  const updateField = isChallenger ? 'challenger_reported' : 'challenged_reported';
-  await sb.from('challenges').update({ [updateField]: actualWinnerId }).eq('id', challengeId);
-
-  const { data: updated } = await sb.from('challenges').select('*').eq('id', challengeId).single();
-  if (updated.challenger_reported && updated.challenged_reported) {
-    if (updated.challenger_reported === updated.challenged_reported) {
-      const finalWinnerId = updated.challenger_reported;
-      await sb.from('challenges').update({ status: 'completed', winner_id: finalWinnerId }).eq('id', challengeId);
-      await sb.from('bonus_points').insert({
-        player_id: finalWinnerId, points: CHALLENGE_POINTS,
-        reason: `Won a player challenge (${GAME_LABELS[challenge.game]||challenge.game})`,
-        bar_id: currentBar?.id || null
-      });
-      const { data: winnerScore } = await sb.from('player_bar_scores').select('total_points').eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id || '').single();
-      await sb.from('player_bar_scores').update({ total_points: (winnerScore?.total_points||0) + CHALLENGE_POINTS }).eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id || '');
-      const iWon = finalWinnerId === currentPlayer.id;
-      showChallengeToast(iWon ? `🏆 You won! +${CHALLENGE_POINTS} points added!` : `Result confirmed. Better luck next time!`);
-    } else {
-      await sb.from('challenges').update({ status: 'reporting' }).eq('id', challengeId);
-      showChallengeToast('⚠️ Disputed result — ask staff to settle it.');
-    }
-  } else {
-    showChallengeToast('✅ Result recorded. Waiting for the other player to confirm.');
-  }
-  await loadIncomingChallenges();
 }
 
 function resetChallenge() {
