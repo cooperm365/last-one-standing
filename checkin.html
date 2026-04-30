@@ -121,12 +121,19 @@ input:focus{border-color:var(--gold-dim)}
   </div>
 
   <div id="cap-reached" style="display:none">
-    <div class="card" style="text-align:center">
-      <div style="font-size:32px;margin-bottom:0.5rem">🎯</div>
-      <div style="font-weight:600;margin-bottom:0.25rem">3 scans used tonight</div>
-      <div style="color:var(--muted);font-size:14px">You've hit the max of 3 check-ins per visit. Come back tomorrow!</div>
-      <hr class="divider"/>
-      <a href="my-points.html" class="btn btn-outline btn-sm">View my points</a>
+    <div class="card" style="text-align:center;padding:2rem 1.25rem">
+      <div style="font-size:48px;margin-bottom:0.75rem">🏆</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);margin-bottom:0.5rem">You're maxed out for tonight!</div>
+      <div style="color:var(--muted);font-size:15px;line-height:1.6;margin-bottom:1.25rem">You've played all 3 check-ins for this visit. Your points are confirmed — you're on the leaderboard. Nothing is broken!</div>
+      <div id="cap-points-display" style="margin-bottom:1.25rem"></div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:0.75rem 1rem;font-size:13px;color:var(--muted);margin-bottom:1.25rem">
+        ⏰ Your visit window resets in <strong id="cap-reset-time" style="color:var(--gold)">—</strong>. Come back then to earn more points.
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:1.25rem">While you wait — open The Lounge for bonus points from trivia, challenges, and the scavenger hunt!</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <a id="cap-lounge-btn" href="lounge.html" class="btn btn-primary" style="text-decoration:none">Open The Lounge 🎲</a>
+        <a id="cap-score-btn" href="my-points.html" class="btn btn-outline" style="text-decoration:none">View my score</a>
+      </div>
     </div>
   </div>
 
@@ -320,7 +327,7 @@ async function init() {
   if (savedPhone && currentBar) {
     const { data: profile } = await sb.from('player_profiles').select('id').eq('phone', savedPhone.replace(/\D/g,'')).single();
     if (profile) {
-      const { data: barScore } = await sb.from('player_bar_scores').select('id').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
+      const { data: barScore } = await sb.from('player_bar_scores').select('id, total_points').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
       isReturningAtThisBar = !!barScore;
     }
   }
@@ -430,7 +437,32 @@ async function doCheckin(player) {
   }
 
   const visitScans = await getVisitScans(player.id);
-  if (visitScans.length >= MAX_SCANS_PER_VISIT) { show('cap-reached'); hide('form-new'); hide('form-returning'); return; }
+  if (visitScans.length >= MAX_SCANS_PER_VISIT) {
+    show('cap-reached'); hide('form-new'); hide('form-returning');
+    // Show their current points
+    if (barScore) {
+      document.getElementById('cap-points-display').innerHTML = `
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--gold);line-height:1">${barScore.total_points}</div>
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px">your points at ${currentBar?.name||'this bar'}</div>`;
+    }
+    // Show reset time — earliest scan + 8hrs
+    const earliest = visitScans.sort((a,b) => new Date(a.scanned_at)-new Date(b.scanned_at))[0];
+    if (earliest) {
+      const resetAt = new Date(new Date(earliest.scanned_at).getTime() + VISIT_WINDOW_HOURS * 60 * 60 * 1000);
+      const mins = Math.max(0, Math.round((resetAt - Date.now()) / 60000));
+      const hrs = Math.floor(mins / 60);
+      const remainMins = mins % 60;
+      const resetStr = hrs > 0 ? `${hrs}h ${remainMins}m` : `${remainMins} min`;
+      document.getElementById('cap-reset-time').textContent = resetStr;
+    }
+    // Fix lounge and score links with bar slug
+    const slug = currentBar?.slug || getBarSlug();
+    if (slug) {
+      document.getElementById('cap-lounge-btn').href = `lounge.html?bar=${slug}`;
+      document.getElementById('cap-score-btn').href = `my-points.html?bar=${slug}`;
+    }
+    return;
+  }
 
   const confirmAt = new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
   const { data: checkin, error } = await sb.from('checkins').insert({
