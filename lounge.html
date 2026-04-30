@@ -769,12 +769,12 @@ async function answerTrivia(idx, btn) {
   document.getElementById('trivia-pts-display').textContent = currentPlayer.total_points;
 }
 
-function resetTrivia() {
+async function resetTrivia() {
   document.getElementById('trivia-result').style.display = 'none';
-  const triviaRounds = getTriviaRoundsThisVisit();
+  const triviaRounds = await getTriviaRoundsThisVisit();
   const triviaRemaining = MAX_TRIVIA_PER_VISIT - triviaRounds.length;
   const roundsEl = document.getElementById('trivia-rounds-left');
-  if (roundsEl) roundsEl.textContent = `${triviaRemaining} round${triviaRemaining !== 1 ? 's' : ''} left tonight`;
+  if (roundsEl) roundsEl.textContent = `${Math.max(0,triviaRemaining)} round${triviaRemaining !== 1 ? 's' : ''} left tonight`;
   if (triviaRemaining > 0) {
     document.getElementById('trivia-cap-msg').style.display = 'none';
     document.getElementById('trivia-setup').style.display = 'block';
