@@ -250,7 +250,26 @@
         <button class="btn btn-primary" onclick="savePrizeSettings()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">Save prizes</button>
       </div>
 
-      <!-- Drink Specials -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div style="font-size:15px;font-weight:600;margin-bottom:0.5rem">Lounge game points</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Control how many points each Lounge activity awards. Changes take effect immediately.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div>
+            <label>🧠 Trivia correct answer</label>
+            <input type="number" id="pts-trivia" placeholder="5" style="text-align:center"/>
+          </div>
+          <div>
+            <label>⚔️ Challenge win</label>
+            <input type="number" id="pts-challenge" placeholder="25" style="text-align:center"/>
+          </div>
+          <div>
+            <label>🔍 Hunt approval</label>
+            <input type="number" id="pts-hunt" placeholder="20" style="text-align:center"/>
+          </div>
+        </div>
+        <div id="settings-pts-msg" class="msg"></div>
+        <button class="btn btn-primary" onclick="savePointSettings()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem;margin-top:0.5rem">Save point values</button>
+      </div>
       <div class="section-title">🍺 Drink Specials</div>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">These show up in The Lounge Order Up feature when customers pick their vibe. Update them weekly to push your current specials.</p>
       <div class="card" style="margin-bottom:1.5rem">
@@ -427,10 +446,29 @@ async function loadSettingsTab() {
   document.getElementById('settings-p1').value = currentBar.prize_1 || '';
   document.getElementById('settings-p2').value = currentBar.prize_2 || '';
   document.getElementById('settings-p3').value = currentBar.prize_3 || '';
+  document.getElementById('pts-trivia').value = currentBar.points_trivia ?? 5;
+  document.getElementById('pts-challenge').value = currentBar.points_challenge ?? 25;
+  document.getElementById('pts-hunt').value = currentBar.points_hunt ?? 20;
   loadSpecials();
   loadTriviaList();
   loadClueList();
   loadAbuseFlags();
+}
+
+async function savePointSettings() {
+  const trivia = parseInt(document.getElementById('pts-trivia').value) || 5;
+  const challenge = parseInt(document.getElementById('pts-challenge').value) || 25;
+  const hunt = parseInt(document.getElementById('pts-hunt').value) || 20;
+  const { error } = await sb.from('bars').update({
+    points_trivia: trivia,
+    points_challenge: challenge,
+    points_hunt: hunt
+  }).eq('id', currentBar.id);
+  if (error) { showMsg('settings-pts-msg', 'Error saving.', 'error'); return; }
+  currentBar.points_trivia = trivia;
+  currentBar.points_challenge = challenge;
+  currentBar.points_hunt = hunt;
+  showMsg('settings-pts-msg', 'Point values saved!', 'success');
 }
 
 // --- Drink Specials ---
@@ -870,7 +908,7 @@ async function loadHuntSubmissions() {
       </div>
       ${s.photo_data?`<img src="${s.photo_data}" style="width:100%;border-radius:8px;margin-bottom:0.75rem;max-height:280px;object-fit:cover"/>`:'<p style="color:var(--text-muted);font-size:13px;margin-bottom:0.75rem">No photo</p>'}
       ${s.status==='pending'?`<div style="display:flex;gap:8px">
-        ${canApprove?`<button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:rgba(62,207,142,0.3)" onclick="approveHunt('${s.id}','${s.player_profiles?.id}','${esc(s.player_profiles?.name||'')}')">✅ Approve +20pts</button>`:`<button class="btn btn-outline btn-sm" style="flex:1;opacity:0.4;cursor:not-allowed" disabled>Max winners reached</button>`}
+        ${canApprove?`<button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:rgba(62,207,142,0.3)" onclick="approveHunt('${s.id}','${s.player_profiles?.id}','${esc(s.player_profiles?.name||'')}')">✅ Approve +${currentBar.points_hunt||20}pts</button>`:`<button class="btn btn-outline btn-sm" style="flex:1;opacity:0.4;cursor:not-allowed" disabled>Max winners reached</button>`}
         <button class="btn btn-outline btn-sm" style="flex:1;color:var(--red);border-color:rgba(245,101,101,0.3)" onclick="rejectHunt('${s.id}')">❌ Reject</button>
       </div>`:''}
     </div>`;
@@ -878,12 +916,13 @@ async function loadHuntSubmissions() {
 }
 
 async function approveHunt(submissionId, playerId, playerName) {
-  if (!confirm(`Award 20 points to ${playerName}?`)) return;
+  const huntPts = currentBar.points_hunt || 20;
+  if (!confirm(`Award ${huntPts} points to ${playerName}?`)) return;
   await sb.from('hunt_submissions').update({ status:'approved' }).eq('id', submissionId);
   const { data: bs } = await sb.from('player_bar_scores').select('total_points').eq('player_id', playerId).eq('bar_id', currentBar.id).single();
-  if (bs) { await sb.from('player_bar_scores').update({ total_points:(bs.total_points||0)+20 }).eq('player_id', playerId).eq('bar_id', currentBar.id); }
-  else { await sb.from('player_bar_scores').insert({ player_id:playerId, bar_id:currentBar.id, total_points:20 }); }
-  await sb.from('bonus_points').insert({ player_id:playerId, points:20, reason:'Scavenger hunt verified', bar_id:currentBar.id });
+  if (bs) { await sb.from('player_bar_scores').update({ total_points:(bs.total_points||0)+huntPts }).eq('player_id', playerId).eq('bar_id', currentBar.id); }
+  else { await sb.from('player_bar_scores').insert({ player_id:playerId, bar_id:currentBar.id, total_points:huntPts }); }
+  await sb.from('bonus_points').insert({ player_id:playerId, points:huntPts, reason:'Scavenger hunt verified', bar_id:currentBar.id });
   loadHuntSubmissions();
 }
 
