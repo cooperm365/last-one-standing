@@ -696,8 +696,8 @@ async function showDashboard(player) {
   const rank = (allScores||[]).findIndex(s => s.player_id === player.id) + 1;
   document.getElementById('stat-rank').textContent = rank > 0 ? `#${rank}` : '—';
 
-  // Compare to last recorded rank
-  const rankKey = `br_last_rank_${player.id}`;
+  // Compare to last recorded rank — scoped to this specific bar
+  const rankKey = `br_last_rank_${player.id}_${barId}`;
   const lastRank = parseInt(localStorage.getItem(rankKey) || '0');
   const oldNotice = document.getElementById('rank-change-notice');
   if (oldNotice) oldNotice.remove();
