@@ -767,7 +767,9 @@ async function loadStats() {
   let cq=sb.from('checkins').select('player_id, scanned_at, event_id, events(name, type)').eq('bar_id', currentBar.id);
   if (since) cq=cq.gte('scanned_at', since);
   const { data: checkins } = await cq;
-  const { data: allPlayers } = await sb.from('player_profiles').select('id, created_at');
+  const { data: allPlayers } = await sb.from('player_bar_scores')
+    .select('player_id, created_at, player_profiles(created_at)')
+    .eq('bar_id', currentBar.id);
   const ci=checkins||[], players=allPlayers||[];
   const uniquePlayerIds=[...new Set(ci.map(c=>c.player_id))];
   const totalCheckins=ci.length;
@@ -813,7 +815,8 @@ async function loadStats() {
       <div style="height:5px;background:var(--bg3);border-radius:3px"><div style="height:100%;width:${Math.round((count/maxAct)*100)}%;background:var(--gold);border-radius:3px"></div></div>
     </div>`).join('') : '<p style="color:var(--text-muted);font-size:14px">No check-ins yet.</p>';
   const periodStart=since?new Date(since):new Date(0);
-  const newInPeriod=players.filter(p=>new Date(p.created_at)>=periodStart).length;
+  const barPlayers=(allPlayers||[]).map(s=>({ created_at: s.player_profiles?.created_at || s.created_at }));
+  const newInPeriod=barPlayers.filter(p=>new Date(p.created_at)>=periodStart).length;
   const returningInPeriod=uniquePlayerIds.length-newInPeriod;
   const retPct=uniquePlayerIds.length>0?Math.round((Math.max(0,returningInPeriod)/uniquePlayerIds.length)*100):0;
   const newPct=100-retPct;
