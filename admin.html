@@ -250,6 +250,46 @@
         <button class="btn btn-primary" onclick="savePrizeSettings()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">Save prizes</button>
       </div>
 
+      <!-- Drink Specials -->
+      <div class="section-title">🍺 Drink Specials</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">These show up in The Lounge Order Up feature when customers pick their vibe. Update them weekly to push your current specials.</p>
+      <div class="card" style="margin-bottom:1.5rem">
+        <label>Shot of the Week — name</label>
+        <input type="text" id="shot-name" placeholder="e.g. Fireball Shot"/>
+        <label>Shot description (optional)</label>
+        <input type="text" id="shot-desc" placeholder="e.g. $4 all night, smooth cinnamon whiskey"/>
+        <label>Drink of the Month — name</label>
+        <input type="text" id="drink-name" placeholder="e.g. Mango Margarita"/>
+        <label>Drink description (optional)</label>
+        <input type="text" id="drink-desc" placeholder="e.g. Fresh mango, lime, tequila on the rocks"/>
+        <div id="specials-msg" class="msg"></div>
+        <button class="btn btn-primary" onclick="saveSpecials()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">Save drink specials</button>
+      </div>
+
+      <!-- Trivia Questions -->
+      <div class="section-title">🧠 Trivia Questions</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Add your own custom questions. These get mixed in with the default questions randomly. Great for bar-specific trivia like "What year did we open?" or themed nights.</p>
+      <div class="card" style="margin-bottom:1rem">
+        <label>Question</label>
+        <input type="text" id="new-trivia-q" placeholder="e.g. What is the capital of North Dakota?"/>
+        <label>Answer</label>
+        <input type="text" id="new-trivia-a" placeholder="e.g. Bismarck"/>
+        <div id="trivia-add-msg" class="msg"></div>
+        <button class="btn btn-primary" onclick="addTriviaQuestion()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">Add question</button>
+      </div>
+      <div id="trivia-list" style="margin-bottom:1.5rem"></div>
+
+      <!-- Hunt Clues -->
+      <div class="section-title">🔍 Scavenger Hunt Clues</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Add your own clues specific to your bar. These rotate daily with the default clues. Great for hiding things behind your bar, referencing your decor, or themed nights.</p>
+      <div class="card" style="margin-bottom:1rem">
+        <label>Clue</label>
+        <input type="text" id="new-clue" placeholder="e.g. Find the signed jersey above the bar"/>
+        <div id="clue-add-msg" class="msg"></div>
+        <button class="btn btn-primary" onclick="addHuntClue()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">Add clue</button>
+      </div>
+      <div id="clue-list" style="margin-bottom:1.5rem"></div>
+
       <!-- Abuse flags -->
       <div class="section-title">🚩 Suspicious Activity</div>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Players flagged for unusually high scan volume on a single event QR code. May indicate a shared or screenshot QR being used outside the bar.</p>
@@ -381,14 +421,98 @@ async function saveEventEdit() {
 
 // --- Bar Settings ---
 async function loadSettingsTab() {
-  // Pre-fill current bar settings
   document.getElementById('settings-name').value = currentBar.name || '';
   document.getElementById('settings-target').value = currentBar.point_target || 200;
   document.getElementById('settings-email').value = currentBar.report_email || '';
   document.getElementById('settings-p1').value = currentBar.prize_1 || '';
   document.getElementById('settings-p2').value = currentBar.prize_2 || '';
   document.getElementById('settings-p3').value = currentBar.prize_3 || '';
+  loadSpecials();
+  loadTriviaList();
+  loadClueList();
   loadAbuseFlags();
+}
+
+// --- Drink Specials ---
+async function loadSpecials() {
+  const { data } = await sb.from('bar_specials').select('*').eq('bar_id', currentBar.id).single();
+  if (data) {
+    document.getElementById('shot-name').value = data.shot_of_week || '';
+    document.getElementById('shot-desc').value = data.shot_description || '';
+    document.getElementById('drink-name').value = data.drink_of_month || '';
+    document.getElementById('drink-desc').value = data.drink_description || '';
+  }
+}
+
+async function saveSpecials() {
+  const shot = document.getElementById('shot-name').value.trim();
+  const shotDesc = document.getElementById('shot-desc').value.trim();
+  const drink = document.getElementById('drink-name').value.trim();
+  const drinkDesc = document.getElementById('drink-desc').value.trim();
+  const { data: existing } = await sb.from('bar_specials').select('id').eq('bar_id', currentBar.id).single();
+  if (existing) {
+    await sb.from('bar_specials').update({ shot_of_week: shot, shot_description: shotDesc, drink_of_month: drink, drink_description: drinkDesc, updated_at: new Date().toISOString() }).eq('bar_id', currentBar.id);
+  } else {
+    await sb.from('bar_specials').insert({ bar_id: currentBar.id, shot_of_week: shot, shot_description: shotDesc, drink_of_month: drink, drink_description: drinkDesc });
+  }
+  showMsg('specials-msg', 'Drink specials saved!', 'success');
+}
+
+// --- Trivia Questions ---
+async function loadTriviaList() {
+  const { data } = await sb.from('bar_trivia').select('*').eq('bar_id', currentBar.id).eq('active', true).order('created_at', { ascending: false });
+  const list = document.getElementById('trivia-list');
+  if (!data?.length) { list.innerHTML = '<p style="color:var(--text-muted);font-size:13px">No custom questions yet. Default questions will be used.</p>'; return; }
+  list.innerHTML = data.map(q => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:0.75rem;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:500">${esc(q.question)}</div>
+        <div style="font-size:12px;color:var(--gold);margin-top:3px">Answer: ${esc(q.answer)}</div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:rgba(245,101,101,0.3);flex-shrink:0" onclick="deleteTriviaQuestion('${q.id}')">Remove</button>
+    </div>`).join('');
+}
+
+async function addTriviaQuestion() {
+  const q = document.getElementById('new-trivia-q').value.trim();
+  const a = document.getElementById('new-trivia-a').value.trim();
+  if (!q || !a) { showMsg('trivia-add-msg', 'Enter both a question and answer.', 'error'); return; }
+  await sb.from('bar_trivia').insert({ bar_id: currentBar.id, question: q, answer: a });
+  document.getElementById('new-trivia-q').value = '';
+  document.getElementById('new-trivia-a').value = '';
+  showMsg('trivia-add-msg', 'Question added!', 'success');
+  loadTriviaList();
+}
+
+async function deleteTriviaQuestion(id) {
+  await sb.from('bar_trivia').delete().eq('id', id);
+  loadTriviaList();
+}
+
+// --- Hunt Clues ---
+async function loadClueList() {
+  const { data } = await sb.from('bar_hunt_clues').select('*').eq('bar_id', currentBar.id).eq('active', true).order('created_at', { ascending: false });
+  const list = document.getElementById('clue-list');
+  if (!data?.length) { list.innerHTML = '<p style="color:var(--text-muted);font-size:13px">No custom clues yet. Default clues will rotate automatically.</p>'; return; }
+  list.innerHTML = data.map(c => `
+    <div style="display:flex;align-items:center;gap:10px;padding:0.75rem;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
+      <div style="flex:1;font-size:14px">🔍 ${esc(c.clue)}</div>
+      <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:rgba(245,101,101,0.3);flex-shrink:0" onclick="deleteHuntClue('${c.id}')">Remove</button>
+    </div>`).join('');
+}
+
+async function addHuntClue() {
+  const clue = document.getElementById('new-clue').value.trim();
+  if (!clue) { showMsg('clue-add-msg', 'Enter a clue.', 'error'); return; }
+  await sb.from('bar_hunt_clues').insert({ bar_id: currentBar.id, clue });
+  document.getElementById('new-clue').value = '';
+  showMsg('clue-add-msg', 'Clue added!', 'success');
+  loadClueList();
+}
+
+async function deleteHuntClue(id) {
+  await sb.from('bar_hunt_clues').delete().eq('id', id);
+  loadClueList();
 }
 
 async function saveBarSettings() {
