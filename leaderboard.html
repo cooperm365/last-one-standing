@@ -126,7 +126,7 @@
     <div class="logo-mark">BR</div>
     <div class="title-block">
       <div class="title-main" id="bar-title">Leaderboard Legends</div>
-      <div class="title-sub" id="season-sub">First to 200 points wins</div>
+      <div class="title-sub" id="season-sub">First to <span id="header-target">200</span> points wins</div>
     </div>
     <div class="prizes">
       <div class="prize-badge"><div class="prize-pos">🥇 Winner</div><div class="prize-val" id="prize-1">$50 Gift Card</div></div>
@@ -229,6 +229,7 @@ async function init() {
   document.getElementById('prize-3').textContent = currentBar.prize_3 || 'Bar T-Shirt';
   document.getElementById('race-title').textContent = '🏁 Race to ' + currentBar.point_target + ' points';
   document.getElementById('race-target-label').innerHTML = 'First to <span>' + currentBar.point_target + ' pts</span> wins';
+  document.getElementById('header-target').textContent = currentBar.point_target;
   document.querySelector('.race-label').innerHTML = '<span>0</span><span>' + Math.round(currentBar.point_target*0.25) + '</span><span>' + Math.round(currentBar.point_target*0.5) + '</span><span>' + Math.round(currentBar.point_target*0.75) + '</span><span>' + currentBar.point_target + ' 🎯</span>';
 
   load();
