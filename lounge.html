@@ -904,6 +904,28 @@ async function loadChallengeTab() {
   }
   document.getElementById('challenge-no-player').style.display = 'none';
   document.getElementById('challenge-form').style.display = 'block';
+
+  // Check win cap immediately on tab open
+  const MAX_CHALLENGE_WINS = 3;
+  const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+  const { data: recentWins } = await sb.from('challenges')
+    .select('id')
+    .eq('winner_id', currentPlayer.id)
+    .eq('bar_id', currentBar?.id || '')
+    .eq('status', 'completed')
+    .gte('created_at', windowStart);
+
+  if ((recentWins || []).length >= MAX_CHALLENGE_WINS) {
+    document.getElementById('challenge-form').style.display = 'none';
+    document.getElementById('challenge-success').style.display = 'block';
+    document.getElementById('challenge-sent-to').innerHTML = `<div style="text-align:center;padding:1rem 0">
+      <div style="font-size:36px;margin-bottom:0.5rem">🏆</div>
+      <div style="font-size:15px;font-weight:600;color:var(--gold);margin-bottom:0.5rem">Challenge cap reached for tonight!</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">You've won ${MAX_CHALLENGE_WINS} challenges this visit — that's the max for one night. Come back next time to earn more points. You can still play games for fun!</div>
+    </div>`;
+    return;
+  }
+
   await renderAllChallenges();
   await loadPlayerList();
   if (window._challengeRefresh) clearInterval(window._challengeRefresh);
@@ -1203,6 +1225,29 @@ async function sendChallenge() {
   const game = document.getElementById('challenge-game').value;
   const message = document.getElementById('challenge-msg').value.trim();
   const btn = document.getElementById('send-challenge-btn');
+
+  // Check win cap before sending
+  const MAX_CHALLENGE_WINS = 3;
+  const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+  const { data: recentWins } = await sb.from('challenges')
+    .select('id')
+    .eq('winner_id', currentPlayer.id)
+    .eq('bar_id', currentBar?.id || '')
+    .eq('status', 'completed')
+    .gte('created_at', windowStart);
+
+  if ((recentWins || []).length >= MAX_CHALLENGE_WINS) {
+    showChallengeToast(`🏆 You've already won ${MAX_CHALLENGE_WINS} challenges tonight. No more points until your next visit — but you can still play for fun!`);
+    document.getElementById('challenge-form').style.display = 'none';
+    document.getElementById('challenge-success').style.display = 'block';
+    document.getElementById('challenge-sent-to').innerHTML = `<div style="text-align:center;padding:1rem 0">
+      <div style="font-size:36px;margin-bottom:0.5rem">🏆</div>
+      <div style="font-size:15px;font-weight:600;color:var(--gold);margin-bottom:0.5rem">Challenge cap reached!</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">You've won ${MAX_CHALLENGE_WINS} challenges this visit. Come back next time for more points. You can still play games — just no more points tonight.</div>
+    </div>`;
+    return;
+  }
+
   btn.disabled = true; btn.textContent = 'Sending...';
 
   const { error } = await sb.from('challenges').insert({
