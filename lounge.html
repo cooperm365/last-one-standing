@@ -1035,7 +1035,6 @@ async function doReport(challengeId, result, role) {
   if (result === 'won') {
     winnerId = currentPlayer.id;
   } else {
-    // I lost = opponent won
     winnerId = role === 'challenger' ? c.challenged_id : c.challenger_id;
   }
 
@@ -1048,15 +1047,37 @@ async function doReport(challengeId, result, role) {
 
   if (bothReported) {
     if (updated.challenger_reported === updated.challenged_reported) {
-      // Agreement — award points
       const finalWinnerId = updated.challenger_reported;
       await sb.from('challenges').update({ status: 'completed', winner_id: finalWinnerId }).eq('id', challengeId);
-      await sb.from('bonus_points').insert({ player_id: finalWinnerId, points: CHALLENGE_POINTS, reason: `Won a challenge (${GAME_LABELS[c.game]||c.game})`, bar_id: currentBar?.id || null });
-      const { data: ws } = await sb.from('player_bar_scores').select('total_points').eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'').single();
-      await sb.from('player_bar_scores').update({ total_points: (ws?.total_points||0) + CHALLENGE_POINTS }).eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'');
-      showChallengeToast(finalWinnerId === currentPlayer.id ? `🏆 You won! +${CHALLENGE_POINTS} points!` : `Result confirmed. Better luck next time!`);
+
+      // Check challenge win cap — max 3 wins per 8hr visit window
+      const MAX_CHALLENGE_WINS = 3;
+      const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+      const { data: recentWins } = await sb.from('challenges')
+        .select('id')
+        .eq('winner_id', finalWinnerId)
+        .eq('bar_id', currentBar?.id || '')
+        .eq('status', 'completed')
+        .gte('created_at', windowStart);
+
+      const winCount = (recentWins || []).length;
+
+      if (winCount > MAX_CHALLENGE_WINS) {
+        // Cap reached — confirm the win but don't award points
+        const iWon = finalWinnerId === currentPlayer.id;
+        if (iWon) {
+          showChallengeToast(`🏆 You won — but you've hit the ${MAX_CHALLENGE_WINS} challenge win limit for this visit. Come back tomorrow!`);
+        } else {
+          showChallengeToast('Result confirmed. Good game!');
+        }
+      } else {
+        // Award points
+        await sb.from('bonus_points').insert({ player_id: finalWinnerId, points: CHALLENGE_POINTS, reason: `Won a challenge (${GAME_LABELS[c.game]||c.game})`, bar_id: currentBar?.id || null });
+        const { data: ws } = await sb.from('player_bar_scores').select('total_points').eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'').single();
+        await sb.from('player_bar_scores').update({ total_points: (ws?.total_points||0) + CHALLENGE_POINTS }).eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'');
+        showChallengeToast(finalWinnerId === currentPlayer.id ? `🏆 You won! +${CHALLENGE_POINTS} points!` : `Result confirmed. Better luck next time!`);
+      }
     } else {
-      // Dispute
       await sb.from('challenges').update({ status: 'reporting' }).eq('id', challengeId);
       showChallengeToast('⚠️ Disputed — ask staff to settle it.');
     }
