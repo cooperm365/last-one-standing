@@ -62,6 +62,7 @@
       <button class="tab" onclick="switchTab('stats', this)">📊 Stats</button>
       <button class="tab" onclick="switchTab('hunt', this)">🔍 Hunt</button>
       <button class="tab" onclick="switchTab('season', this)">🏆 Season</button>
+      <button class="tab" onclick="switchTab('settings', this)">⚙️ Settings</button>
     </div>
 
     <!-- EVENTS TAB -->
@@ -196,6 +197,66 @@
       <div id="seasons-list"></div>
     </div>
 
+    <!-- SETTINGS TAB -->
+    <div class="tab-panel" id="tab-settings">
+      <div class="section-title">⚙️ Bar Settings</div>
+
+      <!-- Edit event inline modal -->
+      <div id="edit-event-panel" style="display:none" class="card card-gold" style="margin-bottom:1.5rem">
+        <div style="font-size:14px;font-weight:600;color:var(--gold);margin-bottom:0.75rem">Edit Event</div>
+        <input type="hidden" id="edit-ev-id"/>
+        <label>Event name</label>
+        <input type="text" id="edit-ev-name"/>
+        <label>Type</label>
+        <select id="edit-ev-type">
+          <option value="darts">🎯 Darts</option>
+          <option value="pool">🎱 Pool</option>
+          <option value="trivia">🧠 Trivia</option>
+          <option value="bingo">🎰 Bingo</option>
+          <option value="live_music">🎵 Live Music</option>
+          <option value="blackjack">🃏 Blackjack</option>
+          <option value="other">⭐ Other</option>
+        </select>
+        <label>Points value</label>
+        <input type="number" id="edit-ev-pts" style="width:120px"/>
+        <div id="edit-ev-msg" class="msg"></div>
+        <div style="display:flex;gap:8px;margin-top:0.5rem">
+          <button class="btn btn-primary" onclick="saveEventEdit()" style="flex:1">Save changes</button>
+          <button class="btn btn-outline" onclick="document.getElementById('edit-event-panel').style.display='none'" style="flex:1">Cancel</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:1.5rem">
+        <div style="font-size:15px;font-weight:600;margin-bottom:1rem">Bar details</div>
+        <label>Bar name</label>
+        <input type="text" id="settings-name" placeholder="Your bar name"/>
+        <label>Points target to win</label>
+        <input type="number" id="settings-target" placeholder="200"/>
+        <label>Report email (weekly Monday report)</label>
+        <input type="email" id="settings-email" placeholder="owner@yourbar.com"/>
+        <div id="settings-bar-msg" class="msg"></div>
+        <button class="btn btn-primary" onclick="saveBarSettings()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">Save bar settings</button>
+      </div>
+
+      <div class="card" style="margin-bottom:1.5rem">
+        <div style="font-size:15px;font-weight:600;margin-bottom:1rem">Prizes</div>
+        <label>1st place prize</label>
+        <input type="text" id="settings-p1" placeholder="e.g. $50 Gift Card"/>
+        <label>2nd place prize</label>
+        <input type="text" id="settings-p2" placeholder="e.g. Free Round for the Table"/>
+        <label>3rd place prize</label>
+        <input type="text" id="settings-p3" placeholder="e.g. Bar T-Shirt"/>
+        <div id="settings-prize-msg" class="msg"></div>
+        <button class="btn btn-primary" onclick="savePrizeSettings()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">Save prizes</button>
+      </div>
+
+      <!-- Abuse flags -->
+      <div class="section-title">🚩 Suspicious Activity</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Players flagged for unusually high scan volume on a single event QR code. May indicate a shared or screenshot QR being used outside the bar.</p>
+      <div id="abuse-loading" style="color:var(--text-muted);font-size:14px;padding:1rem 0">Loading...</div>
+      <div id="abuse-list"></div>
+    </div>
+
   </div>
 </div>
 
@@ -286,6 +347,135 @@ function switchTab(name, btn) {
   btn.classList.add('active');
   if (name === 'hunt') loadHuntSubmissions();
   if (name === 'season') loadSeasonTab();
+  if (name === 'settings') loadSettingsTab();
+}
+
+// --- Event Editing ---
+function editEvent(id, name, pts, type) {
+  document.getElementById('edit-event-panel').style.display = 'block';
+  document.getElementById('edit-ev-id').value = id;
+  document.getElementById('edit-ev-name').value = name;
+  document.getElementById('edit-ev-pts').value = pts;
+  document.getElementById('edit-ev-type').value = type;
+  // Switch to settings tab to show the edit panel
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-settings').classList.add('active');
+  document.querySelector('[onclick="switchTab(\'settings\', this)"]').classList.add('active');
+  document.getElementById('edit-event-panel').scrollIntoView({ behavior: 'smooth' });
+  loadSettingsTab();
+}
+
+async function saveEventEdit() {
+  const id = document.getElementById('edit-ev-id').value;
+  const name = document.getElementById('edit-ev-name').value.trim();
+  const pts = parseInt(document.getElementById('edit-ev-pts').value) || 10;
+  const type = document.getElementById('edit-ev-type').value;
+  if (!name) { showMsg('edit-ev-msg', 'Enter an event name.', 'error'); return; }
+  const { error } = await sb.from('events').update({ name, points_value: pts, type }).eq('id', id);
+  if (error) { showMsg('edit-ev-msg', 'Error saving.', 'error'); return; }
+  showMsg('edit-ev-msg', 'Event updated!', 'success');
+  document.getElementById('edit-event-panel').style.display = 'none';
+  loadEvents();
+}
+
+// --- Bar Settings ---
+async function loadSettingsTab() {
+  // Pre-fill current bar settings
+  document.getElementById('settings-name').value = currentBar.name || '';
+  document.getElementById('settings-target').value = currentBar.point_target || 200;
+  document.getElementById('settings-email').value = currentBar.report_email || '';
+  document.getElementById('settings-p1').value = currentBar.prize_1 || '';
+  document.getElementById('settings-p2').value = currentBar.prize_2 || '';
+  document.getElementById('settings-p3').value = currentBar.prize_3 || '';
+  loadAbuseFlags();
+}
+
+async function saveBarSettings() {
+  const name = document.getElementById('settings-name').value.trim();
+  const target = parseInt(document.getElementById('settings-target').value) || 200;
+  const email = document.getElementById('settings-email').value.trim() || null;
+  if (!name) { showMsg('settings-bar-msg', 'Bar name cannot be empty.', 'error'); return; }
+  const { error } = await sb.from('bars').update({ name, point_target: target, report_email: email }).eq('id', currentBar.id);
+  if (error) { showMsg('settings-bar-msg', 'Error saving.', 'error'); return; }
+  currentBar.name = name;
+  currentBar.point_target = target;
+  currentBar.report_email = email;
+  document.getElementById('admin-bar-name').textContent = name;
+  showMsg('settings-bar-msg', 'Settings saved!', 'success');
+}
+
+async function savePrizeSettings() {
+  const p1 = document.getElementById('settings-p1').value.trim();
+  const p2 = document.getElementById('settings-p2').value.trim();
+  const p3 = document.getElementById('settings-p3').value.trim();
+  const { error } = await sb.from('bars').update({ prize_1: p1, prize_2: p2, prize_3: p3 }).eq('id', currentBar.id);
+  if (error) { showMsg('settings-prize-msg', 'Error saving.', 'error'); return; }
+  currentBar.prize_1 = p1; currentBar.prize_2 = p2; currentBar.prize_3 = p3;
+  showMsg('settings-prize-msg', 'Prizes saved!', 'success');
+}
+
+// --- Abuse Detection ---
+async function loadAbuseFlags() {
+  document.getElementById('abuse-loading').style.display = 'block';
+  document.getElementById('abuse-list').innerHTML = '';
+
+  // Find events with unusually high unique scanner count in last 24 hours
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: checkins } = await sb.from('checkins')
+    .select('player_id, event_id, events(name), scanned_at')
+    .eq('bar_id', currentBar.id)
+    .gte('scanned_at', since24h);
+
+  document.getElementById('abuse-loading').style.display = 'none';
+
+  if (!checkins?.length) {
+    document.getElementById('abuse-list').innerHTML = '<p style="color:var(--text-muted);font-size:14px">No suspicious activity detected.</p>';
+    return;
+  }
+
+  // Count unique players per event
+  const eventCounts = {};
+  const eventNames = {};
+  checkins.forEach(c => {
+    if (!eventCounts[c.event_id]) { eventCounts[c.event_id] = new Set(); eventNames[c.event_id] = c.events?.name || 'Unknown'; }
+    eventCounts[c.event_id].add(c.player_id);
+  });
+
+  // Flag events with more than 15 unique scanners in 24h (unusual for a small bar)
+  const THRESHOLD = 15;
+  const flagged = Object.entries(eventCounts)
+    .filter(([id, players]) => players.size >= THRESHOLD)
+    .sort((a, b) => b[1].size - a[1].size);
+
+  if (!flagged.length) {
+    document.getElementById('abuse-list').innerHTML = '<div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.2);border-radius:8px;padding:0.75rem 1rem;font-size:14px;color:var(--green)">✅ No suspicious activity detected in the last 24 hours.</div>';
+    return;
+  }
+
+  document.getElementById('abuse-list').innerHTML = flagged.map(([id, players]) => `
+    <div class="card" style="border-color:rgba(245,101,101,0.3);margin-bottom:0.75rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+        <div style="font-weight:600;font-size:14px">🚩 ${esc(eventNames[id])}</div>
+        <div style="font-size:20px;font-weight:700;color:var(--red);font-family:'Bebas Neue',sans-serif">${players.size} scanners</div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem">${players.size} unique players scanned this event in the last 24 hours. Normal is under ${THRESHOLD}. This QR code may have been shared outside the bar.</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="regenerateEventQR('${id}','${esc(eventNames[id])}')" style="color:var(--gold);border-color:rgba(240,165,0,0.3)">Regenerate QR code</button>
+      </div>
+    </div>`).join('');
+}
+
+async function regenerateEventQR(eventId, eventName) {
+  // Generate a fresh QR for this event (same URL, just show it again so they can reprint)
+  if (!confirm(`Regenerate the QR code for "${eventName}"? The old QR still works — this just shows you a fresh copy to reprint if needed.`)) return;
+  generateQR(eventId, eventName);
+  // Switch to events tab to show QR
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-events').classList.add('active');
+  document.querySelector('[onclick="switchTab(\'events\', this)"]').classList.add('active');
+  document.getElementById('qr-output').scrollIntoView({ behavior: 'smooth' });
 }
 
 // --- Events ---
@@ -300,9 +490,10 @@ async function loadEvents() {
       <span style="font-size:20px">${typeLabels[ev.type]||'⭐'}</span>
       <div style="flex:1">
         <div style="font-size:14px;font-weight:500">${esc(ev.name)}</div>
-        <div style="font-size:12px;color:var(--text-muted)">${ev.points_value} pts</div>
+        <div style="font-size:12px;color:var(--text-muted)">${ev.points_value} pts · ${ev.type}</div>
       </div>
       <button class="btn btn-outline btn-sm" onclick="showQRForEvent('${ev.id}','${esc(ev.name)}')">QR</button>
+      <button class="btn btn-outline btn-sm" onclick="editEvent('${ev.id}','${esc(ev.name)}',${ev.points_value},'${ev.type}')">Edit</button>
       <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:rgba(245,101,101,0.3)" onclick="deactivateEvent('${ev.id}')">End</button>
     </div>`).join('');
 }
