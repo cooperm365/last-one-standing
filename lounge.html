@@ -142,16 +142,16 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
     </script>
   </div>
 
-  <!-- Points guide strip -->
-  <div style="display:flex;gap:6px;padding:0.75rem 1.25rem;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--bg2)">
+  <!-- Points guide strip — populated dynamically after bar loads -->
+  <div id="points-guide-strip" style="display:flex;gap:6px;padding:0.75rem 1.25rem;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--bg2)">
     <div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:4px 12px;white-space:nowrap;flex-shrink:0">
-      <span style="font-size:13px">🧠</span><span style="font-size:12px;color:var(--muted)">Trivia <strong style="color:var(--gold)">+5</strong></span>
+      <span style="font-size:13px">🧠</span><span style="font-size:12px;color:var(--muted)">Trivia <strong style="color:var(--gold)" id="strip-trivia-pts">+5</strong></span>
     </div>
     <div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:4px 12px;white-space:nowrap;flex-shrink:0">
-      <span style="font-size:13px">⚔️</span><span style="font-size:12px;color:var(--muted)">Win challenge <strong style="color:var(--gold)">+25</strong></span>
+      <span style="font-size:13px">⚔️</span><span style="font-size:12px;color:var(--muted)">Win challenge <strong style="color:var(--gold)" id="strip-challenge-pts">+25</strong></span>
     </div>
     <div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:4px 12px;white-space:nowrap;flex-shrink:0">
-      <span style="font-size:13px">🔍</span><span style="font-size:12px;color:var(--muted)">Scavenger hunt <strong style="color:var(--gold)">+20</strong></span>
+      <span style="font-size:13px">🔍</span><span style="font-size:12px;color:var(--muted)">Scavenger hunt <strong style="color:var(--gold)" id="strip-hunt-pts">+20</strong></span>
     </div>
     <div style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:4px 12px;white-space:nowrap;flex-shrink:0">
       <span style="font-size:13px">🎯</span><span style="font-size:12px;color:var(--muted)">QR check-in <strong style="color:var(--gold)">+10</strong></span>
@@ -503,6 +503,13 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
     loadBarTrivia(),
     loadBarHuntClues(),
   ]);
+  // Update points guide strip with bar-specific values
+  const stripTrivia = document.getElementById('strip-trivia-pts');
+  const stripChallenge = document.getElementById('strip-challenge-pts');
+  const stripHunt = document.getElementById('strip-hunt-pts');
+  if (stripTrivia) stripTrivia.textContent = '+' + (currentBar?.points_trivia ?? 5);
+  if (stripChallenge) stripChallenge.textContent = '+' + (currentBar?.points_challenge ?? 25);
+  if (stripHunt) stripHunt.textContent = '+' + (currentBar?.points_hunt ?? 20);
   setupRealtimeChallenge();
   checkChallengeNotification();
 })();
@@ -730,7 +737,7 @@ async function answerTrivia(idx, btn) {
 
   await new Promise(r => setTimeout(r, 1200));
 
-  const BONUS = 5;
+  const BONUS = TRIVIA_POINTS();
   document.getElementById('trivia-question').style.display = 'none';
   document.getElementById('trivia-result').style.display = 'block';
 
@@ -884,7 +891,9 @@ document.getElementById('selfie-camera-wrap').style.display = 'none';
 
 // ── CHALLENGE SYSTEM ──────────────────────────────────────────
 const GAME_LABELS = { darts:'🎯 Darts', pool:'🎱 Pool', cornhole:'🌽 Cornhole', shuffleboard:'🏒 Shuffleboard', foosball:'⚽ Foosball', pingpong:'🏓 Ping Pong', trivia:'🧠 Trivia Night', any:'⭐ Any skill game' };
-const CHALLENGE_POINTS = 25;
+const CHALLENGE_POINTS = () => currentBar?.points_challenge ?? 25;
+const TRIVIA_POINTS = () => currentBar?.points_trivia ?? 5;
+const HUNT_POINTS = () => currentBar?.points_hunt ?? 20;
 let selectedChallengedId = null;
 
 async function loadChallengeTab() {
@@ -1091,10 +1100,10 @@ async function doReport(challengeId, result, role) {
         }
       } else {
         // Award points
-        await sb.from('bonus_points').insert({ player_id: finalWinnerId, points: CHALLENGE_POINTS, reason: `Won a challenge (${GAME_LABELS[c.game]||c.game})`, bar_id: currentBar?.id || null });
+        await sb.from('bonus_points').insert({ player_id: finalWinnerId, points: CHALLENGE_POINTS(), reason: `Won a challenge (${GAME_LABELS[c.game]||c.game})`, bar_id: currentBar?.id || null });
         const { data: ws } = await sb.from('player_bar_scores').select('total_points').eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'').single();
-        await sb.from('player_bar_scores').update({ total_points: (ws?.total_points||0) + CHALLENGE_POINTS }).eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'');
-        showChallengeToast(finalWinnerId === currentPlayer.id ? `🏆 You won! +${CHALLENGE_POINTS} points!` : `Result confirmed. Better luck next time!`);
+        await sb.from('player_bar_scores').update({ total_points: (ws?.total_points||0) + CHALLENGE_POINTS() }).eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'');
+        showChallengeToast(finalWinnerId === currentPlayer.id ? `🏆 You won! +${CHALLENGE_POINTS()} points!` : `Result confirmed. Better luck next time!`);
       }
     } else {
       await sb.from('challenges').update({ status: 'reporting' }).eq('id', challengeId);
@@ -1343,7 +1352,7 @@ async function loadHuntTab() {
     document.getElementById('hunt-clue-section').style.display = 'none';
     document.getElementById('hunt-done').style.display = 'block';
     const statusMsg = existing.status === 'approved'
-      ? '✅ Approved! Your 20 points have been awarded.'
+      ? `✅ Approved! Your ${HUNT_POINTS()} points have been awarded.`
       : existing.status === 'rejected'
       ? '❌ Staff couldn\'t verify this one. Better luck tomorrow!'
       : '⏳ Pending staff review — check back soon for your points.';
