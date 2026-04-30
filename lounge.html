@@ -533,10 +533,10 @@ async function loadPlayer() {
 
   // Update trivia display
   document.getElementById('trivia-pts-display').textContent = barPoints;
-  const triviaRounds = getTriviaRoundsThisVisit();
+  const triviaRounds = await getTriviaRoundsThisVisit();
   const triviaRemaining = MAX_TRIVIA_PER_VISIT - triviaRounds.length;
   const triviaCountEl = document.getElementById('trivia-rounds-left');
-  if (triviaCountEl) triviaCountEl.textContent = `${triviaRemaining} round${triviaRemaining !== 1 ? 's' : ''} left tonight`;
+  if (triviaCountEl) triviaCountEl.textContent = `${Math.max(0, triviaRemaining)} round${triviaRemaining !== 1 ? 's' : ''} left tonight`;
 
   // Update selfie nameplate
   const { data: allScores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', currentBar?.id || '').order('total_points', { ascending: false });
@@ -645,26 +645,29 @@ const DRINKS = {
 
 const MAX_TRIVIA_PER_VISIT = 3;
 
-function getTriviaRoundsThisVisit() {
-  const slug = getBarSlug() || 'default';
-  const key = `br_trivia_rounds_${slug}`;
-  const stored = JSON.parse(localStorage.getItem(key) || '[]');
-  const windowStart = Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000;
-  return stored.filter((ts) => ts > windowStart);
+async function getTriviaRoundsThisVisit() {
+  if (!currentPlayer || !currentBar) return [];
+  const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+  const { data } = await sb.from('trivia_sessions')
+    .select('id, played_at')
+    .eq('player_id', currentPlayer.id)
+    .eq('bar_id', currentBar.id)
+    .gte('played_at', windowStart);
+  return data || [];
 }
 
-function recordTriviaRound() {
-  const slug = getBarSlug() || 'default';
-  const key = `br_trivia_rounds_${slug}`;
-  const rounds = getTriviaRoundsThisVisit();
-  rounds.push(Date.now());
-  localStorage.setItem(key, JSON.stringify(rounds));
+async function recordTriviaRound() {
+  if (!currentPlayer || !currentBar) return;
+  await sb.from('trivia_sessions').insert({
+    player_id: currentPlayer.id,
+    bar_id: currentBar.id
+  });
 }
 
 async function startTrivia() {
   if (!currentPlayer) { alert('Sign in first to play!'); return; }
 
-  const triviaRounds = getTriviaRoundsThisVisit();
+  const triviaRounds = await getTriviaRoundsThisVisit();
   if (triviaRounds.length >= MAX_TRIVIA_PER_VISIT) {
     document.getElementById('trivia-cap-msg').style.display = 'block';
     document.getElementById('trivia-setup').style.display = 'none';
@@ -676,7 +679,7 @@ async function startTrivia() {
 
   await new Promise(r => setTimeout(r, 800));
   currentQuestion = getNextQuestion();
-  recordTriviaRound();
+  await recordTriviaRound();
 
   document.getElementById('trivia-loading').style.display = 'none';
   document.getElementById('trivia-question').style.display = 'block';
@@ -1404,7 +1407,11 @@ async function submitHuntPhoto() {
 
   if (error) {
     btn.disabled = false; btn.textContent = '✅ Submit for review';
-    alert('Could not submit. Try again.');
+    if (error.code === '23505') {
+      alert('You already submitted a photo for today\'s hunt. Wait for staff to review it!');
+    } else {
+      alert('Could not submit. Try again.');
+    }
     return;
   }
 
