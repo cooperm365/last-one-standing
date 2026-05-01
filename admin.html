@@ -270,6 +270,27 @@
         <div id="settings-pts-msg" class="msg"></div>
         <button class="btn btn-primary" onclick="savePointSettings()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem;margin-top:0.5rem">Save point values</button>
       </div>
+      <!-- Branding -->
+      <div class="section-title">🎨 Bar Branding</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Customize how your leaderboard and player pages look. Changes sync instantly to every screen and every customer's phone.</p>
+      <div class="card" style="margin-bottom:1.5rem">
+        <label>Leaderboard title</label>
+        <input type="text" id="settings-lb-title" placeholder="e.g. Leaderboard Legends, The Board, CJ's Champions"/>
+        <label>Accent color</label>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem">
+          <input type="color" id="settings-accent-color" value="#F0A500" style="width:56px;height:40px;padding:2px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);cursor:pointer"/>
+          <div>
+            <div style="font-size:13px;font-weight:500">Pick your bar color</div>
+            <div style="font-size:12px;color:var(--text-muted)">Used for highlights, buttons, and the leaderboard race bar</div>
+          </div>
+        </div>
+        <label>Logo URL (optional)</label>
+        <input type="text" id="settings-logo-url" placeholder="https://yourbarswebsite.com/logo.png"/>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:-0.5rem;margin-bottom:1rem">Paste a direct link to your logo image. Square logos work best. Leave blank to use the BR logo.</div>
+        <div id="settings-brand-msg" class="msg"></div>
+        <button class="btn btn-primary" onclick="saveBrandSettings()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem">Save branding</button>
+      </div>
+
       <div class="section-title">🍺 Drink Specials</div>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">These show up in The Lounge Order Up feature when customers pick their vibe. Update them weekly to push your current specials.</p>
       <div class="card" style="margin-bottom:1.5rem">
@@ -449,10 +470,29 @@ async function loadSettingsTab() {
   document.getElementById('pts-trivia').value = currentBar.points_trivia ?? 5;
   document.getElementById('pts-challenge').value = currentBar.points_challenge ?? 25;
   document.getElementById('pts-hunt').value = currentBar.points_hunt ?? 20;
+  document.getElementById('settings-lb-title').value = currentBar.leaderboard_title || '';
+  document.getElementById('settings-accent-color').value = '#' + (currentBar.accent_color || 'F0A500');
+  document.getElementById('settings-logo-url').value = currentBar.logo_url || '';
   loadSpecials();
   loadTriviaList();
   loadClueList();
   loadAbuseFlags();
+}
+
+async function saveBrandSettings() {
+  const title = document.getElementById('settings-lb-title').value.trim();
+  const color = document.getElementById('settings-accent-color').value.replace('#', '');
+  const logo = document.getElementById('settings-logo-url').value.trim() || null;
+  const { error } = await sb.from('bars').update({
+    leaderboard_title: title || 'Leaderboard Legends',
+    accent_color: color,
+    logo_url: logo
+  }).eq('id', currentBar.id);
+  if (error) { showMsg('settings-brand-msg', 'Error saving.', 'error'); return; }
+  currentBar.leaderboard_title = title || 'Leaderboard Legends';
+  currentBar.accent_color = color;
+  currentBar.logo_url = logo;
+  showMsg('settings-brand-msg', 'Branding saved! Refreshing leaderboard will apply changes.', 'success');
 }
 
 async function savePointSettings() {
