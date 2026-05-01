@@ -194,10 +194,10 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
   <div class="panel active" id="panel-trivia">
 
     <div id="trivia-cap-msg" style="display:none;text-align:center;padding:2rem 0;margin-top:1rem">
-      <div style="font-size:48px;margin-bottom:0.75rem">🎯</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);letter-spacing:1px;margin-bottom:0.5rem">3 rounds done!</div>
-      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:1.25rem">You've used all your trivia rounds for this visit. Come back tomorrow for more bonus points!</div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;font-size:13px;color:var(--muted)">Your trivia resets in 8 hours from your first round tonight.</div>
+      <div style="font-size:48px;margin-bottom:0.75rem">🧠</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);letter-spacing:1px;margin-bottom:0.5rem">Trivia done for tonight!</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:1.25rem">You've answered all 30 trivia questions for this visit. Impressive! Come back tomorrow for more bonus points.</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;font-size:13px;color:var(--muted)">Your trivia resets 8 hours after your first question tonight.</div>
     </div>
 
     <div id="trivia-setup">
@@ -206,8 +206,8 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
         <span class="your-pts-val" id="trivia-pts-display">—</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border-radius:8px;padding:0.6rem 1rem;margin-bottom:1rem">
-        <span style="font-size:12px;color:var(--muted)">Trivia rounds tonight</span>
-        <span style="font-size:13px;font-weight:600;color:var(--gold)" id="trivia-rounds-left">3 rounds left</span>
+        <span style="font-size:12px;color:var(--muted)">Questions tonight</span>
+        <span style="font-size:13px;font-weight:600;color:var(--gold)" id="trivia-rounds-left">30 questions left</span>
       </div>
 
       <div style="background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:12px;padding:1.25rem;text-align:center;margin-bottom:1.25rem">
@@ -560,7 +560,7 @@ async function loadPlayer() {
   const triviaRounds = await getTriviaRoundsThisVisit();
   const triviaRemaining = MAX_TRIVIA_PER_VISIT - triviaRounds.length;
   const triviaCountEl = document.getElementById('trivia-rounds-left');
-  if (triviaCountEl) triviaCountEl.textContent = `${Math.max(0, triviaRemaining)} round${triviaRemaining !== 1 ? 's' : ''} left tonight`;
+  if (triviaCountEl) triviaCountEl.textContent = `${Math.max(0, triviaRemaining)} question${triviaRemaining !== 1 ? 's' : ''} left tonight`;
 
   // Update selfie nameplate
   const { data: allScores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', currentBar?.id || '').order('total_points', { ascending: false });
@@ -667,7 +667,7 @@ const DRINKS = {
   wild:      { emoji:'🔥', name:'Tequila Shot', getDesc: () => 'You said send it. One tequila shot, no overthinking it. Just make sure you can still hit that bullseye after.' }
 };
 
-const MAX_TRIVIA_PER_VISIT = 3;
+const MAX_TRIVIA_PER_VISIT = 30;
 
 async function getTriviaRoundsThisVisit() {
   if (!currentPlayer || !currentBar) return [];
@@ -775,7 +775,7 @@ async function resetTrivia() {
   const triviaRounds = await getTriviaRoundsThisVisit();
   const triviaRemaining = MAX_TRIVIA_PER_VISIT - triviaRounds.length;
   const roundsEl = document.getElementById('trivia-rounds-left');
-  if (roundsEl) roundsEl.textContent = `${Math.max(0,triviaRemaining)} round${triviaRemaining !== 1 ? 's' : ''} left tonight`;
+  if (roundsEl) roundsEl.textContent = `${Math.max(0,triviaRemaining)} question${triviaRemaining !== 1 ? 's' : ''} left tonight`;
   if (triviaRemaining > 0) {
     document.getElementById('trivia-cap-msg').style.display = 'none';
     document.getElementById('trivia-setup').style.display = 'block';
@@ -1156,8 +1156,9 @@ async function declineChallenge(challengeId) {
 
 async function loadPlayerList() {
   const barId = currentBar?.id || '';
+  const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
 
-  // Get all player IDs who have scanned at this bar (confirmed or pending)
+  // Get all player IDs who have scanned at this bar
   const { data: allCheckins } = await sb.from('checkins')
     .select('player_id')
     .eq('bar_id', barId);
@@ -1183,7 +1184,20 @@ async function loadPlayerList() {
     return;
   }
 
-  // Fetch profiles for those players
+  // Find players who have hit the 3-win cap this visit
+  const MAX_CHALLENGE_WINS = 3;
+  const { data: recentWins } = await sb.from('challenges')
+    .select('winner_id')
+    .eq('bar_id', barId)
+    .eq('status', 'completed')
+    .gte('created_at', windowStart)
+    .in('winner_id', otherIds);
+
+  const winCounts = {};
+  (recentWins||[]).forEach(w => { winCounts[w.winner_id] = (winCounts[w.winner_id]||0) + 1; });
+  const cappedIds = new Set(Object.entries(winCounts).filter(([,c]) => c >= MAX_CHALLENGE_WINS).map(([id]) => id));
+
+  // Fetch profiles
   const { data: profiles } = await sb.from('player_profiles')
     .select('id, name')
     .in('id', otherIds);
@@ -1193,16 +1207,35 @@ async function loadPlayerList() {
     return;
   }
 
-  list.innerHTML = profiles.map(profile => `
-    <div class="player-option" id="po-${profile.id}" onclick="selectPlayer('${profile.id}','${esc(profile.name)}')"
-      style="display:flex;align-items:center;gap:10px;padding:0.75rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:6px;transition:all 0.15s">
+  list.innerHTML = profiles.map(profile => {
+    const isCapped = cappedIds.has(profile.id);
+    return `<div class="player-option ${isCapped ? '' : ''}" id="po-${profile.id}"
+      onclick="${isCapped ? '' : `selectPlayer('${profile.id}','${esc(profile.name)}')`}"
+      style="display:flex;align-items:center;gap:10px;padding:0.75rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all 0.15s;${isCapped ? 'opacity:0.45;cursor:not-allowed' : 'cursor:pointer'}">
       <div style="width:30px;height:30px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--muted);flex-shrink:0">${profile.name[0].toUpperCase()}</div>
       <div style="flex:1">
         <div style="font-size:14px;font-weight:500">${esc(profile.name)}</div>
-        <div style="font-size:11px;color:var(--muted)">${scoreMap[profile.id] || 0} pts</div>
+        <div style="font-size:11px;color:var(--muted)">${isCapped ? '🏆 Max wins reached tonight' : `${scoreMap[profile.id] || 0} pts`}</div>
       </div>
       <div style="font-size:16px;opacity:0" id="check-${profile.id}">✓</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+
+  // Check if current player is also capped — show instant message
+  const { data: myWins } = await sb.from('challenges')
+    .select('id')
+    .eq('winner_id', currentPlayer.id)
+    .eq('bar_id', barId)
+    .eq('status', 'completed')
+    .gte('created_at', windowStart);
+
+  if ((myWins||[]).length >= MAX_CHALLENGE_WINS) {
+    list.innerHTML = `<div style="background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.25);border-radius:10px;padding:1rem;text-align:center">
+      <div style="font-size:32px;margin-bottom:0.5rem">🏆</div>
+      <div style="font-size:14px;font-weight:600;color:var(--gold);margin-bottom:0.5rem">You've maxed out challenges tonight!</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">You've won ${MAX_CHALLENGE_WINS} challenges this visit — that's the limit. No more points from challenges until your next visit. You can still play games for fun!</div>
+    </div>`;
+  }
 }
 
 
