@@ -318,7 +318,7 @@ async function init() {
 
   // Load bar from URL
   const slug = getBarSlug();
-  if (slug) currentBar = await getBar(sb, slug);
+  if (slug) { currentBar = await getBar(sb, slug); applyBarBranding(currentBar); }
 
   // Check if returning player HAS a score at THIS bar
   const savedPhone = localStorage.getItem('br_phone');
