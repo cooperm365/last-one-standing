@@ -172,6 +172,19 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;hei
     </script>
   </div>
 
+  <div id="lounge-disabled" style="display:none;padding:2rem 1.25rem;text-align:center">
+    <div style="font-size:48px;margin-bottom:1rem">🚫</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);margin-bottom:0.75rem">The Lounge is closed tonight</div>
+    <p style="font-size:15px;color:var(--text-muted);margin-bottom:1.5rem;max-width:300px;margin-left:auto;margin-right:auto">The bar has turned off Lounge access for now — this usually happens during trivia night or league play. Keep checking in and earning points on the leaderboard!</p>
+    <a id="lounge-disabled-btn" href="my-points.html" class="btn btn-gold" style="display:inline-block;text-decoration:none;padding:0.85rem 2rem">View my score</a>
+    <script>
+      (function() {
+        const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
+        if (slug) document.getElementById('lounge-disabled-btn').href = `my-points.html?bar=${slug}`;
+      })();
+    </script>
+  </div>
+
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('trivia',this)">
       <span class="tab-icon">🎲</span>Trivia
@@ -530,6 +543,12 @@ async function loadPlayer() {
     return;
   }
 
+  // Gate: check if lounge is enabled for this bar
+  if (currentBar && currentBar.lounge_enabled === false) {
+    showLoungeDisabled();
+    return;
+  }
+
   // Gate: must have scanned at THIS bar within the last 8 hours
   if (currentBar) {
     const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
@@ -570,13 +589,21 @@ async function loadPlayer() {
 }
 
 function showNotCheckedIn() {
-  // Hide all tab content, show gate message
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  const gate = document.getElementById('lounge-gate');
-  if (gate) gate.style.display = 'block';
+  document.getElementById('lounge-gate').style.display = 'block';
+  document.getElementById('lounge-disabled').style.display = 'none';
+  document.querySelector('.tab-bar').style.display = 'none';
+  document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+  document.getElementById('points-guide-strip').style.display = 'none';
 }
 
+function showLoungeDisabled() {
+  document.getElementById('lounge-disabled').style.display = 'block';
+  document.getElementById('lounge-gate').style.display = 'none';
+  document.querySelector('.tab-bar').style.display = 'none';
+  document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+  document.getElementById('points-guide-strip').style.display = 'none';
+}
+  // Hide all tab content, show gate message
 // ── TABS ──────────────────────────────────────────────
 function switchTab(name, btn) {
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
