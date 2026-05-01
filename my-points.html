@@ -14,6 +14,21 @@
     .scan-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:1rem; background:var(--gold); color:#111; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:16px; font-weight:600; cursor:pointer; margin-bottom:1.25rem; }
     .scan-btn:active { opacity:0.9; transform:scale(0.98); }
 
+    /* Bottom navigation */
+    .bottom-nav { position:fixed; bottom:0; left:0; right:0; background:var(--bg2); border-top:1px solid var(--border); display:flex; align-items:stretch; z-index:100; padding-bottom:env(safe-area-inset-bottom); }
+    .bottom-nav a { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 4px 8px; text-decoration:none; color:var(--text-muted); font-size:10px; font-weight:500; gap:4px; transition:color 0.15s; position:relative; }
+    .bottom-nav a.active { color:var(--gold); }
+    .bottom-nav a:active { opacity:0.7; }
+    .bottom-nav .nav-icon { font-size:22px; line-height:1; }
+    .bottom-nav .nav-label { font-size:10px; letter-spacing:0.3px; }
+    .bottom-nav .nav-dot { position:absolute; top:8px; right:calc(50% - 14px); width:8px; height:8px; background:var(--red); border-radius:50%; border:2px solid var(--bg2); display:none; }
+    .bottom-nav .nav-dot.show { display:block; }
+    .scan-tab { background:var(--gold) !important; color:#111 !important; margin:6px 8px; border-radius:12px; font-weight:700 !important; }
+    .scan-tab .nav-icon { font-size:20px; }
+
+    /* Add padding to body so content doesn't hide behind bottom nav */
+    .page-content { padding-bottom: 80px; }
+
     /* Full-screen panels that slide over the dashboard */
     .panel { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:50; overflow-y:auto; }
     .panel.open { display:block; }
@@ -181,28 +196,19 @@
     <div class="logo-mark">BR</div>
     <div>
       <div class="site-name">Bar Rank</div>
-      <div class="site-sub">My Score</div>
+      <div class="site-sub" id="header-bar-name">My Score</div>
     </div>
-    <div style="margin-left:auto;display:flex;gap:8px">
-      <a href="tutorial.html" class="btn btn-outline btn-sm" id="link-tutorial">❓ How it works</a>
-      <a href="lounge.html" class="btn btn-outline btn-sm" id="link-lounge">🎲 Lounge</a>
-      <a href="leaderboard.html" class="btn btn-outline btn-sm" id="link-leaderboard">Leaderboard</a>
-    </div>
+    <a href="tutorial.html" id="link-tutorial" style="margin-left:auto;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:8px;font-size:12px;text-decoration:none">❓ How it works</a>
     <script>
-      // Set links immediately from URL — before any async code runs
       (function() {
-        const p = new URLSearchParams(location.search);
-        const slug = p.get('bar') || localStorage.getItem('br_bar_slug');
-        if (slug) {
-          document.getElementById('link-tutorial').href = `tutorial.html?bar=${slug}`;
-          document.getElementById('link-lounge').href = `lounge.html?bar=${slug}`;
-          document.getElementById('link-leaderboard').href = `leaderboard.html?bar=${slug}`;
-        }
+        const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
+        if (slug) document.getElementById('link-tutorial').href = `tutorial.html?bar=${slug}`;
       })();
     </script>
   </div>
 
   <!-- Phone lookup -->
+  <div class="page-content">
   <div id="lookup-form">
     <div class="card">
       <p style="font-size:14px;color:var(--text-muted);margin-bottom:1rem">Enter your mobile number to see your points.</p>
@@ -654,6 +660,7 @@ async function lookup() {
   const player = { ...profile, total_points: barScore?.total_points || 0 };
   currentPlayer = player;
   await showDashboard(player);
+  showBottomNav();
 }
 
 async function showDashboard(player) {
@@ -874,12 +881,10 @@ function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
   if (!slug) slug = localStorage.getItem('br_bar_slug');
   
   if (slug) {
-    localStorage.setItem('br_bar_slug', slug); // Always persist it
+    localStorage.setItem('br_bar_slug', slug);
     currentBar = await getBar(sb, slug);
     applyBarBranding(currentBar);
     document.getElementById('link-tutorial').href = `tutorial.html?bar=${slug}`;
-    document.getElementById('link-lounge').href = `lounge.html?bar=${slug}`;
-    document.getElementById('link-leaderboard').href = `leaderboard.html?bar=${slug}`;
     // Fix URL if slug was missing
     if (!getBarSlug() && slug) {
       const url = new URL(location.href);
@@ -914,6 +919,62 @@ async function lookupThenCheckin(phone, eventId) {
     if (loadingEl) loadingEl.remove();
     localStorage.removeItem('br_phone');
     document.getElementById('lookup-form').style.display = 'block';
+  }
+}
+
+// Update bar name in header
+function updateHeaderBarName() {
+  const el = document.getElementById('header-bar-name');
+  if (el && currentBar?.name) el.textContent = currentBar.name;
+}
+</script>
+
+</div><!-- end page-content -->
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav" id="bottom-nav" style="display:none">
+  <a href="#" id="nav-score" class="active" onclick="return false">
+    <span class="nav-icon">🏅</span>
+    <span class="nav-label">My Score</span>
+  </a>
+  <a href="leaderboard.html" id="nav-leaderboard">
+    <span class="nav-icon">📺</span>
+    <span class="nav-label">Leaderboard</span>
+  </a>
+  <a href="checkin.html" id="nav-scan" class="scan-tab">
+    <span class="nav-icon">📷</span>
+    <span class="nav-label">Scan</span>
+  </a>
+  <a href="lounge.html" id="nav-lounge">
+    <span class="nav-icon">🎲</span>
+    <span class="nav-label">Lounge</span>
+    <span class="nav-dot" id="lounge-dot"></span>
+  </a>
+  <a href="tutorial.html" id="nav-how">
+    <span class="nav-icon">❓</span>
+    <span class="nav-label">How it works</span>
+  </a>
+</nav>
+
+<script>
+// Set up bottom nav links with bar slug
+(function() {
+  const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
+  if (slug) {
+    document.getElementById('nav-leaderboard').href = `leaderboard.html?bar=${slug}`;
+    document.getElementById('nav-scan').href = `checkin.html?bar=${slug}`;
+    document.getElementById('nav-lounge').href = `lounge.html?bar=${slug}`;
+    document.getElementById('nav-how').href = `tutorial.html?bar=${slug}`;
+  }
+})();
+
+// Show bottom nav once player is loaded
+function showBottomNav() {
+  document.getElementById('bottom-nav').style.display = 'flex';
+  updateHeaderBarName();
+  // Show lounge dot if lounge is enabled
+  if (currentBar?.lounge_enabled !== false) {
+    document.getElementById('lounge-dot').classList.add('show');
   }
 }
 </script>
