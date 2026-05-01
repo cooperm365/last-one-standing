@@ -876,7 +876,7 @@ function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
   if (slug) {
     localStorage.setItem('br_bar_slug', slug); // Always persist it
     currentBar = await getBar(sb, slug);
-    // Update header links with bar slug
+    applyBarBranding(currentBar);
     document.getElementById('link-tutorial').href = `tutorial.html?bar=${slug}`;
     document.getElementById('link-lounge').href = `lounge.html?bar=${slug}`;
     document.getElementById('link-leaderboard').href = `leaderboard.html?bar=${slug}`;
