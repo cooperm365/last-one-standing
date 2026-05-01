@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Bar Rank"/>
+  <meta name="theme-color" content="#111110"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
 <title>How It Works - Bar Rank</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap');
@@ -294,8 +301,8 @@ svg text{font-family:'DM Sans',sans-serif}
     </div>
     <div class="step-num">BONUS</div>
     <div class="slide-title">Hang out in <span>The Lounge</span></div>
-    <div class="slide-body">Between games, open The Lounge from your score page. Answer bar trivia to earn bonus points, take a rank selfie to share, or get a drink recommendation based on your vibe.</div>
-    <div class="callout"><span class="callout-icon">🎲</span>Get a trivia question right and earn +5 bonus points. No penalty for wrong answers!</div>
+    <div class="slide-body">Between games, open The Lounge from your score page. Answer bar trivia for bonus points, take a rank selfie to share, get a drink recommendation, challenge another player, or hunt for tonight's hidden item for +20 points.</div>
+    <div class="callout"><span class="callout-icon">🔍</span>New scavenger hunt clue every day — find the item, snap a photo, and staff awards you 20 bonus points if verified!</div>
   </div>
 
 </div>
@@ -368,6 +375,12 @@ document.getElementById('slides').addEventListener('touchend', e => {
 
 buildProgress();
 update();
+</script>
+<script>
+  // Register service worker for PWA
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }
 </script>
 </body>
 </html>
