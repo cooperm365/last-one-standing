@@ -223,7 +223,9 @@ async function init() {
   if (!currentBar) { document.body.innerHTML = '<div style="padding:2rem;color:#f56565">Bar not found.</div>'; return; }
 
   // Apply bar branding
-  document.getElementById('bar-title').textContent = 'Leaderboard Legends — ' + currentBar.name;
+  applyBarBranding(currentBar);
+  const lbTitle = currentBar.leaderboard_title || 'Leaderboard Legends';
+  document.getElementById('bar-title').textContent = lbTitle + ' — ' + currentBar.name;
   document.getElementById('prize-1').textContent = currentBar.prize_1 || '$50 Gift Card';
   document.getElementById('prize-2').textContent = currentBar.prize_2 || 'Free Round';
   document.getElementById('prize-3').textContent = currentBar.prize_3 || 'Bar T-Shirt';
