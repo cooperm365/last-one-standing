@@ -270,6 +270,21 @@
         <div id="settings-pts-msg" class="msg"></div>
         <button class="btn btn-primary" onclick="savePointSettings()" style="width:auto;display:inline-block;padding:0.7rem 1.5rem;margin-top:0.5rem">Save point values</button>
       </div>
+      <div class="section-title">🎲 The Lounge</div>
+      <div class="card" style="margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+          <div>
+            <div style="font-size:15px;font-weight:600">Lounge access</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:3px">Turn The Lounge off during trivia nights, league nights, or any event where you don't want it running. Players can still check in and view the leaderboard — they just can't access Lounge games.</div>
+          </div>
+        </div>
+        <div id="lounge-toggle-wrap" style="margin-top:1rem;display:flex;gap:8px">
+          <button id="lounge-on-btn" class="btn btn-primary" onclick="setLoungeEnabled(true)" style="width:auto;padding:0.6rem 1.25rem">✅ Lounge ON</button>
+          <button id="lounge-off-btn" class="btn btn-outline" onclick="setLoungeEnabled(false)" style="width:auto;padding:0.6rem 1.25rem;color:var(--red);border-color:rgba(245,101,101,0.3)">🚫 Turn Lounge OFF</button>
+        </div>
+        <div id="lounge-status-msg" style="font-size:13px;margin-top:0.75rem;padding:0.5rem 0.75rem;border-radius:6px;display:none"></div>
+      </div>
+
       <!-- Branding -->
       <div class="section-title">🎨 Bar Branding</div>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Customize how your leaderboard and player pages look. Changes sync instantly to every screen and every customer's phone.</p>
@@ -473,10 +488,41 @@ async function loadSettingsTab() {
   document.getElementById('settings-lb-title').value = currentBar.leaderboard_title || '';
   document.getElementById('settings-accent-color').value = '#' + (currentBar.accent_color || 'F0A500');
   document.getElementById('settings-logo-url').value = currentBar.logo_url || '';
+  updateLoungeToggleUI(currentBar.lounge_enabled !== false);
   loadSpecials();
   loadTriviaList();
   loadClueList();
   loadAbuseFlags();
+}
+
+function updateLoungeToggleUI(enabled) {
+  const onBtn = document.getElementById('lounge-on-btn');
+  const offBtn = document.getElementById('lounge-off-btn');
+  const msg = document.getElementById('lounge-status-msg');
+  if (enabled) {
+    onBtn.style.opacity = '1'; onBtn.style.fontWeight = '700';
+    offBtn.style.opacity = '0.5'; offBtn.style.fontWeight = '400';
+    msg.style.display = 'block';
+    msg.style.background = 'rgba(62,207,142,0.1)';
+    msg.style.color = 'var(--green)';
+    msg.style.border = '1px solid rgba(62,207,142,0.2)';
+    msg.textContent = '✅ The Lounge is currently ON — players can access trivia, challenges, and the hunt.';
+  } else {
+    offBtn.style.opacity = '1'; offBtn.style.fontWeight = '700';
+    onBtn.style.opacity = '0.5'; onBtn.style.fontWeight = '400';
+    msg.style.display = 'block';
+    msg.style.background = 'rgba(245,101,101,0.08)';
+    msg.style.color = 'var(--red)';
+    msg.style.border = '1px solid rgba(245,101,101,0.2)';
+    msg.textContent = '🚫 The Lounge is currently OFF — players can still check in and view the leaderboard.';
+  }
+}
+
+async function setLoungeEnabled(enabled) {
+  const { error } = await sb.from('bars').update({ lounge_enabled: enabled }).eq('id', currentBar.id);
+  if (error) { alert('Error saving. Try again.'); return; }
+  currentBar.lounge_enabled = enabled;
+  updateLoungeToggleUI(enabled);
 }
 
 async function saveBrandSettings() {
