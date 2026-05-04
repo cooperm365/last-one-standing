@@ -265,7 +265,7 @@ async function load() {
   const { data: scores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', currentBar.id);
   const { data: confirmedCI } = await sb.from('checkins').select('player_id').eq('pending', false).eq('bar_id', currentBar.id);
   const { data: pendingCI } = await sb.from('checkins').select('player_id, points_earned, points_confirm_at').eq('pending', true).eq('bar_id', currentBar.id);
-  const { data: profiles } = await sb.from('player_profiles').select('id, name, phone');
+  const { data: profiles } = await sb.from('player_profiles').select('id, name, nickname, phone');
   const T = TARGET();
 
   const cins = {};
@@ -290,7 +290,7 @@ async function load() {
   const rows = Object.entries(scoreMap)
     .map(([pid, pts]) => ({
       id: pid,
-      name: pm[pid]?.name || '?',
+      name: pm[pid]?.nickname || (pm[pid]?.name ? pm[pid].name.split(' ')[0] : '?'),
       phone: pm[pid]?.phone,
       pts: Math.max(0, pts),
       pendingPts: pendingPts[pid] || 0,
