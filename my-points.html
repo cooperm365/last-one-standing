@@ -674,7 +674,7 @@ async function showDashboard(player) {
   currentPlayer = player;
   document.getElementById('lookup-form').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
-  document.getElementById('player-name').textContent = player.name;
+  document.getElementById('player-name').textContent = player.nickname || player.name.split(' ')[0];
 
   const { data: checkins } = await sb.from('checkins').select('*, events(name, type)')
     .eq('player_id', player.id).eq('bar_id', currentBar.id).order('scanned_at', { ascending: false });
