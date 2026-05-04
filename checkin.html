@@ -149,8 +149,16 @@ input:focus{border-color:var(--gold-dim)}
       <p style="font-size:14px;color:var(--muted);margin-bottom:1rem">First time? Enter your details to claim your points.</p>
       <label>Your name</label>
       <input type="text" id="new-name" placeholder="e.g. Jamie" autocomplete="name"/>
+      <label>Nickname (optional)</label>
+      <input type="text" id="new-nickname" placeholder="What shows on the leaderboard — leave blank to use your first name" maxlength="20" autocomplete="off"/>
       <label>Mobile number</label>
       <input type="tel" id="new-phone" placeholder="e.g. 555-000-0000" autocomplete="tel"/>
+      <div style="display:flex;align-items:flex-start;gap:10px;margin:1rem 0;padding:0.75rem;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+        <input type="checkbox" id="new-consent" style="margin-top:3px;flex-shrink:0;width:18px;height:18px;accent-color:var(--gold);cursor:pointer"/>
+        <label for="new-consent" style="font-size:13px;color:var(--muted);line-height:1.5;cursor:pointer">
+          I agree to the <a href="/terms.html" target="_blank" style="color:var(--gold)">Terms of Service</a> and <a href="/privacy.html" target="_blank" style="color:var(--gold)">Privacy Policy</a>. I consent to my name appearing on the leaderboard and to receiving occasional messages from this bar via Bar Rank.
+        </label>
+      </div>
       <div id="new-msg" class="msg"></div>
       <button class="btn btn-primary" onclick="submitNewPlayer()">Check in — <span id="new-pts">—</span> points</button>
     </div>
@@ -574,25 +582,49 @@ async function getOrCreateBarScore(profileId) {
   return created;
 }
 
+// Basic profanity filter — common terms only
+const PROFANITY = ['fuck','shit','ass','bitch','cunt','dick','cock','pussy','faggot','nigger','nigga','bastard','whore','slut'];
+function containsProfanity(text) {
+  const lower = text.toLowerCase().replace(/[^a-z0-9]/g,'');
+  return PROFANITY.some(w => lower.includes(w));
+}
+
 async function submitNewPlayer() {
   const name = document.getElementById('new-name').value.trim();
   const phone = normalizePhone(document.getElementById('new-phone').value.trim());
+  const nickname = document.getElementById('new-nickname').value.trim();
+  const consent = document.getElementById('new-consent').checked;
+
   if (!name) { showMsg('new-msg', 'Please enter your name.', 'error'); return; }
   if (!phone) { showMsg('new-msg', 'Please enter a valid mobile number.', 'error'); return; }
+  if (!consent) { showMsg('new-msg', 'Please agree to the Terms of Service to continue.', 'error'); return; }
+  if (nickname && containsProfanity(nickname)) { showMsg('new-msg', 'Please choose an appropriate nickname.', 'error'); return; }
+  if (nickname && nickname.length > 20) { showMsg('new-msg', 'Nickname must be 20 characters or less.', 'error'); return; }
+
   const btn = event.target.closest('button');
   if (btn) { btn.disabled = true; btn.textContent = 'Checking in...'; }
   try {
-    // Check if profile exists globally by phone
     let { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone).single();
     if (!profile) {
-      // Create new global profile
-      const { data: newProfile, error } = await sb.from('player_profiles').insert({ name, phone }).select().single();
+      const { data: newProfile, error } = await sb.from('player_profiles').insert({
+        name,
+        phone,
+        nickname: nickname || null,
+        tos_agreed: true,
+        tos_agreed_at: new Date().toISOString()
+      }).select().single();
       if (error) { showMsg('new-msg', 'Could not create account. Try again.', 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Check in — ' + (eventData?.points_value||'') + ' points'; } return; }
       profile = newProfile;
+    } else {
+      // Update existing profile with consent + nickname if provided
+      await sb.from('player_profiles').update({
+        tos_agreed: true,
+        tos_agreed_at: new Date().toISOString(),
+        ...(nickname ? { nickname } : {})
+      }).eq('id', profile.id);
+      profile = { ...profile, tos_agreed: true, ...(nickname ? { nickname } : {}) };
     }
-    // Get or create bar score
     const barScore = await getOrCreateBarScore(profile.id);
-    // Pass combined object to doCheckin
     await doCheckin({ ...profile, total_points: barScore?.total_points || 0, bar_score_id: barScore?.id });
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Check in'; }
