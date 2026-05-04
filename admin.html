@@ -837,7 +837,7 @@ async function loadActivityStats() {
 
 // --- Players ---
 async function loadPlayers() {
-  const { data: scores } = await sb.from('player_bar_scores').select('*, player_profiles(id, name, phone, created_at)').eq('bar_id', currentBar.id).order('total_points', { ascending:false });
+  const { data: scores } = await sb.from('player_bar_scores').select('*, player_profiles(id, name, nickname, phone, created_at)').eq('bar_id', currentBar.id).order('total_points', { ascending:false });
   const { data: checkins } = await sb.from('checkins').select('player_id').eq('bar_id', currentBar.id);
   const countMap={};
   (checkins||[]).forEach(c=>{ countMap[c.player_id]=(countMap[c.player_id]||0)+1; });
@@ -846,9 +846,10 @@ async function loadPlayers() {
   tableEl.querySelector('thead tr').innerHTML=`<th>#</th><th>Name</th><th>Phone</th><th style="text-align:right">Total pts</th><th style="text-align:right">Check-ins</th><th>Joined</th><th style="text-align:right">Actions</th>`;
   document.getElementById('players-tbody').innerHTML=(scores||[]).map((s,i)=>{
     const p=s.player_profiles; if(!p) return '';
+    const displayName = p.nickname ? `${esc(p.name)} <span style="color:var(--gold);font-size:12px">"${esc(p.nickname)}"</span>` : esc(p.name);
     return `<tr>
       <td style="color:var(--text-muted)">${i+1}</td>
-      <td style="font-weight:500">${esc(p.name)}</td>
+      <td style="font-weight:500">${displayName}</td>
       <td style="color:var(--text-muted)">${p.phone}</td>
       <td style="text-align:right;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:18px">${s.total_points}</td>
       <td style="text-align:right">${countMap[p.id]||0}</td>
