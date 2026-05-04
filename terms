@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Terms of Service — Bar Rank</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#111110"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#111110;color:#f0ede8;font-family:'DM Sans',Arial,sans-serif;font-size:15px;line-height:1.7;padding:0 0 60px}
+    .header{background:#1a1a18;border-bottom:1px solid #2a2a28;padding:16px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+    .logo-mark{width:36px;height:36px;background:#f0a500;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#111;flex-shrink:0}
+    .site-name{font-weight:700;font-size:16px;color:#f0a500}
+    .site-sub{font-size:12px;color:#888780}
+    .back-btn{margin-left:auto;background:#2a2a28;border:none;color:#888780;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;text-decoration:none}
+    .content{max-width:680px;margin:0 auto;padding:32px 20px}
+    h1{font-size:26px;font-weight:700;color:#f0a500;margin-bottom:8px}
+    .updated{font-size:13px;color:#888780;margin-bottom:32px}
+    h2{font-size:17px;font-weight:600;color:#f0ede8;margin:28px 0 10px}
+    p{color:#c0bdb8;margin-bottom:12px}
+    ul{color:#c0bdb8;padding-left:20px;margin-bottom:12px}
+    li{margin-bottom:6px}
+    .divider{border:none;border-top:1px solid #2a2a28;margin:28px 0}
+    a{color:#f0a500;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-mark">BR</div>
+    <div>
+      <div class="site-name">Bar Rank</div>
+      <div class="site-sub">Terms of Service</div>
+    </div>
+    <a class="back-btn" onclick="history.back()">← Back</a>
+  </div>
+
+  <div class="content">
+    <h1>Terms of Service</h1>
+    <div class="updated">Last updated: May 2026</div>
+
+    <p>Welcome to Bar Rank. By scanning a QR code and checking in at a participating bar, you agree to these terms. Please read them carefully.</p>
+
+    <h2>1. What Bar Rank is</h2>
+    <p>Bar Rank is a loyalty and competition platform operated by Bar Rank LLC. It allows customers at participating bars to earn points by playing games, compete on a live leaderboard, and win prizes set by the bar. Bar Rank is provided as a service to participating bars — the bar owner is responsible for their prizes, promotions, and customer relationships.</p>
+
+    <h2>2. Your information</h2>
+    <p>When you check in you provide your name and mobile phone number. We use this information to:</p>
+    <ul>
+      <li>Track your points and rank across visits</li>
+      <li>Display your name or nickname on the leaderboard at the bar</li>
+      <li>Send you occasional messages from the bar you checked into via Bar Rank</li>
+    </ul>
+    <p>We do not sell your information to third parties. We do not send spam. Your phone number is only used in connection with the Bar Rank platform.</p>
+
+    <h2>3. Leaderboard display</h2>
+    <p>By checking in you consent to your name or nickname appearing on the live leaderboard displayed in the bar. If you prefer not to have your full name shown, you may enter a nickname at check-in. Your name will not be shared publicly beyond the in-bar leaderboard display.</p>
+
+    <h2>4. SMS messages</h2>
+    <p>By checking in you consent to receive occasional SMS messages from the bar you checked into, sent via Bar Rank. These messages may include competition updates, special promotions, and event announcements.</p>
+    <p>Message and data rates may apply. You can opt out at any time by replying STOP to any message. After opting out you will not receive further messages from that bar via Bar Rank.</p>
+
+    <h2>5. Points and prizes</h2>
+    <p>Points are awarded for gameplay as described in the app. Points have no cash value and cannot be transferred. The bar owner sets all prizes and is solely responsible for fulfilling them. Bar Rank is not responsible for prize fulfillment.</p>
+    <p>Bar Rank reserves the right to remove points or suspend accounts in cases of suspected abuse, cheating, or violation of these terms.</p>
+
+    <h2>6. Fair play</h2>
+    <p>You agree not to attempt to manipulate or exploit the points system. This includes but is not limited to sharing QR codes outside the bar, using multiple accounts, or coordinating with others to artificially inflate scores. Violations may result in removal from the platform.</p>
+
+    <h2>7. Nickname conduct</h2>
+    <p>If you choose a nickname it must be appropriate and inoffensive. Bar Rank reserves the right to remove or replace nicknames that contain profanity, slurs, or offensive content.</p>
+
+    <h2>8. Limitation of liability</h2>
+    <p>Bar Rank is provided as-is. We are not liable for any loss of points due to technical issues, bar closures, or changes to the competition by the bar owner. Our total liability to you for any claim is limited to $0, as the service is provided to you free of charge.</p>
+
+    <h2>9. Changes to these terms</h2>
+    <p>We may update these terms from time to time. Continued use of Bar Rank after changes constitutes acceptance of the updated terms.</p>
+
+    <h2>10. Contact</h2>
+    <p>Questions about these terms? Contact us at <a href="mailto:hello@barrank.app">hello@barrank.app</a></p>
+
+    <hr class="divider"/>
+    <p style="font-size:13px;color:#666663">Bar Rank LLC · Fargo, ND · <a href="/privacy.html">Privacy Policy</a></p>
+  </div>
+</body>
+</html>
