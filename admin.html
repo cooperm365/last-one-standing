@@ -61,6 +61,7 @@
       <button class="tab" onclick="switchTab('players', this)">Players</button>
       <button class="tab" onclick="switchTab('stats', this)">📊 Stats</button>
       <button class="tab" onclick="switchTab('hunt', this)">🔍 Hunt</button>
+      <button class="tab" onclick="switchTab('prizes', this)">🎟️ Prizes</button>
       <button class="tab" onclick="switchTab('season', this)">🏆 Season</button>
       <button class="tab" onclick="switchTab('settings', this)">⚙️ Settings</button>
     </div>
@@ -176,7 +177,22 @@
       <div id="hunt-list"></div>
     </div>
 
-    <!-- SEASON TAB -->
+    <!-- PRIZES TAB -->
+  <div id="tab-prizes" class="tab-panel" style="display:none;padding:1.25rem">
+    <div class="section-title">🎟️ Prize Claims & Redemptions</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem">Players who hit the points target and land in the top 3 receive a unique claim code. Mark codes as redeemed here when they show it to you at the bar.</p>
+
+    <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" id="prize-filter-all" onclick="filterPrizeClaims('all')" style="border-color:var(--gold);color:var(--gold)">All</button>
+      <button class="btn btn-outline btn-sm" id="prize-filter-unclaimed" onclick="filterPrizeClaims('unclaimed')">Unclaimed</button>
+      <button class="btn btn-outline btn-sm" id="prize-filter-claimed" onclick="filterPrizeClaims('claimed')">Redeemed</button>
+    </div>
+
+    <div id="prizes-loading" style="color:var(--text-muted);font-size:14px;padding:1rem 0">Loading...</div>
+    <div id="prizes-list"></div>
+  </div>
+
+  <!-- SEASON TAB -->
     <div class="tab-panel" id="tab-season">
       <div class="section-title">🏆 Season Management</div>
       <div class="card card-gold" style="margin-bottom:1.5rem">
@@ -441,6 +457,7 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
   if (name === 'hunt') loadHuntSubmissions();
+  if (name === 'prizes') loadPrizeClaims();
   if (name === 'season') loadSeasonTab();
   if (name === 'settings') loadSettingsTab();
 }
@@ -555,6 +572,75 @@ async function savePointSettings() {
   currentBar.points_challenge = challenge;
   currentBar.points_hunt = hunt;
   showMsg('settings-pts-msg', 'Point values saved!', 'success');
+}
+
+// ── PRIZE CLAIMS ─────────────────────────────────────────
+let allPrizeClaims = [];
+let prizeFilter = 'all';
+
+async function loadPrizeClaims() {
+  document.getElementById('prizes-loading').style.display = 'block';
+  document.getElementById('prizes-list').innerHTML = '';
+  const { data } = await sb.from('prize_claims')
+    .select('*, player_profiles(name, nickname, phone)')
+    .eq('bar_id', currentBar.id)
+    .order('awarded_at', { ascending: false });
+  allPrizeClaims = data || [];
+  document.getElementById('prizes-loading').style.display = 'none';
+  renderPrizeClaims();
+}
+
+function filterPrizeClaims(filter) {
+  prizeFilter = filter;
+  ['all','unclaimed','claimed'].forEach(f => {
+    const btn = document.getElementById(`prize-filter-${f}`);
+    if (btn) { btn.style.borderColor = f === filter ? 'var(--gold)' : ''; btn.style.color = f === filter ? 'var(--gold)' : ''; }
+  });
+  renderPrizeClaims();
+}
+
+function renderPrizeClaims() {
+  const list = document.getElementById('prizes-list');
+  const filtered = prizeFilter === 'all' ? allPrizeClaims : allPrizeClaims.filter(c => c.status === prizeFilter);
+  if (!filtered.length) {
+    list.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:14px">${prizeFilter === 'unclaimed' ? 'No unclaimed prizes right now.' : prizeFilter === 'claimed' ? 'No redeemed prizes yet.' : 'No prize claims yet.'}</div>`;
+    return;
+  }
+  const placements = ['','🥇 1st Place','🥈 2nd Place','🥉 3rd Place'];
+  list.innerHTML = filtered.map(c => {
+    const p = c.player_profiles;
+    const displayName = p?.nickname || p?.name || 'Unknown';
+    const isUnclaimed = c.status === 'unclaimed';
+    return `<div style="background:var(--bg2);border:1px solid ${isUnclaimed ? 'rgba(240,165,0,0.3)' : 'var(--border)'};border-radius:10px;padding:1rem;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+        <div>
+          <span style="font-size:13px;font-weight:600;color:var(--gold)">${placements[c.placement]||'Prize'}</span>
+          <span style="margin-left:8px;font-size:12px;padding:2px 8px;border-radius:999px;background:${isUnclaimed ? 'rgba(240,165,0,0.1)' : 'rgba(62,207,142,0.1)'};color:${isUnclaimed ? 'var(--gold)' : 'var(--green)'}">
+            ${isUnclaimed ? 'Unclaimed' : 'Redeemed'}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">${new Date(c.awarded_at).toLocaleDateString()}</div>
+      </div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px">${esc(displayName)}</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem">${p?.phone||''}</div>
+      <div style="background:var(--bg3);border:1px dashed var(--border);border-radius:8px;padding:0.6rem 1rem;margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:var(--text-muted)">Prize:</span>
+        <span style="font-size:14px;font-weight:500">${esc(c.prize_text)}</span>
+      </div>
+      <div style="background:var(--bg3);border:1px dashed ${isUnclaimed ? 'var(--gold)' : 'var(--border)'};border-radius:8px;padding:0.6rem 1rem;margin-bottom:${isUnclaimed ? '0.75rem' : '0'};display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:var(--text-muted)">Claim code:</span>
+        <span style="font-family:monospace;font-size:15px;font-weight:700;color:${isUnclaimed ? 'var(--gold)' : 'var(--text-muted)'};${!isUnclaimed ? 'text-decoration:line-through' : ''}">${esc(c.claim_code)}</span>
+      </div>
+      ${isUnclaimed ? `<button class="btn btn-primary" onclick="redeemPrizeClaim('${c.id}','${esc(displayName)}')" style="width:100%;margin-top:0.75rem;padding:0.7rem">✅ Mark as Redeemed</button>`
+      : `<div style="font-size:12px;color:var(--text-muted);margin-top:0.5rem;text-align:center">Redeemed ${c.claimed_at ? new Date(c.claimed_at).toLocaleDateString() : ''}${c.claimed_by ? ` by ${esc(c.claimed_by)}` : ''}</div>`}
+    </div>`;
+  }).join('');
+}
+
+async function redeemPrizeClaim(claimId, playerName) {
+  const staffName = prompt(`Confirm redemption for ${playerName}.\n\nEnter your name (staff member redeeming):`);
+  if (!staffName) return;
+  await sb.from('prize_claims').update({ status:'claimed', claimed_at:new Date().toISOString(), claimed_by:staffName.trim() }).eq('id', claimId);
+  loadPrizeClaims();
 }
 
 // --- Drink Specials ---
