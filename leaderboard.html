@@ -265,9 +265,13 @@ const LB_AVATARS = {
 function initials(name) { return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 
 const LB_LEVELS = [
-  { level:1, name:'Rookie',    icon:'🌱', min:0,    color:'#888780' },
-  { level:2, name:'Local',   icon:'🍺', min:100,  color:'#60A5FA' },
-  { level:3, name:'Contender', icon:'⚡', min:300,  color:'#3ECF8E' },
+  { level:1, name:'Rookie',    icon:'🌱', badge:'/Rookie Level.png',    min:0,    color:'#888780' },
+  { level:2, name:'Local',     icon:'🍺', badge:'/Local Level.png',     min:100,  color:'#60A5FA' },
+  { level:3, name:'Contender', icon:'⚡', badge:'/Contender Level.png', min:300,  color:'#3ECF8E' },
+  { level:4, name:'Veteran',   icon:'🔥', badge:'/Veteran Level.png',   min:600,  color:'#F0A500' },
+  { level:5, name:'Legend',    icon:'👑', badge:'/Legend Level.png',    min:1000, color:'#F56565' },
+  { level:6, name:'Bar Icon',  icon:'🏆', badge:'/Bar Icon Level.png',  min:2000, color:'#D4AF37' },
+];
   { level:4, name:'Veteran',   icon:'🔥', min:600,  color:'#F0A500' },
   { level:5, name:'Legend',    icon:'👑', min:1000, color:'#F56565' },
   { level:6, name:'Bar Icon',  icon:'🏆', min:2000, color:'#D4AF37' },
@@ -319,7 +323,13 @@ function setPod(num, row, T) {
   // Level badge
   const lvl = getLBLevel(row.lifetimePts || row.pts);
   const lvlEl = document.getElementById('pod-'+num+'-level');
-  if (lvlEl) { lvlEl.textContent = lvl.icon + ' ' + lvl.name; lvlEl.style.color = lvl.color; }
+  if (lvlEl) {
+    const badgeSrc = lvl.badge ? lvl.badge.replace(/ /g,'%20') : null;
+    lvlEl.innerHTML = badgeSrc
+      ? `<img src="${badgeSrc}" style="width:14px;height:14px;object-fit:contain;vertical-align:middle;border-radius:50%" onerror="this.outerHTML='${lvl.icon}'"/> ${lvl.name}`
+      : `${lvl.icon} ${lvl.name}`;
+    lvlEl.style.color = lvl.color;
+  }
 }
 
 async function load() {
@@ -408,12 +418,14 @@ async function load() {
       const encodedImg = avImg ? avImg.replace(/ /g, '%20') : null;
       const avStyle = encodedImg ? `background-image:url('${encodedImg}');background-size:cover;background-position:center top` : '';
       const avText = encodedImg ? '' : initials(row.name);
+      const lvl = getLBLevel(row.lifetimePts || row.pts);
+      const lvlBadge = lvl.badge ? `<img src="${lvl.badge.replace(/ /g,'%20')}" style="width:13px;height:13px;object-fit:contain;vertical-align:middle;border-radius:50%" onerror="this.outerHTML='${lvl.icon}'"/>` : lvl.icon;
       return `<div class="lb-row${isMe?' me':''}">
         <div class="lb-rank">${rank}</div>
         <div class="lb-avatar" style="${avStyle}">${avText}</div>
         <div style="flex:1">
           <div class="lb-name">${esc(row.name)}${isMe?'<span class="lb-you">(you)</span>':''}${row.pending?'<span style="font-size:11px;color:#f0a500;margin-left:6px">⏳ checking in...</span>':''}</div>
-          <div class="lb-meta">${row.checkins} check-in${row.checkins!==1?'s':''} · <span style="color:${lvl.color}">${lvl.icon} ${lvl.name}</span></div>
+          <div class="lb-meta">${row.checkins} check-in${row.checkins!==1?'s':''} · <span style="color:${lvl.color}">${lvlBadge} ${lvl.name}</span></div>
         </div>
         <div class="lb-right">
           <div class="lb-pts">${row.pts}</div>
