@@ -274,9 +274,23 @@ const LB_LEVELS = [
 ];
 function getLBLevel(pts) { return LB_LEVELS.slice().reverse().find(l => pts >= l.min) || LB_LEVELS[0]; }
 
+function getAvatarImg(avatarId) {
+  const av = AVATARS ? AVATARS.find(a => a.id === avatarId) : null;
+  return av?.img || null;
+}
+
 function setPod(num, row, T) {
   if (!row) { document.getElementById('pod-'+num).classList.add('empty'); return; }
-  document.getElementById('pod-'+num+'-av').textContent = LB_AVATARS[row.avatar]?.emoji || initials(row.name);
+  const avEl = document.getElementById('pod-'+num+'-av');
+  const avImg = getAvatarImg(row.avatar);
+  if (avImg) {
+    avEl.style.backgroundImage = `url(${avImg})`;
+    avEl.style.backgroundSize = 'cover';
+    avEl.style.backgroundPosition = 'center';
+    avEl.textContent = '';
+  } else {
+    avEl.textContent = initials(row.name);
+  }
   document.getElementById('pod-'+num+'-name').textContent = row.name;
   const displayPts = row.pts + row.pendingPts;
   document.getElementById('pod-'+num+'-pts').textContent = row.pending ? '⏳' : displayPts;
@@ -371,10 +385,12 @@ async function load() {
       const isMe = myPhone && row.phone === myPhone;
       const displayPts = row.pts + row.pendingPts;
       const pct = Math.min(100, Math.round((displayPts / T) * 100));
-      const lvl = getLBLevel(row.lifetimePts || row.pts);
+      const avImg = getAvatarImg(row.avatar);
+      const avStyle = avImg ? `background-image:url(${avImg});background-size:cover;background-position:center` : '';
+      const avText = avImg ? '' : initials(row.name);
       return `<div class="lb-row${isMe?' me':''}">
         <div class="lb-rank">${rank}</div>
-        <div class="lb-avatar" style="font-size:18px">${LB_AVATARS[row.avatar]?.emoji || initials(row.name)}</div>
+        <div class="lb-avatar" style="${avStyle}">${avText}</div>
         <div style="flex:1">
           <div class="lb-name">${esc(row.name)}${isMe?'<span class="lb-you">(you)</span>':''}${row.pending?'<span style="font-size:11px;color:#f0a500;margin-left:6px">⏳ checking in...</span>':''}</div>
           <div class="lb-meta">${row.checkins} check-in${row.checkins!==1?'s':''} · <span style="color:${lvl.color}">${lvl.icon} ${lvl.name}</span></div>
