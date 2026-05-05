@@ -886,7 +886,7 @@ async function awardBonus() {
   if (error) { showMsg('bonus-msg','Error awarding points.','error'); return; }
   const { data: barScore } = await sb.from('player_bar_scores').select('total_points, id').eq('player_id', bonusPlayerId).eq('bar_id', currentBar.id).single();
   if (barScore) {
-    await sb.from('player_bar_scores').update({ total_points:(barScore.total_points||0)+pts }).eq('id', barScore.id);
+    await sb.from('player_bar_scores').update({ total_points:(barScore.total_points||0)+pts, lifetime_points:(barScore.lifetime_points||0)+pts }).eq('id', barScore.id);
   } else {
     await sb.from('player_bar_scores').insert({ player_id:bonusPlayerId, bar_id:currentBar.id, total_points:pts });
   }
@@ -1093,8 +1093,8 @@ async function approveHunt(submissionId, playerId, playerName) {
   if (!confirm(`Award ${huntPts} points to ${playerName}?`)) return;
   await sb.from('hunt_submissions').update({ status:'approved' }).eq('id', submissionId);
   const { data: bs } = await sb.from('player_bar_scores').select('total_points').eq('player_id', playerId).eq('bar_id', currentBar.id).single();
-  if (bs) { await sb.from('player_bar_scores').update({ total_points:(bs.total_points||0)+huntPts }).eq('player_id', playerId).eq('bar_id', currentBar.id); }
-  else { await sb.from('player_bar_scores').insert({ player_id:playerId, bar_id:currentBar.id, total_points:huntPts }); }
+  if (bs) { await sb.from('player_bar_scores').update({ total_points:(bs.total_points||0)+huntPts, lifetime_points:(bs.lifetime_points||0)+huntPts }).eq('player_id', playerId).eq('bar_id', currentBar.id); }
+  else { await sb.from('player_bar_scores').insert({ player_id:playerId, bar_id:currentBar.id, total_points:huntPts, lifetime_points:huntPts }); }
   await sb.from('bonus_points').insert({ player_id:playerId, points:huntPts, reason:'Scavenger hunt verified', bar_id:currentBar.id });
   loadHuntSubmissions();
 }
