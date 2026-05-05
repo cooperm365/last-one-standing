@@ -72,10 +72,10 @@
     .pod-card.empty { opacity:0.2; }
     .pod-medal { font-size:18px; margin-bottom:6px; }
     .pod-card.first .pod-medal { font-size:26px; }
-    .pod-avatar { width:56px; height:56px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; background:var(--bg3); color:var(--muted); overflow:hidden; background-size:cover; background-position:center; }
-    .pod-card.first .pod-avatar { width:72px; height:72px; font-size:22px; background:rgba(240,165,0,0.18); color:var(--gold); overflow:hidden; background-size:cover; background-position:center; }
-    .pod-card.second .pod-avatar { background:rgba(192,192,192,0.12); color:var(--silver); overflow:hidden; background-size:cover; background-position:center; }
-    .pod-card.third .pod-avatar { background:rgba(205,127,50,0.12); color:var(--bronze); overflow:hidden; background-size:cover; background-position:center; }
+    .pod-avatar { width:56px; height:56px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; background:var(--bg3); color:var(--muted); overflow:hidden; background-size:cover; background-position:center top; }
+    .pod-card.first .pod-avatar { width:72px; height:72px; font-size:22px; background:rgba(240,165,0,0.18); color:var(--gold); overflow:hidden; background-size:cover; background-position:center top; }
+    .pod-card.second .pod-avatar { background:rgba(192,192,192,0.12); color:var(--silver); overflow:hidden; background-size:cover; background-position:center top; }
+    .pod-card.third .pod-avatar { background:rgba(205,127,50,0.12); color:var(--bronze); overflow:hidden; background-size:cover; background-position:center top; }
     .pod-name { font-size:13px; font-weight:600; color:var(--text); margin-bottom:3px; }
     .pod-card.first .pod-name { font-size:16px; }
     .pod-pts { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--gold); line-height:1; }
@@ -302,9 +302,10 @@ function setPod(num, row, T) {
   const avEl = document.getElementById('pod-'+num+'-av');
   const avImg = getAvatarImg(row.avatar);
   if (avImg) {
-    avEl.style.backgroundImage = `url(${avImg})`;
+    const encodedImg = avImg.replace(/ /g, '%20');
+    avEl.style.backgroundImage = `url('${encodedImg}')`;
     avEl.style.backgroundSize = 'cover';
-    avEl.style.backgroundPosition = 'center';
+    avEl.style.backgroundPosition = 'center top';
     avEl.textContent = '';
   } else {
     avEl.textContent = initials(row.name);
@@ -404,8 +405,9 @@ async function load() {
       const displayPts = row.pts + row.pendingPts;
       const pct = Math.min(100, Math.round((displayPts / T) * 100));
       const avImg = getAvatarImg(row.avatar);
-      const avStyle = avImg ? `background-image:url(${avImg});background-size:cover;background-position:center` : '';
-      const avText = avImg ? '' : initials(row.name);
+      const encodedImg = avImg ? avImg.replace(/ /g, '%20') : null;
+      const avStyle = encodedImg ? `background-image:url('${encodedImg}');background-size:cover;background-position:center top` : '';
+      const avText = encodedImg ? '' : initials(row.name);
       return `<div class="lb-row${isMe?' me':''}">
         <div class="lb-rank">${rank}</div>
         <div class="lb-avatar" style="${avStyle}">${avText}</div>
