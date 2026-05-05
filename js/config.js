@@ -66,17 +66,21 @@ function applyBarBranding(bar) {
 
 // ── AVATAR SYSTEM ────────────────────────────────────────
 const AVATARS = [
-  // Starter avatars — available to everyone
-  { id: 'dart_thrower', name: 'Dart Thrower', desc: 'Sharp shooter', emoji: '🎯', color: '#F0A500', unlockType: 'starter' },
-  { id: 'pool_shark',   name: 'Pool Shark',   desc: 'Smooth operator', emoji: '🎱', color: '#3ECF8E', unlockType: 'starter' },
-  { id: 'trivia_nerd',  name: 'Trivia Nerd',  desc: 'Big brain',  emoji: '🧠', color: '#818CF8', unlockType: 'starter' },
-  { id: 'the_regular',  name: 'The Regular',  desc: 'Always here', emoji: '🍺', color: '#888780', unlockType: 'starter' },
+  // Starter avatars — 4 male, 4 female, available to everyone
+  { id: 'dart-hustler',      name: 'Dart Hustler',      desc: 'Never misses',        img: '/dart-hustler.png',      color: '#F0A500', unlockType: 'starter', gender: 'm' },
+  { id: 'pool-shark',        name: 'Pool Shark',        desc: 'Cool under pressure', img: '/pool-shark.png',        color: '#3ECF8E', unlockType: 'starter', gender: 'm' },
+  { id: 'trivia-wizard',     name: 'Trivia Wizard',     desc: 'Big brain energy',    img: '/trivia-wizard.png',     color: '#818CF8', unlockType: 'starter', gender: 'm' },
+  { id: 'the-regular-male',  name: 'The Regular',       desc: 'Always here',         img: '/the-regular-male.png',  color: '#888780', unlockType: 'starter', gender: 'm' },
+  { id: 'dart-princess',     name: 'Dart Princess',     desc: 'Fierce & precise',    img: '/dart-princess.png',     color: '#F56565', unlockType: 'starter', gender: 'f' },
+  { id: 'pool-queen',        name: 'Pool Queen',        desc: 'Runs the table',      img: '/pool-queen.png',        color: '#3ECF8E', unlockType: 'starter', gender: 'f' },
+  { id: 'the-hustler',       name: 'The Hustler',       desc: 'Always has a plan',   img: '/the-hustler.png',       color: '#F0A500', unlockType: 'starter', gender: 'f' },
+  { id: 'the-regular-female',name: 'The Regular',       desc: 'Here every week',     img: '/the-regular-female.png',color: '#888780', unlockType: 'starter', gender: 'f' },
   // Unlockable avatars
-  { id: 'challenger',   name: 'The Challenger', desc: 'Never backs down', emoji: '⚔️', color: '#F56565', unlockType: 'challenges', unlockCount: 5,    unlockDesc: 'Win 5 challenges' },
-  { id: 'hunter',       name: 'The Hunter',     desc: 'Always searching', emoji: '🔍', color: '#F0A500', unlockType: 'hunt',       unlockCount: 3,    unlockDesc: 'Win 3 scavenger hunts' },
-  { id: 'veteran',      name: 'The Veteran',    desc: 'Been here forever', emoji: '🔥', color: '#F97316', unlockType: 'lifetime',   unlockCount: 600,  unlockDesc: '600 lifetime points' },
-  { id: 'legend',       name: 'The Legend',     desc: 'Bar royalty',  emoji: '👑', color: '#D4AF37', unlockType: 'lifetime',   unlockCount: 1000, unlockDesc: '1,000 lifetime points' },
-  { id: 'bar_icon',     name: 'Bar Icon',       desc: 'Untouchable',  emoji: '🏆', color: '#FFD700', unlockType: 'lifetime',   unlockCount: 2000, unlockDesc: '2,000 lifetime points' },
+  { id: 'gambling-pirate',   name: 'Gambling Pirate',   desc: 'High risk high reward',img: '/gambling-pirate.png',  color: '#F97316', unlockType: 'challenges', unlockCount: 5,    unlockDesc: 'Win 5 challenges' },
+  { id: 'high-roller',       name: 'High Roller',       desc: 'All in every night',  img: '/high-roller.png',       color: '#D4AF37', unlockType: 'hunt',       unlockCount: 3,    unlockDesc: 'Win 3 scavenger hunts' },
+  { id: 'the-detective',     name: 'The Detective',     desc: 'Finds every angle',   img: '/the-detective.png',     color: '#60A5FA', unlockType: 'lifetime',   unlockCount: 600,  unlockDesc: '600 lifetime points' },
+  { id: 'the-legend',        name: 'The Legend',        desc: 'Bar royalty',         img: '/the-legend.png',        color: '#FFD700', unlockType: 'lifetime',   unlockCount: 1000, unlockDesc: '1,000 lifetime points' },
 ];
 
 function getAvatarById(id) { return AVATARS.find(a => a.id === id) || AVATARS[0]; }
+
