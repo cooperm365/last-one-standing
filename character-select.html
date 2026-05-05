@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Pick Your Character — Bar Rank</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="theme-color" content="#111110"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/js/config.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #111110;
+      --bg2: #1A1A18;
+      --bg3: #2A2A28;
+      --gold: #F0A500;
+      --text: #F0EDE8;
+      --muted: #888780;
+      --border: #2A2A28;
+      --green: #3ECF8E;
+      --red: #F56565;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── INTRO ANIMATION ── */
+    .intro {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 100; padding: 2rem;
+      text-align: center;
+    }
+    .intro.hidden { display: none; }
+    .intro-logo {
+      width: 72px; height: 72px;
+      background: var(--gold); border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px; color: #111;
+      margin-bottom: 24px;
+      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .intro-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 42px; color: var(--gold);
+      letter-spacing: 3px; line-height: 1;
+      margin-bottom: 12px;
+      animation: slideUp 0.5s ease 0.2s both;
+    }
+    .intro-sub {
+      font-size: 16px; color: var(--muted);
+      line-height: 1.5; max-width: 280px;
+      animation: slideUp 0.5s ease 0.35s both;
+    }
+    @keyframes slideUp {
+      0% { transform: translateY(20px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ── MAIN PAGE ── */
+    #main { display: none; padding-bottom: env(safe-area-inset-bottom); }
+
+    .page-header {
+      padding: 28px 20px 16px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .page-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 38px; color: var(--gold);
+      letter-spacing: 2px; line-height: 1;
+      margin-bottom: 6px;
+    }
+    .page-sub {
+      font-size: 14px; color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── SELECTED PREVIEW ── */
+    .preview {
+      display: flex; flex-direction: column;
+      align-items: center; padding: 24px 20px 16px;
+      border-bottom: 1px solid var(--border);
+      min-height: 160px;
+      transition: all 0.3s ease;
+    }
+    .preview-img {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      border: 3px solid var(--gold);
+      overflow: hidden;
+      background: var(--bg2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      margin-bottom: 12px;
+      transition: border-color 0.3s;
+      box-shadow: 0 0 0 6px rgba(240,165,0,0.1);
+    }
+    .preview-img img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center top;
+    }
+    .preview-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px; letter-spacing: 1px;
+      color: var(--text); margin-bottom: 2px;
+      transition: color 0.3s;
+    }
+    .preview-desc {
+      font-size: 13px; color: var(--muted);
+    }
+    .preview-empty {
+      font-size: 14px; color: var(--muted);
+      font-style: italic;
+    }
+
+    /* ── CHARACTER GRID ── */
+    .section-label {
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--muted); padding: 16px 20px 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 0 16px 16px;
+    }
+
+    .char-card {
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 8px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .char-card:active { transform: scale(0.95); }
+    .char-card.selected {
+      border-color: var(--gold);
+      background: rgba(240,165,0,0.08);
+      transform: scale(1.02);
+    }
+    .char-card.locked {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .char-card.locked:active { transform: none; }
+    .selected-check {
+      position: absolute; top: 6px; right: 8px;
+      font-size: 14px; color: var(--gold);
+      font-weight: 700; display: none;
+    }
+    .char-card.selected .selected-check { display: block; }
+
+    .char-img {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      overflow: hidden;
+      margin: 0 auto 8px;
+      border: 2px solid var(--border);
+      background: var(--bg3);
+      transition: border-color 0.2s;
+    }
+    .char-card.selected .char-img { border-color: var(--gold); }
+    .char-img img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center top;
+    }
+    .char-name {
+      font-size: 11px; font-weight: 700;
+      color: var(--text); line-height: 1.2;
+      margin-bottom: 2px;
+    }
+    .char-desc {
+      font-size: 10px; color: var(--muted);
+    }
+    .char-lock {
+      font-size: 9px; color: var(--muted);
+      background: var(--bg3);
+      border-radius: 999px;
+      padding: 2px 6px;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    /* ── CONFIRM BUTTON ── */
+    .confirm-wrap {
+      position: sticky; bottom: 0;
+      background: linear-gradient(to top, var(--bg) 80%, transparent);
+      padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+    }
+    .confirm-btn {
+      width: 100%;
+      background: var(--gold);
+      color: #111;
+      border: none;
+      border-radius: 14px;
+      padding: 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .confirm-btn:disabled {
+      opacity: 0.4; cursor: not-allowed;
+    }
+    .confirm-btn:not(:disabled):active { transform: scale(0.98); opacity: 0.9; }
+    .confirm-btn .btn-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%; overflow: hidden;
+      border: 2px solid rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+    .confirm-btn .btn-avatar img {
+      width: 100%; height: 100%;
+      object-fit: cover; object-position: center top;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Intro splash -->
+<div class="intro" id="intro">
+  <div class="intro-logo">BR</div>
+  <div class="intro-title">PICK YOUR<br>CHARACTER</div>
+  <div class="intro-sub">Choose who represents you on the leaderboard. You can change it later.</div>
+</div>
+
+<!-- Main content -->
+<div id="main">
+  <div class="page-header">
+    <div class="page-title">PICK YOUR CHARACTER</div>
+    <div class="page-sub">This is your identity on the leaderboard.<br>You can always change it later.</div>
+  </div>
+
+  <!-- Selected preview -->
+  <div class="preview" id="preview">
+    <div class="preview-img" id="preview-img">
+      <span class="preview-empty">?</span>
+    </div>
+    <div class="preview-name" id="preview-name" style="display:none"></div>
+    <div class="preview-desc" id="preview-desc" style="display:none"></div>
+    <div class="preview-empty" id="preview-placeholder">Choose your character below</div>
+  </div>
+
+  <!-- Starter characters -->
+  <div class="section-label">Choose your character</div>
+  <div class="grid" id="starter-grid"></div>
+
+  <!-- Unlockable characters -->
+  <div class="section-label" style="color:#555553">Unlock by playing</div>
+  <div class="grid" id="unlock-grid"></div>
+
+  <!-- Confirm button -->
+  <div class="confirm-wrap">
+    <button class="confirm-btn" id="confirm-btn" disabled onclick="confirm()">
+      Choose your character
+    </button>
+  </div>
+</div>
+
+<script>
+const sb = getSupabase();
+const params = new URLSearchParams(location.search);
+const barSlug = params.get('bar') || localStorage.getItem('br_bar_slug');
+const returnTo = params.get('return') || (barSlug ? `my-points.html?bar=${barSlug}` : 'my-points.html');
+const playerId = params.get('player') || localStorage.getItem('br_player_id');
+
+let selectedAvatar = null;
+
+// Show intro then main
+setTimeout(() => {
+  document.getElementById('intro').classList.add('hidden');
+  document.getElementById('main').style.display = 'block';
+  renderGrid();
+}, 1800);
+
+function renderGrid() {
+  const starters = AVATARS.filter(a => a.unlockType === 'starter');
+  const unlockable = AVATARS.filter(a => a.unlockType !== 'starter');
+
+  document.getElementById('starter-grid').innerHTML = starters.map(av => charCard(av, true)).join('');
+  document.getElementById('unlock-grid').innerHTML = unlockable.map(av => charCard(av, false)).join('');
+}
+
+function charCard(av, isUnlocked) {
+  return `<div class="char-card ${isUnlocked ? '' : 'locked'}" id="card-${av.id}" onclick="${isUnlocked ? `selectChar('${av.id}')` : ''}">
+    <div class="selected-check">✓</div>
+    <div class="char-img">
+      <img src="${av.img}" onerror="this.style.display='none'" style=""/>
+    </div>
+    <div class="char-name">${av.name}</div>
+    ${isUnlocked
+      ? `<div class="char-desc">${av.desc}</div>`
+      : `<div class="char-lock">🔒 ${av.unlockDesc||'Locked'}</div>`}
+  </div>`;
+}
+
+function selectChar(avatarId) {
+  // Deselect all
+  document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+  // Select this one
+  document.getElementById(`card-${avatarId}`)?.classList.add('selected');
+  selectedAvatar = avatarId;
+
+  // Update preview
+  const av = getAvatarById(avatarId);
+  const previewImg = document.getElementById('preview-img');
+  previewImg.style.borderColor = av.color;
+  previewImg.style.boxShadow = `0 0 0 6px ${av.color}22`;
+  previewImg.innerHTML = `<img src="${av.img}" style="width:100%;height:100%;object-fit:cover;object-position:center top" onerror="this.style.display='none'"/>`;
+
+  document.getElementById('preview-name').textContent = av.name;
+  document.getElementById('preview-name').style.display = 'block';
+  document.getElementById('preview-name').style.color = av.color;
+  document.getElementById('preview-desc').textContent = av.desc;
+  document.getElementById('preview-desc').style.display = 'block';
+  document.getElementById('preview-placeholder').style.display = 'none';
+
+  // Update confirm button
+  const btn = document.getElementById('confirm-btn');
+  btn.disabled = false;
+  btn.innerHTML = `
+    <div class="btn-avatar"><img src="${av.img}" onerror="this.style.display='none'"/></div>
+    Play as ${av.name} →
+  `;
+
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+async function confirm() {
+  if (!selectedAvatar) return;
+  const btn = document.getElementById('confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  // Save avatar to player profile
+  if (playerId) {
+    await sb.from('player_profiles').update({ avatar: selectedAvatar }).eq('id', playerId);
+  } else {
+    // Try by phone from localStorage
+    const phone = localStorage.getItem('br_phone');
+    if (phone) {
+      await sb.from('player_profiles').update({ avatar: selectedAvatar }).eq('phone', phone.replace(/\D/g,''));
+    }
+  }
+
+  // Store locally too for instant display
+  localStorage.setItem('br_avatar', selectedAvatar);
+
+  // Navigate to My Score
+  window.location.href = returnTo;
+}
+</script>
+
+</body>
+</html>
