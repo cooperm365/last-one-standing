@@ -2,7 +2,7 @@
   "name": "Bar Rank",
   "short_name": "Bar Rank",
   "description": "Turn your bar into a competition. Keep your regulars coming back.",
-  "start_url": "/my-points.html",
+  "start_url": "/index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#111110",
