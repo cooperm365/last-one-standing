@@ -777,14 +777,11 @@ async function answerTrivia(idx, btn) {
   document.getElementById('trivia-result').style.display = 'block';
 
   if (correct) {
-    const newTotal = currentPlayer.total_points + BONUS;
-    await sb.from('player_bar_scores').update({ total_points: newTotal }).eq('player_id', currentPlayer.id).eq('bar_id', currentBar?.id || '');
-    await sb.from('bonus_points').insert({
-      player_id: currentPlayer.id,
-      points: BONUS,
-      reason: 'Got a trivia question right',
-      bar_id: currentBar?.id || null
-    });
+    const { data: scoreRow } = await sb.from('player_bar_scores').select('total_points, lifetime_points').eq('player_id', currentPlayer.id).eq('bar_id', currentBar?.id||'').single();
+    const newTotal = (scoreRow?.total_points||0) + BONUS;
+    const newLifetime = (scoreRow?.lifetime_points||0) + BONUS;
+    await sb.from('player_bar_scores').update({ total_points: newTotal, lifetime_points: newLifetime }).eq('player_id', currentPlayer.id).eq('bar_id', currentBar?.id || '');
+    await sb.from('bonus_points').insert({ player_id: currentPlayer.id, points: BONUS, reason: 'Got a trivia question right', bar_id: currentBar?.id || null });
     currentPlayer.total_points = newTotal;
     document.getElementById('result-emoji').textContent = '🎉';
     document.getElementById('result-title').textContent = 'CORRECT!';
@@ -1158,8 +1155,8 @@ async function doReport(challengeId, result, role) {
       } else {
         // Award points
         await sb.from('bonus_points').insert({ player_id: finalWinnerId, points: CHALLENGE_POINTS(), reason: `Won a challenge (${GAME_LABELS[c.game]||c.game})`, bar_id: currentBar?.id || null });
-        const { data: ws } = await sb.from('player_bar_scores').select('total_points').eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'').single();
-        await sb.from('player_bar_scores').update({ total_points: (ws?.total_points||0) + CHALLENGE_POINTS() }).eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'');
+        const { data: ws } = await sb.from('player_bar_scores').select('total_points, lifetime_points').eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'').single();
+        await sb.from('player_bar_scores').update({ total_points: (ws?.total_points||0) + CHALLENGE_POINTS(), lifetime_points: (ws?.lifetime_points||0) + CHALLENGE_POINTS() }).eq('player_id', finalWinnerId).eq('bar_id', currentBar?.id||'');
         showChallengeToast(finalWinnerId === currentPlayer.id ? `🏆 You won! +${CHALLENGE_POINTS()} points!` : `Result confirmed. Better luck next time!`);
       }
     } else {
