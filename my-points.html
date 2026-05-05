@@ -1225,7 +1225,7 @@ async function loadAvatar(player, lifetimePts) {
   const lifetimeAvatars = AVATARS.filter(a => a.unlockType === 'lifetime' && lifetimePts >= a.unlockCount);
   for (const av of lifetimeAvatars) {
     if (!unlockedIds.has(av.id)) {
-      await sb.from('avatar_unlocks').insert({ player_id: player.id, avatar: av.id }).onConflict('player_id,avatar').ignore();
+      await sb.from('avatar_unlocks').upsert({ player_id: player.id, avatar: av.id }, { onConflict: 'player_id,avatar', ignoreDuplicates: true });
       unlockedIds.add(av.id);
     }
   }
@@ -1233,14 +1233,14 @@ async function loadAvatar(player, lifetimePts) {
   // Get challenge wins for challenge avatar
   const { data: wins } = await sb.from('challenges').select('id').eq('winner_id', player.id).eq('status', 'completed');
   if ((wins||[]).length >= 5 && !unlockedIds.has('challenger')) {
-    await sb.from('avatar_unlocks').insert({ player_id: player.id, avatar: 'challenger' }).onConflict('player_id,avatar').ignore();
+    await sb.from('avatar_unlocks').upsert({ player_id: player.id, avatar: 'challenger' }, { onConflict: 'player_id,avatar', ignoreDuplicates: true });
     unlockedIds.add('challenger');
   }
 
   // Get hunt wins
   const { data: hunts } = await sb.from('hunt_submissions').select('id').eq('player_id', player.id).eq('status', 'approved');
   if ((hunts||[]).length >= 3 && !unlockedIds.has('hunter')) {
-    await sb.from('avatar_unlocks').insert({ player_id: player.id, avatar: 'hunter' }).onConflict('player_id,avatar').ignore();
+    await sb.from('avatar_unlocks').upsert({ player_id: player.id, avatar: 'hunter' }, { onConflict: 'player_id,avatar', ignoreDuplicates: true });
     unlockedIds.add('hunter');
   }
 
