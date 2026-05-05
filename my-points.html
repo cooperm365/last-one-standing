@@ -1326,7 +1326,7 @@ function closeAvatarOverlay() {
     <span class="nav-icon">📺</span>
     <span class="nav-label">Leaderboard</span>
   </a>
-  <a href="checkin.html" id="nav-scan" class="scan-tab">
+  <a href="#" id="nav-scan" class="scan-tab" onclick="showScanInstructions(); return false;">
     <span class="nav-icon">📷</span>
     <span class="nav-label">Scan</span>
   </a>
@@ -1347,11 +1347,28 @@ function closeAvatarOverlay() {
   const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
   if (slug) {
     document.getElementById('nav-leaderboard').href = `leaderboard.html?bar=${slug}`;
-    document.getElementById('nav-scan').href = `checkin.html?bar=${slug}`;
     document.getElementById('nav-lounge').href = `lounge.html?bar=${slug}`;
     document.getElementById('nav-how').href = `tutorial.html?bar=${slug}`;
   }
 })();
+
+function showScanInstructions() {
+  // Show a simple modal telling them to find a QR code
+  const existing = document.getElementById('scan-modal');
+  if (existing) { existing.style.display = 'flex'; return; }
+  const modal = document.createElement('div');
+  modal.id = 'scan-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:400;display:flex;align-items:center;justify-content:center;padding:1.5rem';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2rem 1.5rem;max-width:340px;width:100%;text-align:center">
+      <div style="font-size:48px;margin-bottom:1rem">📷</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);margin-bottom:0.75rem">Scan a QR Code</div>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:1.5rem">Find the gold QR code card on any game table — darts, pool, trivia. Point your phone camera at it and tap the link that appears.</p>
+      <button onclick="document.getElementById('scan-modal').style.display='none'" class="btn btn-primary" style="width:100%">Got it</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+}
 
 // Show bottom nav once player is loaded
 function showBottomNav() {
