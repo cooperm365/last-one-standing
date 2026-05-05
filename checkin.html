@@ -214,7 +214,10 @@ input:focus{border-color:var(--gold-dim)}
 
   <div id="success" style="display:none">
     <div class="card" style="text-align:center">
-      <div style="font-size:40px;margin-bottom:0.5rem">🎉</div>
+      <div id="success-avatar" style="width:80px;height:80px;border-radius:50%;overflow:hidden;margin:0 auto 12px;border:3px solid var(--gold);background:var(--bg3)">
+        <img id="success-avatar-img" src="" style="width:100%;height:100%;object-fit:cover;display:none"/>
+        <div id="success-avatar-fallback" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px">🎉</div>
+      </div>
       <div style="font-weight:600;font-size:18px;margin-bottom:0.25rem">Points confirmed!</div>
       <div class="points-big" id="success-pts" style="margin:0.5rem 0">0</div>
       <div class="points-label">points earned</div>
@@ -493,15 +496,13 @@ async function doCheckin(player) {
   hide('form-new'); hide('form-returning');
 
   // Redirect first-time users at THIS BAR to tutorial
-  // Use bar_id not slug — so if bar is deleted and recreated, tutorial fires fresh
   const barSlug = currentBar?.slug || getBarSlug() || 'default';
-  const barKey = currentBar?.id || barSlug;
-  const tutorialKey = `br_tutorial_done_${barKey}`;
+  const tutorialKey = `br_tutorial_done_${barSlug}`;
   const tutorialDone = localStorage.getItem(tutorialKey);
   if (!tutorialDone) {
     localStorage.setItem(tutorialKey, '1');
-    const returnUrl = barSlug !== 'default' ? `my-points.html?bar=${barSlug}` : 'my-points.html';
-    window.location.href = `tutorial.html?return=${returnUrl}`;
+    const returnUrl = barSlug !== 'default' ? `checkin.html?bar=${barSlug}&event=${new URLSearchParams(location.search).get('event')||''}` : 'checkin.html';
+    window.location.href = `tutorial.html?bar=${barSlug}&return=${encodeURIComponent(returnUrl)}`;
     return;
   }
 
@@ -534,6 +535,28 @@ function showSuccessScreen(pts, scanCount) {
     d.className = 'scan-dot' + (i < scanCount ? ' used' : '');
     dotsEl.appendChild(d);
   }
+
+  // Show avatar on success screen
+  const avatarImg = document.getElementById('success-avatar-img');
+  const avatarFallback = document.getElementById('success-avatar-fallback');
+  const savedPhone = localStorage.getItem('br_phone');
+  if (savedPhone) {
+    sb.from('player_profiles').select('avatar').eq('phone', savedPhone.replace(/\D/g,'')).single().then(({data}) => {
+      if (data?.avatar) {
+        const avatarMap = {
+          'dart-hustler': '/Dart Hustler.png', 'pool-shark': '/Pool Shark.png',
+          'trivia-wizard': '/Trivia Wizard.png', 'the-regular-male': '/The Regular v2.png',
+          'dart-princess': '/dart princess.png', 'pool-queen': '/Pool Queen.png',
+          'the-hustler': '/The Hustler Female.png', 'the-regular-female': '/The Regular Female.png',
+          'gambling-pirate': '/Gambling Pirate.png', 'high-roller': '/High Roller.png',
+          'the-legend': '/The Legend.png'
+        };
+        const imgSrc = avatarMap[data.avatar];
+        if (imgSrc) { avatarImg.src = imgSrc; avatarImg.style.display = 'block'; avatarFallback.style.display = 'none'; }
+      }
+    });
+  }
+
   hide('pending'); show('success');
   celebrate('confirm', pts);
   setTimeout(() => animateCounter(document.getElementById('success-pts'), pts, 900), 200);
