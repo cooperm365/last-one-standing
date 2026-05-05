@@ -250,6 +250,18 @@ async function init() {
 
 const TARGET = () => currentBar?.point_target || 200;
 
+const LB_AVATARS = {
+  dart_thrower: { emoji:'🎯', color:'#F0A500' },
+  pool_shark:   { emoji:'🎱', color:'#3ECF8E' },
+  trivia_nerd:  { emoji:'🧠', color:'#818CF8' },
+  the_regular:  { emoji:'🍺', color:'#888780' },
+  challenger:   { emoji:'⚔️', color:'#F56565' },
+  hunter:       { emoji:'🔍', color:'#F0A500' },
+  veteran:      { emoji:'🔥', color:'#F97316' },
+  legend:       { emoji:'👑', color:'#D4AF37' },
+  bar_icon:     { emoji:'🏆', color:'#FFD700' },
+};
+
 function initials(name) { return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 
 const LB_LEVELS = [
@@ -264,7 +276,7 @@ function getLBLevel(pts) { return LB_LEVELS.slice().reverse().find(l => pts >= l
 
 function setPod(num, row, T) {
   if (!row) { document.getElementById('pod-'+num).classList.add('empty'); return; }
-  document.getElementById('pod-'+num+'-av').textContent = initials(row.name);
+  document.getElementById('pod-'+num+'-av').textContent = LB_AVATARS[row.avatar]?.emoji || initials(row.name);
   document.getElementById('pod-'+num+'-name').textContent = row.name;
   const displayPts = row.pts + row.pendingPts;
   document.getElementById('pod-'+num+'-pts').textContent = row.pending ? '⏳' : displayPts;
@@ -282,7 +294,7 @@ async function load() {
   const { data: scores } = await sb.from('player_bar_scores').select('player_id, total_points, lifetime_points').eq('bar_id', currentBar.id);
   const { data: confirmedCI } = await sb.from('checkins').select('player_id').eq('pending', false).eq('bar_id', currentBar.id);
   const { data: pendingCI } = await sb.from('checkins').select('player_id, points_earned, points_confirm_at').eq('pending', true).eq('bar_id', currentBar.id);
-  const { data: profiles } = await sb.from('player_profiles').select('id, name, nickname, phone');
+  const { data: profiles } = await sb.from('player_profiles').select('id, name, nickname, phone, avatar');
   const T = TARGET();
 
   const cins = {};
@@ -310,6 +322,7 @@ async function load() {
       id: pid,
       name: pm[pid]?.nickname || (pm[pid]?.name ? pm[pid].name.split(' ')[0] : '?'),
       phone: pm[pid]?.phone,
+      avatar: pm[pid]?.avatar || 'dart_thrower',
       pts: Math.max(0, pts),
       pendingPts: pendingPts[pid] || 0,
       checkins: cins[pid] || 0,
@@ -361,7 +374,7 @@ async function load() {
       const lvl = getLBLevel(row.lifetimePts || row.pts);
       return `<div class="lb-row${isMe?' me':''}">
         <div class="lb-rank">${rank}</div>
-        <div class="lb-avatar">${initials(row.name)}</div>
+        <div class="lb-avatar" style="font-size:18px">${LB_AVATARS[row.avatar]?.emoji || initials(row.name)}</div>
         <div style="flex:1">
           <div class="lb-name">${esc(row.name)}${isMe?'<span class="lb-you">(you)</span>':''}${row.pending?'<span style="font-size:11px;color:#f0a500;margin-left:6px">⏳ checking in...</span>':''}</div>
           <div class="lb-meta">${row.checkins} check-in${row.checkins!==1?'s':''} · <span style="color:${lvl.color}">${lvl.icon} ${lvl.name}</span></div>
