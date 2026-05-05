@@ -726,7 +726,8 @@ function applyLevelUI(lifetimePts) {
   // Badge image or emoji fallback
   const iconEl = document.getElementById('level-icon');
   if (lvl.badge) {
-    iconEl.innerHTML = `<img src="${lvl.badge.replace(/ /g,'%20')}" style="width:22px;height:22px;object-fit:contain;border-radius:50%" onerror="this.outerHTML='${lvl.icon}'"/>`;
+    const src = lvl.badge.replace(/ /g,'%20');
+    iconEl.innerHTML = `<img src="${src}" style="width:22px;height:22px;object-fit:contain;border-radius:50%" onerror="this.style.display='none';this.insertAdjacentText('afterend','${lvl.icon}')"/>`;
   } else {
     iconEl.textContent = lvl.icon;
   }
