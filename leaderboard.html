@@ -354,7 +354,7 @@ async function load() {
       id: pid,
       name: pm[pid]?.nickname || (pm[pid]?.name ? pm[pid].name.split(' ')[0] : '?'),
       phone: pm[pid]?.phone,
-      avatar: pm[pid]?.avatar || 'dart_thrower',
+      avatar: pm[pid]?.avatar || 'dart-hustler',
       pts: Math.max(0, pts),
       pendingPts: pendingPts[pid] || 0,
       checkins: cins[pid] || 0,
