@@ -103,7 +103,8 @@ input:focus,select:focus{border-color:var(--gold-dim)}
       </div>
       <div>
         <label>URL slug</label>
-        <input type="text" id="new-slug" placeholder="e.g. the-anchor"/>
+        <input type="text" id="new-slug" placeholder="e.g. cjs-tavern" oninput="checkSlug(this.value)"/>
+        <div id="slug-check" style="font-size:12px;margin-top:4px;height:16px"></div>
       </div>
     </div>
     <div class="grid2">
@@ -280,6 +281,26 @@ async function loadDashboard() {
     </div>`).join('');
 }
 
+let slugCheckTimer;
+async function checkSlug(raw) {
+  const slug = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+  const el = document.getElementById('slug-check');
+  if (!slug || slug.length < 3) { el.textContent = ''; return; }
+  clearTimeout(slugCheckTimer);
+  el.textContent = 'Checking...';
+  el.style.color = '#888780';
+  slugCheckTimer = setTimeout(async () => {
+    const { data } = await sb.from('bars').select('id').eq('slug', slug).single();
+    if (data) {
+      el.textContent = '✗ That slug is already taken — choose another';
+      el.style.color = '#F56565';
+    } else {
+      el.textContent = '✓ Available';
+      el.style.color = '#3ECF8E';
+    }
+  }, 500);
+}
+
 async function createBar() {
   const name = document.getElementById('new-name').value.trim();
   const slug = document.getElementById('new-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
@@ -291,6 +312,10 @@ async function createBar() {
   const email = document.getElementById('new-email').value.trim() || null;
 
   if (!name || !slug || !pw) { showMsg('create-msg', 'Name, slug, and password are required.', 'error'); return; }
+
+  // Check slug availability one more time before submitting
+  const { data: existing } = await sb.from('bars').select('id').eq('slug', slug).single();
+  if (existing) { showMsg('create-msg', 'That slug is already taken — choose a different one.', 'error'); return; }
 
   const { data, error } = await sb.from('bars').insert({
     name, slug, admin_password: pw, point_target: target,
