@@ -269,7 +269,7 @@
       <div class="card" style="margin-bottom:1.5rem">
         <div style="font-size:15px;font-weight:600;margin-bottom:0.5rem">Lounge game points</div>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Control how many points each Lounge activity awards. Changes take effect immediately.</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
           <div>
             <label>🧠 Trivia correct answer</label>
             <input type="number" id="pts-trivia" placeholder="5" style="text-align:center"/>
@@ -281,6 +281,10 @@
           <div>
             <label>🔍 Hunt approval</label>
             <input type="number" id="pts-hunt" placeholder="20" style="text-align:center"/>
+          </div>
+          <div>
+            <label>🏆 Challenge win cap</label>
+            <input type="number" id="challenge-win-cap" placeholder="3" style="text-align:center"/>
           </div>
         </div>
         <div id="settings-pts-msg" class="msg"></div>
@@ -502,6 +506,7 @@ async function loadSettingsTab() {
   document.getElementById('pts-trivia').value = currentBar.points_trivia ?? 5;
   document.getElementById('pts-challenge').value = currentBar.points_challenge ?? 25;
   document.getElementById('pts-hunt').value = currentBar.points_hunt ?? 20;
+  document.getElementById('challenge-win-cap').value = currentBar.challenge_win_cap ?? 3;
   document.getElementById('settings-lb-title').value = currentBar.leaderboard_title || '';
   document.getElementById('settings-accent-color').value = '#' + (currentBar.accent_color || 'F0A500');
   document.getElementById('settings-logo-url').value = currentBar.logo_url || '';
@@ -562,15 +567,18 @@ async function savePointSettings() {
   const trivia = parseInt(document.getElementById('pts-trivia').value) || 5;
   const challenge = parseInt(document.getElementById('pts-challenge').value) || 25;
   const hunt = parseInt(document.getElementById('pts-hunt').value) || 20;
+  const cap = parseInt(document.getElementById('challenge-win-cap').value) || 3;
   const { error } = await sb.from('bars').update({
     points_trivia: trivia,
     points_challenge: challenge,
-    points_hunt: hunt
+    points_hunt: hunt,
+    challenge_win_cap: cap
   }).eq('id', currentBar.id);
   if (error) { showMsg('settings-pts-msg', 'Error saving.', 'error'); return; }
   currentBar.points_trivia = trivia;
   currentBar.points_challenge = challenge;
   currentBar.points_hunt = hunt;
+  currentBar.challenge_win_cap = cap;
   showMsg('settings-pts-msg', 'Point values saved!', 'success');
 }
 
