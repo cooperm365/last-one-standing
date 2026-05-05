@@ -63,3 +63,20 @@ function applyBarBranding(bar) {
     });
   }
 }
+
+// ── AVATAR SYSTEM ────────────────────────────────────────
+const AVATARS = [
+  // Starter avatars — available to everyone
+  { id: 'dart_thrower', name: 'Dart Thrower', desc: 'Sharp shooter', emoji: '🎯', color: '#F0A500', unlockType: 'starter' },
+  { id: 'pool_shark',   name: 'Pool Shark',   desc: 'Smooth operator', emoji: '🎱', color: '#3ECF8E', unlockType: 'starter' },
+  { id: 'trivia_nerd',  name: 'Trivia Nerd',  desc: 'Big brain',  emoji: '🧠', color: '#818CF8', unlockType: 'starter' },
+  { id: 'the_regular',  name: 'The Regular',  desc: 'Always here', emoji: '🍺', color: '#888780', unlockType: 'starter' },
+  // Unlockable avatars
+  { id: 'challenger',   name: 'The Challenger', desc: 'Never backs down', emoji: '⚔️', color: '#F56565', unlockType: 'challenges', unlockCount: 5,    unlockDesc: 'Win 5 challenges' },
+  { id: 'hunter',       name: 'The Hunter',     desc: 'Always searching', emoji: '🔍', color: '#F0A500', unlockType: 'hunt',       unlockCount: 3,    unlockDesc: 'Win 3 scavenger hunts' },
+  { id: 'veteran',      name: 'The Veteran',    desc: 'Been here forever', emoji: '🔥', color: '#F97316', unlockType: 'lifetime',   unlockCount: 600,  unlockDesc: '600 lifetime points' },
+  { id: 'legend',       name: 'The Legend',     desc: 'Bar royalty',  emoji: '👑', color: '#D4AF37', unlockType: 'lifetime',   unlockCount: 1000, unlockDesc: '1,000 lifetime points' },
+  { id: 'bar_icon',     name: 'Bar Icon',       desc: 'Untouchable',  emoji: '🏆', color: '#FFD700', unlockType: 'lifetime',   unlockCount: 2000, unlockDesc: '2,000 lifetime points' },
+];
+
+function getAvatarById(id) { return AVATARS.find(a => a.id === id) || AVATARS[0]; }
