@@ -280,6 +280,16 @@
       </div>
     </div>
 
+    <!-- Avatar display + change button -->
+    <div class="card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:14px" id="avatar-card">
+      <div id="avatar-display" style="width:52px;height:52px;border-radius:12px;background:var(--bg3);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">🎯</div>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:600" id="avatar-name">Dart Thrower</div>
+        <div style="font-size:12px;color:var(--text-muted)" id="avatar-desc">Sharp shooter</div>
+      </div>
+      <button onclick="openAvatarSelect()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer">Change</button>
+    </div>
+
     <div class="card" id="tonight-card" style="margin-bottom:1.5rem">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
         <span style="font-size:14px;font-weight:500">Tonight's scans</span>
@@ -769,6 +779,9 @@ function applyLevelUI(lifetimePts) {
   document.getElementById('stat-lifetime').textContent = lifetimePts;
   applyLevelUI(lifetimePts);
 
+  // Load avatar
+  currentUnlockedAvatars = await loadAvatar(player, lifetimePts);
+
   // ── MILESTONE DETECTION ──────────────────────────────
   await checkMilestones(player, lifetimePts);
 
@@ -1200,6 +1213,109 @@ function closeMilestoneOverlay() {
         <button onclick="closeMilestoneOverlay()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0.5rem">Remind me later</button>
       </div>
     </div>
+  </div>
+</div>
+
+// ── AVATAR SYSTEM ────────────────────────────────────────
+async function loadAvatar(player, lifetimePts) {
+  // Get unlocked avatars
+  const { data: unlocks } = await sb.from('avatar_unlocks')
+    .select('avatar').eq('player_id', player.id);
+  const unlockedIds = new Set([
+    ...AVATARS.filter(a => a.unlockType === 'starter').map(a => a.id),
+    ...(unlocks||[]).map(u => u.avatar)
+  ]);
+
+  // Auto-unlock based on lifetime points
+  const lifetimeAvatars = AVATARS.filter(a => a.unlockType === 'lifetime' && lifetimePts >= a.unlockCount);
+  for (const av of lifetimeAvatars) {
+    if (!unlockedIds.has(av.id)) {
+      await sb.from('avatar_unlocks').insert({ player_id: player.id, avatar: av.id }).onConflict('player_id,avatar').ignore();
+      unlockedIds.add(av.id);
+    }
+  }
+
+  // Get challenge wins for challenge avatar
+  const { data: wins } = await sb.from('challenges').select('id').eq('winner_id', player.id).eq('status', 'completed');
+  if ((wins||[]).length >= 5 && !unlockedIds.has('challenger')) {
+    await sb.from('avatar_unlocks').insert({ player_id: player.id, avatar: 'challenger' }).onConflict('player_id,avatar').ignore();
+    unlockedIds.add('challenger');
+  }
+
+  // Get hunt wins
+  const { data: hunts } = await sb.from('hunt_submissions').select('id').eq('player_id', player.id).eq('status', 'approved');
+  if ((hunts||[]).length >= 3 && !unlockedIds.has('hunter')) {
+    await sb.from('avatar_unlocks').insert({ player_id: player.id, avatar: 'hunter' }).onConflict('player_id,avatar').ignore();
+    unlockedIds.add('hunter');
+  }
+
+  // Display current avatar
+  const currentAvatarId = player.avatar || 'dart_thrower';
+  const av = getAvatarById(currentAvatarId);
+  document.getElementById('avatar-display').textContent = av.emoji;
+  document.getElementById('avatar-display').style.borderColor = av.color;
+  document.getElementById('avatar-name').textContent = av.name;
+  document.getElementById('avatar-desc').textContent = av.desc;
+
+  return unlockedIds;
+}
+
+let currentUnlockedAvatars = new Set();
+
+async function openAvatarSelect() {
+  document.getElementById('avatar-overlay').style.display = 'block';
+  const grid = document.getElementById('avatar-grid');
+  grid.innerHTML = '<div style="color:var(--text-muted);font-size:14px;padding:1rem">Loading...</div>';
+
+  const currentAvatarId = currentPlayer?.avatar || 'dart_thrower';
+
+  grid.innerHTML = AVATARS.map(av => {
+    const isUnlocked = currentUnlockedAvatars.has(av.id);
+    const isCurrent = av.id === currentAvatarId;
+    return `<div onclick="${isUnlocked ? `selectAvatar('${av.id}')` : ''}"
+      style="background:var(--bg3);border:2px solid ${isCurrent ? av.color : isUnlocked ? 'var(--border)' : 'var(--border)'};border-radius:12px;padding:14px 10px;text-align:center;cursor:${isUnlocked ? 'pointer' : 'default'};opacity:${isUnlocked ? '1' : '0.45'};transition:border-color 0.15s;position:relative" id="av-${av.id}">
+      ${isCurrent ? `<div style="position:absolute;top:6px;right:8px;font-size:11px;color:${av.color}">✓</div>` : ''}
+      <div style="font-size:32px;margin-bottom:6px">${av.emoji}</div>
+      <div style="font-size:12px;font-weight:600;color:${isUnlocked ? 'var(--text)' : 'var(--text-muted)'}">${av.name}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${isUnlocked ? av.desc : av.unlockDesc || ''}</div>
+      ${!isUnlocked ? `<div style="margin-top:6px;font-size:10px;background:var(--bg2);border-radius:999px;padding:2px 8px;color:var(--text-muted)">🔒 Locked</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function selectAvatar(avatarId) {
+  if (!currentPlayer) return;
+  await sb.from('player_profiles').update({ avatar: avatarId }).eq('id', currentPlayer.id);
+  currentPlayer.avatar = avatarId;
+  const av = getAvatarById(avatarId);
+  document.getElementById('avatar-display').textContent = av.emoji;
+  document.getElementById('avatar-display').style.borderColor = av.color;
+  document.getElementById('avatar-name').textContent = av.name;
+  document.getElementById('avatar-desc').textContent = av.desc;
+  document.getElementById('avatar-overlay').style.display = 'none';
+  // Refresh grid checkmarks
+  AVATARS.forEach(a => {
+    const el = document.getElementById(`av-${a.id}`);
+    if (el) el.style.borderColor = a.id === avatarId ? a.color : currentUnlockedAvatars.has(a.id) ? 'var(--border)' : 'var(--border)';
+  });
+}
+
+function closeAvatarOverlay() {
+  document.getElementById('avatar-overlay').style.display = 'none';
+}
+</script>
+
+<!-- Avatar select overlay -->
+<div id="avatar-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:302;overflow-y:auto;padding:1.5rem 1.25rem">
+  <div style="max-width:420px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold)">Pick your player</div>
+        <div style="font-size:13px;color:var(--text-muted)">Locked avatars unlock by playing</div>
+      </div>
+      <button onclick="closeAvatarOverlay()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+    <div id="avatar-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px"></div>
   </div>
 </div>
 
