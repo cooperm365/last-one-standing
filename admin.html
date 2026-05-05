@@ -190,6 +190,10 @@
 
     <div id="prizes-loading" style="color:var(--text-muted);font-size:14px;padding:1rem 0">Loading...</div>
     <div id="prizes-list"></div>
+
+    <div class="section-title" style="margin-top:2rem">🎯 Milestone Claims</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem">Players who hit lifetime point milestones receive a unique claim code. Mark them redeemed here.</p>
+    <div id="milestone-claims-list"><div style="color:var(--text-muted);font-size:14px;padding:1rem 0">Loading...</div></div>
   </div>
 
   <!-- SEASON TAB -->
@@ -304,6 +308,25 @@
         </div>
         <div id="lounge-status-msg" style="font-size:13px;margin-top:0.75rem;padding:0.5rem 0.75rem;border-radius:6px;display:none"></div>
       </div>
+
+      <!-- Milestones -->
+      <div class="section-title">🎯 Lifetime Point Milestones</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Set lifetime point targets that reward loyal regulars regardless of season resets. When a player hits a milestone their points never reset — they keep climbing and unlocking rewards forever.</p>
+      <div class="card" style="margin-bottom:1rem">
+        <div style="display:grid;grid-template-columns:1fr 2fr auto;gap:10px;align-items:end">
+          <div>
+            <label>Points required</label>
+            <input type="number" id="new-milestone-pts" placeholder="e.g. 500"/>
+          </div>
+          <div>
+            <label>Reward</label>
+            <input type="text" id="new-milestone-reward" placeholder="e.g. Free appetizer"/>
+          </div>
+          <button class="btn btn-primary" onclick="addMilestone()" style="width:auto;padding:0.7rem 1.25rem;margin-bottom:0">Add</button>
+        </div>
+        <div id="milestone-add-msg" class="msg"></div>
+      </div>
+      <div id="milestone-list" style="margin-bottom:1.5rem"></div>
 
       <!-- Branding -->
       <div class="section-title">🎨 Bar Branding</div>
@@ -461,7 +484,7 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
   if (name === 'hunt') loadHuntSubmissions();
-  if (name === 'prizes') loadPrizeClaims();
+  if (name === 'prizes') { loadPrizeClaims(); loadMilestoneClaims(); }
   if (name === 'season') loadSeasonTab();
   if (name === 'settings') loadSettingsTab();
 }
@@ -514,6 +537,7 @@ async function loadSettingsTab() {
   loadSpecials();
   loadTriviaList();
   loadClueList();
+  loadMilestoneList();
   loadAbuseFlags();
 }
 
@@ -649,6 +673,91 @@ async function redeemPrizeClaim(claimId, playerName) {
   if (!staffName) return;
   await sb.from('prize_claims').update({ status:'claimed', claimed_at:new Date().toISOString(), claimed_by:staffName.trim() }).eq('id', claimId);
   loadPrizeClaims();
+}
+
+// ── MILESTONES ───────────────────────────────────────────
+async function loadMilestoneList() {
+  const { data } = await sb.from('milestones').select('*').eq('bar_id', currentBar.id).order('points_required', { ascending: true });
+  const list = document.getElementById('milestone-list');
+  if (!data?.length) {
+    list.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">No milestones set yet. Add some above — suggested: 500, 1000, 2500 pts.</p>';
+    return;
+  }
+  list.innerHTML = data.map(m => `
+    <div style="display:flex;align-items:center;gap:10px;padding:0.75rem;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
+      <div style="flex-shrink:0;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.3);border-radius:8px;padding:4px 12px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold)">${m.points_required}</div>
+        <div style="font-size:10px;color:var(--text-muted)">pts</div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:500">🎁 ${esc(m.reward_text)}</div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:rgba(245,101,101,0.3)" onclick="deleteMilestone('${m.id}')">Remove</button>
+    </div>`).join('');
+}
+
+async function addMilestone() {
+  const pts = parseInt(document.getElementById('new-milestone-pts').value);
+  const reward = document.getElementById('new-milestone-reward').value.trim();
+  if (!pts || pts < 1) { showMsg('milestone-add-msg', 'Enter a valid points value.', 'error'); return; }
+  if (!reward) { showMsg('milestone-add-msg', 'Enter a reward description.', 'error'); return; }
+  const { error } = await sb.from('milestones').insert({ bar_id: currentBar.id, points_required: pts, reward_text: reward });
+  if (error) { showMsg('milestone-add-msg', 'Error saving.', 'error'); return; }
+  document.getElementById('new-milestone-pts').value = '';
+  document.getElementById('new-milestone-reward').value = '';
+  showMsg('milestone-add-msg', 'Milestone added!', 'success');
+  loadMilestoneList();
+}
+
+async function deleteMilestone(id) {
+  await sb.from('milestones').delete().eq('id', id);
+  loadMilestoneList();
+}
+
+// ── MILESTONE PRIZE CLAIMS ───────────────────────────────
+async function loadMilestoneClaims() {
+  const { data } = await sb.from('milestone_claims')
+    .select('*, player_profiles(name, nickname, phone), milestones(points_required, reward_text)')
+    .eq('bar_id', currentBar.id)
+    .order('awarded_at', { ascending: false });
+
+  const container = document.getElementById('milestone-claims-list');
+  if (!data?.length) {
+    container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:14px">No milestone claims yet.</div>';
+    return;
+  }
+
+  container.innerHTML = data.map(c => {
+    const p = c.player_profiles;
+    const m = c.milestones;
+    const displayName = p?.nickname || p?.name || 'Unknown';
+    const isUnclaimed = c.status === 'unclaimed';
+    return `<div style="background:var(--bg2);border:1px solid ${isUnclaimed ? 'rgba(240,165,0,0.3)' : 'var(--border)'};border-radius:10px;padding:1rem;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+        <span style="font-size:13px;font-weight:600;color:var(--gold)">🎯 ${m?.points_required || '?'} pt Milestone</span>
+        <span style="font-size:12px;padding:2px 8px;border-radius:999px;background:${isUnclaimed ? 'rgba(240,165,0,0.1)' : 'rgba(62,207,142,0.1)'};color:${isUnclaimed ? 'var(--gold)' : 'var(--green)'}">
+          ${isUnclaimed ? 'Unclaimed' : 'Redeemed'}</span>
+      </div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px">${esc(displayName)}</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.5rem">${p?.phone || ''}</div>
+      <div style="background:var(--bg3);border:1px dashed var(--border);border-radius:8px;padding:0.6rem 1rem;margin-bottom:0.5rem;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:var(--text-muted)">Reward:</span>
+        <span style="font-size:14px;font-weight:500">${esc(m?.reward_text || '?')}</span>
+      </div>
+      <div style="background:var(--bg3);border:1px dashed ${isUnclaimed ? 'var(--gold)' : 'var(--border)'};border-radius:8px;padding:0.6rem 1rem;margin-bottom:${isUnclaimed ? '0.75rem' : '0'};display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:var(--text-muted)">Claim code:</span>
+        <span style="font-family:monospace;font-size:15px;font-weight:700;color:${isUnclaimed ? 'var(--gold)' : 'var(--text-muted)'};${!isUnclaimed ? 'text-decoration:line-through' : ''}">${esc(c.claim_code)}</span>
+      </div>
+      ${isUnclaimed ? `<button class="btn btn-primary" onclick="redeemMilestoneClaim('${c.id}','${esc(displayName)}')" style="width:100%;padding:0.7rem">✅ Mark as Redeemed</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function redeemMilestoneClaim(claimId, playerName) {
+  const staffName = prompt(`Confirm milestone redemption for ${playerName}.\n\nEnter your name:`);
+  if (!staffName) return;
+  await sb.from('milestone_claims').update({ status: 'claimed', claimed_at: new Date().toISOString(), claimed_by: staffName.trim() }).eq('id', claimId);
+  loadMilestoneClaims();
 }
 
 // --- Drink Specials ---
