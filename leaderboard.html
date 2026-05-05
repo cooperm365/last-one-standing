@@ -272,10 +272,6 @@ const LB_LEVELS = [
   { level:5, name:'Legend',    icon:'👑', badge:'/Legend Level.png',    min:1000, color:'#F56565' },
   { level:6, name:'Bar Icon',  icon:'🏆', badge:'/Bar Icon Level.png',  min:2000, color:'#D4AF37' },
 ];
-  { level:4, name:'Veteran',   icon:'🔥', min:600,  color:'#F0A500' },
-  { level:5, name:'Legend',    icon:'👑', min:1000, color:'#F56565' },
-  { level:6, name:'Bar Icon',  icon:'🏆', min:2000, color:'#D4AF37' },
-];
 function getLBLevel(pts) { return LB_LEVELS.slice().reverse().find(l => pts >= l.min) || LB_LEVELS[0]; }
 
 function getAvatarImg(avatarId) {
