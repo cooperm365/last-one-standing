@@ -237,7 +237,13 @@
       Scan a game QR code
     </button>
 
-    <div class="card card-gold" style="text-align:center;margin-bottom:1.5rem">
+    <div class="card card-gold" id="player-card" style="text-align:center;margin-bottom:1.5rem;transition:border-color 0.3s">
+      <!-- Level badge -->
+      <div id="level-badge" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:4px 14px;margin-bottom:0.75rem">
+        <span id="level-icon" style="font-size:14px">⭐</span>
+        <span id="level-name" style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted)">Rookie</span>
+        <span id="level-num" style="font-size:11px;color:var(--text-muted)">Lv.1</span>
+      </div>
       <div id="player-name" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:0.25rem"></div>
       <div class="points-big" id="player-total"></div>
       <div class="points-label">season points</div>
@@ -246,6 +252,16 @@
         <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Lifetime:</span>
         <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text-muted)" id="stat-lifetime">—</span>
         <span style="font-size:11px;color:var(--text-muted)">pts</span>
+      </div>
+      <!-- Level progress bar -->
+      <div style="margin-top:0.75rem;padding:0 0.25rem">
+        <div style="height:4px;background:var(--bg3);border-radius:999px;overflow:hidden">
+          <div id="level-progress-bar" style="height:100%;border-radius:999px;background:var(--gold);transition:width 0.5s ease;width:0%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-size:10px;color:var(--text-muted)" id="level-pts-label">0 pts</span>
+          <span style="font-size:10px;color:var(--text-muted)" id="level-next-label">100 pts to Regular</span>
+        </div>
       </div>
       <hr class="divider"/>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
@@ -695,9 +711,63 @@ async function showDashboard(player) {
   document.getElementById('stat-visits').textContent = (checkins||[]).filter(c=>!c.pending).length;
   document.getElementById('stat-bonus').textContent = bonusPts;
 
-  // Lifetime points
+// ── LEVEL SYSTEM ────────────────────────────────────────
+const LEVELS = [
+  { level: 1, name: 'Rookie',    icon: '🌱', min: 0,    max: 99,   color: '#888780', border: '#3A3A38' },
+  { level: 2, name: 'Regular',   icon: '🍺', min: 100,  max: 299,  color: '#60A5FA', border: '#2A4A6A' },
+  { level: 3, name: 'Contender', icon: '⚡', min: 300,  max: 599,  color: '#3ECF8E', border: '#1A5A3A' },
+  { level: 4, name: 'Veteran',   icon: '🔥', min: 600,  max: 999,  color: '#F0A500', border: '#5A4000' },
+  { level: 5, name: 'Legend',    icon: '👑', min: 1000, max: 1999, color: '#F56565', border: '#5A2020' },
+  { level: 6, name: 'Bar Icon',  icon: '🏆', min: 2000, max: Infinity, color: '#D4AF37', border: '#8B6914' },
+];
+
+function getLevel(lifetimePts) {
+  return LEVELS.slice().reverse().find(l => lifetimePts >= l.min) || LEVELS[0];
+}
+
+function applyLevelUI(lifetimePts) {
+  const lvl = getLevel(lifetimePts);
+  const next = LEVELS.find(l => l.level === lvl.level + 1);
+
+  // Badge
+  document.getElementById('level-icon').textContent = lvl.icon;
+  document.getElementById('level-name').textContent = lvl.name;
+  document.getElementById('level-num').textContent = `Lv.${lvl.level}`;
+
+  // Badge color
+  const badge = document.getElementById('level-badge');
+  badge.style.borderColor = lvl.border;
+  badge.style.background = lvl.border + '33';
+  document.getElementById('level-name').style.color = lvl.color;
+  document.getElementById('level-num').style.color = lvl.color;
+
+  // Card border
+  const card = document.getElementById('player-card');
+  card.style.borderColor = lvl.border;
+  card.style.borderWidth = '2px';
+
+  // Progress bar
+  const bar = document.getElementById('level-progress-bar');
+  bar.style.background = lvl.color;
+  if (next) {
+    const range = next.min - lvl.min;
+    const progress = lifetimePts - lvl.min;
+    const pct = Math.min(100, Math.round((progress / range) * 100));
+    bar.style.width = pct + '%';
+    document.getElementById('level-pts-label').textContent = lifetimePts + ' pts';
+    document.getElementById('level-next-label').textContent = (next.min - lifetimePts) + ' pts to ' + next.name;
+  } else {
+    bar.style.width = '100%';
+    document.getElementById('level-pts-label').textContent = lifetimePts + ' pts';
+    document.getElementById('level-next-label').textContent = 'Max level reached 🏆';
+  }
+}
+
+// Update lifetime display and apply level
   const { data: scoreData } = await sb.from('player_bar_scores').select('lifetime_points').eq('player_id', player.id).eq('bar_id', barId).single();
-  document.getElementById('stat-lifetime').textContent = scoreData?.lifetime_points ?? player.total_points;
+  const lifetimePts = scoreData?.lifetime_points ?? player.total_points;
+  document.getElementById('stat-lifetime').textContent = lifetimePts;
+  applyLevelUI(lifetimePts);
 
   // Pending notice
   const old = document.getElementById('pending-notice');
