@@ -1246,9 +1246,10 @@ async function loadAvatar(player, lifetimePts) {
     unlockedIds.add('high-roller');
   }
 
-  // If player has no avatar set yet — force selection screen
+  // If player has no avatar set — redirect to character select
   if (!player.avatar) {
-    setTimeout(() => openAvatarSelect(true), 600);
+    const slug = currentBar?.slug || '';
+    window.location.href = `character-select.html?bar=${slug}&return=${encodeURIComponent(window.location.href)}`;
     return unlockedIds;
   }
 
