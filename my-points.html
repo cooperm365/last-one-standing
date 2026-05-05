@@ -707,12 +707,12 @@ async function lookup() {
 
 // ── LEVEL SYSTEM ────────────────────────────────────────
 const LEVELS = [
-  { level: 1, name: 'Rookie',    icon: '🌱', min: 0,    max: 99,   color: '#888780', border: '#3A3A38' },
-  { level: 2, name: 'Local',     icon: '🍺', min: 100,  max: 299,  color: '#60A5FA', border: '#2A4A6A' },
-  { level: 3, name: 'Contender', icon: '⚡', min: 300,  max: 599,  color: '#3ECF8E', border: '#1A5A3A' },
-  { level: 4, name: 'Veteran',   icon: '🔥', min: 600,  max: 999,  color: '#F0A500', border: '#5A4000' },
-  { level: 5, name: 'Legend',    icon: '👑', min: 1000, max: 1999, color: '#F56565', border: '#5A2020' },
-  { level: 6, name: 'Bar Icon',  icon: '🏆', min: 2000, max: Infinity, color: '#D4AF37', border: '#8B6914' },
+  { level: 1, name: 'Rookie',    icon: '🌱', badge: '/Rookie Level.png',    min: 0,    max: 99,   color: '#888780', border: '#3A3A38' },
+  { level: 2, name: 'Local',     icon: '🍺', badge: '/Local Level.png',     min: 100,  max: 299,  color: '#60A5FA', border: '#2A4A6A' },
+  { level: 3, name: 'Contender', icon: '⚡', badge: '/Contender Level.png', min: 300,  max: 599,  color: '#3ECF8E', border: '#1A5A3A' },
+  { level: 4, name: 'Veteran',   icon: '🔥', badge: '/Veteran Level.png',   min: 600,  max: 999,  color: '#F0A500', border: '#5A4000' },
+  { level: 5, name: 'Legend',    icon: '👑', badge: '/Legend Level.png',    min: 1000, max: 1999, color: '#F56565', border: '#5A2020' },
+  { level: 6, name: 'Bar Icon',  icon: '🏆', badge: '/Bar Icon Level.png',  min: 2000, max: Infinity, color: '#D4AF37', border: '#8B6914' },
 ];
 
 function getLevel(pts) {
@@ -722,7 +722,15 @@ function getLevel(pts) {
 function applyLevelUI(lifetimePts) {
   const lvl = getLevel(lifetimePts);
   const next = LEVELS.find(l => l.level === lvl.level + 1);
-  document.getElementById('level-icon').textContent = lvl.icon;
+
+  // Badge image or emoji fallback
+  const iconEl = document.getElementById('level-icon');
+  if (lvl.badge) {
+    iconEl.innerHTML = `<img src="${lvl.badge.replace(/ /g,'%20')}" style="width:22px;height:22px;object-fit:contain;border-radius:50%" onerror="this.outerHTML='${lvl.icon}'"/>`;
+  } else {
+    iconEl.textContent = lvl.icon;
+  }
+
   document.getElementById('level-name').textContent = lvl.name;
   document.getElementById('level-num').textContent = `Lv.${lvl.level}`;
   const badge = document.getElementById('level-badge');
