@@ -240,7 +240,13 @@
     <div class="card card-gold" style="text-align:center;margin-bottom:1.5rem">
       <div id="player-name" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:0.25rem"></div>
       <div class="points-big" id="player-total"></div>
-      <div class="points-label">total points</div>
+      <div class="points-label">season points</div>
+      <!-- Lifetime points -->
+      <div style="margin-top:0.5rem;display:flex;align-items:center;justify-content:center;gap:6px">
+        <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Lifetime:</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text-muted)" id="stat-lifetime">—</span>
+        <span style="font-size:11px;color:var(--text-muted)">pts</span>
+      </div>
       <hr class="divider"/>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
         <div>
@@ -688,6 +694,10 @@ async function showDashboard(player) {
   document.getElementById('player-total').textContent = checkinPts + bonusPts;
   document.getElementById('stat-visits').textContent = (checkins||[]).filter(c=>!c.pending).length;
   document.getElementById('stat-bonus').textContent = bonusPts;
+
+  // Lifetime points
+  const { data: scoreData } = await sb.from('player_bar_scores').select('lifetime_points').eq('player_id', player.id).eq('bar_id', barId).single();
+  document.getElementById('stat-lifetime').textContent = scoreData?.lifetime_points ?? player.total_points;
 
   // Pending notice
   const old = document.getElementById('pending-notice');
