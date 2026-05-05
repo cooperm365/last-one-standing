@@ -674,14 +674,28 @@ async function loadBarTrivia() {
 }
 
 function getNextQuestion() {
-  // Combine default + custom bar questions
-  const allQuestions = [...TRIVIA_QUESTIONS, ...(barCustomTrivia || [])];
-  if (usedQuestions.length >= allQuestions.length) usedQuestions = [];
-  const remaining = allQuestions.filter((_, i) => !usedQuestions.includes(i));
+  // Deduplicate first, then weight custom questions
+  const defaults = TRIVIA_QUESTIONS;
+  const custom = barCustomTrivia || [];
+
+  // Build weighted pool — custom appear 3x but deduplicate by question text
+  const seen = new Set();
+  const weighted = [];
+  defaults.forEach(q => { if (!seen.has(q.q)) { seen.add(q.q); weighted.push(q); } });
+  custom.forEach(q => {
+    if (!seen.has(q.q)) seen.add(q.q);
+    // Add custom 3x for frequency boost
+    weighted.push(q); weighted.push(q); weighted.push(q);
+  });
+
+  const pool = weighted.length > 0 ? weighted : defaults;
+  // Reset used list when all unique questions exhausted
+  const uniquePool = [...new Map(pool.map(q => [q.q, q])).values()];
+  if (usedQuestions.length >= uniquePool.length) usedQuestions = [];
+  const remaining = uniquePool.filter(q => !usedQuestions.includes(q.q));
   const pick = remaining[Math.floor(Math.random() * remaining.length)];
-  const idx = allQuestions.indexOf(pick);
-  usedQuestions.push(idx);
-  return allQuestions[idx];
+  usedQuestions.push(pick.q);
+  return pick;
 }
 
 // ── DRINKS ──────────────────────────────────────────────
@@ -1431,9 +1445,22 @@ async function loadBarHuntClues() {
 
 function getTodayClue() {
   const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-  // Use bar custom clues if available, otherwise fall back to defaults
-  const cluePool = (barHuntClues && barHuntClues.length > 0) ? [...HUNT_CLUES, ...barHuntClues] : HUNT_CLUES;
-  return { text: cluePool[dayOfYear % cluePool.length], day: dayOfYear };
+  const custom = (barHuntClues && barHuntClues.length > 0) ? barHuntClues : [];
+
+  // Deduplicate clues first
+  const allClues = [...new Set([...HUNT_CLUES, ...custom, ...custom, ...custom])];
+
+  // Use a seeded rotation that avoids consecutive repeats
+  // Pick based on day, but skip if same as yesterday
+  const todayIdx = dayOfYear % allClues.length;
+  const yesterdayIdx = (dayOfYear - 1) % allClues.length;
+
+  let finalIdx = todayIdx;
+  if (todayIdx === yesterdayIdx && allClues.length > 1) {
+    finalIdx = (todayIdx + 1) % allClues.length;
+  }
+
+  return { text: allClues[finalIdx], day: dayOfYear };
 }
 
 async function loadHuntTab() {
