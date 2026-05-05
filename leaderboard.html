@@ -72,10 +72,10 @@
     .pod-card.empty { opacity:0.2; }
     .pod-medal { font-size:18px; margin-bottom:6px; }
     .pod-card.first .pod-medal { font-size:26px; }
-    .pod-avatar { width:42px; height:42px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; background:var(--bg3); color:var(--muted); }
-    .pod-card.first .pod-avatar { width:52px; height:52px; font-size:19px; background:rgba(240,165,0,0.18); color:var(--gold); }
-    .pod-card.second .pod-avatar { background:rgba(192,192,192,0.12); color:var(--silver); }
-    .pod-card.third .pod-avatar { background:rgba(205,127,50,0.12); color:var(--bronze); }
+    .pod-avatar { width:56px; height:56px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; background:var(--bg3); color:var(--muted); overflow:hidden; background-size:cover; background-position:center; }
+    .pod-card.first .pod-avatar { width:72px; height:72px; font-size:22px; background:rgba(240,165,0,0.18); color:var(--gold); overflow:hidden; background-size:cover; background-position:center; }
+    .pod-card.second .pod-avatar { background:rgba(192,192,192,0.12); color:var(--silver); overflow:hidden; background-size:cover; background-position:center; }
+    .pod-card.third .pod-avatar { background:rgba(205,127,50,0.12); color:var(--bronze); overflow:hidden; background-size:cover; background-position:center; }
     .pod-name { font-size:13px; font-weight:600; color:var(--text); margin-bottom:3px; }
     .pod-card.first .pod-name { font-size:16px; }
     .pod-pts { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--gold); line-height:1; }
@@ -96,7 +96,7 @@
     .lb-row { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--bg2); border-radius:8px; border:1px solid var(--border); }
     .lb-row.me { background:rgba(240,165,0,0.06); border-color:var(--gold-dim); }
     .lb-rank { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--dim); min-width:28px; text-align:center; }
-    .lb-avatar { width:32px; height:32px; border-radius:50%; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:var(--muted); flex-shrink:0; }
+    .lb-avatar { width:44px; height:44px; border-radius:50%; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--muted); flex-shrink:0; overflow:hidden; background-size:cover; background-position:center; }
     .lb-name { flex:1; font-size:14px; font-weight:500; }
     .lb-you { font-size:11px; color:var(--gold); font-weight:400; margin-left:5px; }
     .lb-meta { font-size:11px; color:var(--dim); }
@@ -275,8 +275,26 @@ const LB_LEVELS = [
 function getLBLevel(pts) { return LB_LEVELS.slice().reverse().find(l => pts >= l.min) || LB_LEVELS[0]; }
 
 function getAvatarImg(avatarId) {
-  const av = AVATARS ? AVATARS.find(a => a.id === avatarId) : null;
-  return av?.img || null;
+  if (!avatarId) return null;
+  if (typeof AVATARS !== 'undefined') {
+    const av = AVATARS.find(a => a.id === avatarId);
+    if (av?.img) return av.img;
+  }
+  // Fallback map for direct lookup
+  const map = {
+    'dart-hustler': '/Dart Hustler.png',
+    'pool-shark': '/Pool Shark.png',
+    'trivia-wizard': '/Trivia Wizard.png',
+    'the-regular-male': '/The Regular v2.png',
+    'dart-princess': '/dart princess.png',
+    'pool-queen': '/Pool Queen.png',
+    'the-hustler': '/The Hustler Female.png',
+    'the-regular-female': '/The Regular Female.png',
+    'gambling-pirate': '/Gambling Pirate.png',
+    'high-roller': '/High Roller.png',
+    'the-legend': '/The Legend.png',
+  };
+  return map[avatarId] || null;
 }
 
 function setPod(num, row, T) {
