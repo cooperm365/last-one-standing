@@ -721,59 +721,8 @@ async function showDashboard(player) {
   document.getElementById('stat-visits').textContent = (checkins||[]).filter(c=>!c.pending).length;
   document.getElementById('stat-bonus').textContent = bonusPts;
 
-// ── LEVEL SYSTEM ────────────────────────────────────────
-const LEVELS = [
-  { level: 1, name: 'Rookie',    icon: '🌱', min: 0,    max: 99,   color: '#888780', border: '#3A3A38' },
-  { level: 2, name: 'Regular',   icon: '🍺', min: 100,  max: 299,  color: '#60A5FA', border: '#2A4A6A' },
-  { level: 3, name: 'Contender', icon: '⚡', min: 300,  max: 599,  color: '#3ECF8E', border: '#1A5A3A' },
-  { level: 4, name: 'Veteran',   icon: '🔥', min: 600,  max: 999,  color: '#F0A500', border: '#5A4000' },
-  { level: 5, name: 'Legend',    icon: '👑', min: 1000, max: 1999, color: '#F56565', border: '#5A2020' },
-  { level: 6, name: 'Bar Icon',  icon: '🏆', min: 2000, max: Infinity, color: '#D4AF37', border: '#8B6914' },
-];
-
-function getLevel(lifetimePts) {
-  return LEVELS.slice().reverse().find(l => lifetimePts >= l.min) || LEVELS[0];
-}
-
-function applyLevelUI(lifetimePts) {
-  const lvl = getLevel(lifetimePts);
-  const next = LEVELS.find(l => l.level === lvl.level + 1);
-
-  // Badge
-  document.getElementById('level-icon').textContent = lvl.icon;
-  document.getElementById('level-name').textContent = lvl.name;
-  document.getElementById('level-num').textContent = `Lv.${lvl.level}`;
-
-  // Badge color
-  const badge = document.getElementById('level-badge');
-  badge.style.borderColor = lvl.border;
-  badge.style.background = lvl.border + '33';
-  document.getElementById('level-name').style.color = lvl.color;
-  document.getElementById('level-num').style.color = lvl.color;
-
-  // Card border
-  const card = document.getElementById('player-card');
-  card.style.borderColor = lvl.border;
-  card.style.borderWidth = '2px';
-
-  // Progress bar
-  const bar = document.getElementById('level-progress-bar');
-  bar.style.background = lvl.color;
-  if (next) {
-    const range = next.min - lvl.min;
-    const progress = lifetimePts - lvl.min;
-    const pct = Math.min(100, Math.round((progress / range) * 100));
-    bar.style.width = pct + '%';
-    document.getElementById('level-pts-label').textContent = lifetimePts + ' pts';
-    document.getElementById('level-next-label').textContent = (next.min - lifetimePts) + ' pts to ' + next.name;
-  } else {
-    bar.style.width = '100%';
-    document.getElementById('level-pts-label').textContent = lifetimePts + ' pts';
-    document.getElementById('level-next-label').textContent = 'Max level reached 🏆';
-  }
-}
-
-// Update lifetime display and apply level
+  // Lifetime points + level
+  const barId = currentBar?.id || '';
   const { data: scoreData } = await sb.from('player_bar_scores').select('lifetime_points').eq('player_id', player.id).eq('bar_id', barId).single();
   const lifetimePts = scoreData?.lifetime_points ?? player.total_points;
   document.getElementById('stat-lifetime').textContent = lifetimePts;
@@ -782,7 +731,7 @@ function applyLevelUI(lifetimePts) {
   // Load avatar
   currentUnlockedAvatars = await loadAvatar(player, lifetimePts);
 
-  // ── MILESTONE DETECTION ──────────────────────────────
+  // Milestone detection
   await checkMilestones(player, lifetimePts);
 
   // Pending notice
@@ -801,7 +750,6 @@ function applyLevelUI(lifetimePts) {
   }
 
   // Rank + change notification
-  const barId = currentBar?.id;
   const { data: allScores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', barId).order('total_points', { ascending: false });
   const rank = (allScores||[]).findIndex(s => s.player_id === player.id) + 1;
   document.getElementById('stat-rank').textContent = rank > 0 ? `#${rank}` : '—';
