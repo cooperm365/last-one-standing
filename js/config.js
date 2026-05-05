@@ -66,20 +66,19 @@ function applyBarBranding(bar) {
 
 // ── AVATAR SYSTEM ────────────────────────────────────────
 const AVATARS = [
-  // Starter avatars — 4 male, 4 female, available to everyone
-  { id: 'dart-hustler',      name: 'Dart Hustler',      desc: 'Never misses',        img: '/dart-hustler.png',      color: '#F0A500', unlockType: 'starter', gender: 'm' },
-  { id: 'pool-shark',        name: 'Pool Shark',        desc: 'Cool under pressure', img: '/pool-shark.png',        color: '#3ECF8E', unlockType: 'starter', gender: 'm' },
-  { id: 'trivia-wizard',     name: 'Trivia Wizard',     desc: 'Big brain energy',    img: '/trivia-wizard.png',     color: '#818CF8', unlockType: 'starter', gender: 'm' },
-  { id: 'the-regular-male',  name: 'The Regular',       desc: 'Always here',         img: '/the-regular-male.png',  color: '#888780', unlockType: 'starter', gender: 'm' },
-  { id: 'dart-princess',     name: 'Dart Princess',     desc: 'Fierce & precise',    img: '/dart-princess.png',     color: '#F56565', unlockType: 'starter', gender: 'f' },
-  { id: 'pool-queen',        name: 'Pool Queen',        desc: 'Runs the table',      img: '/pool-queen.png',        color: '#3ECF8E', unlockType: 'starter', gender: 'f' },
-  { id: 'the-hustler',       name: 'The Hustler',       desc: 'Always has a plan',   img: '/the-hustler.png',       color: '#F0A500', unlockType: 'starter', gender: 'f' },
-  { id: 'the-regular-female',name: 'The Regular',       desc: 'Here every week',     img: '/the-regular-female.png',color: '#888780', unlockType: 'starter', gender: 'f' },
+  // Starter avatars — available to everyone
+  { id: 'dart-hustler',      name: 'Dart Hustler',      desc: 'Never misses',        img: '/Dart Hustler.png',       color: '#F0A500', unlockType: 'starter', gender: 'm' },
+  { id: 'pool-shark',        name: 'Pool Shark',        desc: 'Cool under pressure', img: '/Pool Shark.png',         color: '#3ECF8E', unlockType: 'starter', gender: 'm' },
+  { id: 'trivia-wizard',     name: 'Trivia Wizard',     desc: 'Big brain energy',    img: '/Trivia Wizard.png',      color: '#818CF8', unlockType: 'starter', gender: 'm' },
+  { id: 'the-regular-male',  name: 'The Regular',       desc: 'Always here',         img: '/The Regular v2.png',     color: '#888780', unlockType: 'starter', gender: 'm' },
+  { id: 'dart-princess',     name: 'Dart Princess',     desc: 'Fierce & precise',    img: '/dart princess.png',      color: '#F56565', unlockType: 'starter', gender: 'f' },
+  { id: 'pool-queen',        name: 'Pool Queen',        desc: 'Runs the table',      img: '/Pool Queen.png',         color: '#3ECF8E', unlockType: 'starter', gender: 'f' },
+  { id: 'the-hustler',       name: 'The Hustler',       desc: 'Always has a plan',   img: '/The Hustler Female.png', color: '#F0A500', unlockType: 'starter', gender: 'f' },
+  { id: 'the-regular-female',name: 'The Regular',       desc: 'Here every week',     img: '/The Regular Female.png', color: '#888780', unlockType: 'starter', gender: 'f' },
   // Unlockable avatars
-  { id: 'gambling-pirate',   name: 'Gambling Pirate',   desc: 'High risk high reward',img: '/gambling-pirate.png',  color: '#F97316', unlockType: 'challenges', unlockCount: 5,    unlockDesc: 'Win 5 challenges' },
-  { id: 'high-roller',       name: 'High Roller',       desc: 'All in every night',  img: '/high-roller.png',       color: '#D4AF37', unlockType: 'hunt',       unlockCount: 3,    unlockDesc: 'Win 3 scavenger hunts' },
-  { id: 'the-detective',     name: 'The Detective',     desc: 'Finds every angle',   img: '/the-detective.png',     color: '#60A5FA', unlockType: 'lifetime',   unlockCount: 600,  unlockDesc: '600 lifetime points' },
-  { id: 'the-legend',        name: 'The Legend',        desc: 'Bar royalty',         img: '/the-legend.png',        color: '#FFD700', unlockType: 'lifetime',   unlockCount: 1000, unlockDesc: '1,000 lifetime points' },
+  { id: 'gambling-pirate',   name: 'Gambling Pirate',   desc: 'High risk high reward',img: '/Gambling Pirate.png',   color: '#F97316', unlockType: 'challenges', unlockCount: 5,    unlockDesc: 'Win 5 challenges' },
+  { id: 'high-roller',       name: 'High Roller',       desc: 'All in every night',  img: '/High Roller.png',        color: '#D4AF37', unlockType: 'hunt',       unlockCount: 3,    unlockDesc: 'Win 3 scavenger hunts' },
+  { id: 'the-legend',        name: 'The Legend',        desc: 'Bar royalty',         img: '/The Legend.png',         color: '#FFD700', unlockType: 'lifetime',   unlockCount: 1000, unlockDesc: '1,000 lifetime points' },
 ];
 
 function getAvatarById(id) { return AVATARS.find(a => a.id === id) || AVATARS[0]; }
