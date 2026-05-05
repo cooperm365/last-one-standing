@@ -361,13 +361,11 @@ function update() {
 function finish() {
   const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
   const barKey = slug || 'default';
+  // Save using slug as key (bar ID version handled on checkin side)
   localStorage.setItem(`br_tutorial_done_${barKey}`, '1');
-  const phone = localStorage.getItem('br_phone');
   const myPointsUrl = slug ? `my-points.html?bar=${slug}` : 'my-points.html';
-  // Go to character select if no avatar chosen yet
   const avatar = localStorage.getItem('br_avatar');
   if (!avatar && slug) {
-    // Get return URL — go back to checkin with original event after character select
     const returnUrl = new URLSearchParams(location.search).get('return') || myPointsUrl;
     window.location.href = `character-select.html?bar=${slug}&return=${encodeURIComponent(returnUrl)}`;
   } else {
