@@ -180,6 +180,7 @@
         <div class="pod-medal">🥈</div>
         <div class="pod-avatar" id="pod-2-av"></div>
         <div class="pod-name" id="pod-2-name">—</div>
+        <div id="pod-2-level" style="font-size:11px;color:#888780;margin-bottom:2px"></div>
         <div class="pod-pts" id="pod-2-pts">—</div>
         <div class="pod-label">points</div>
         <div class="pod-checkins" id="pod-2-ci"></div>
@@ -189,6 +190,7 @@
         <div class="pod-medal">🥇</div>
         <div class="pod-avatar" id="pod-1-av"></div>
         <div class="pod-name" id="pod-1-name">—</div>
+        <div id="pod-1-level" style="font-size:11px;color:#888780;margin-bottom:2px"></div>
         <div class="pod-pts" id="pod-1-pts">—</div>
         <div class="pod-label">points</div>
         <div class="pod-checkins" id="pod-1-ci"></div>
@@ -198,6 +200,7 @@
         <div class="pod-medal">🥉</div>
         <div class="pod-avatar" id="pod-3-av"></div>
         <div class="pod-name" id="pod-3-name">—</div>
+        <div id="pod-3-level" style="font-size:11px;color:#888780;margin-bottom:2px"></div>
         <div class="pod-pts" id="pod-3-pts">—</div>
         <div class="pod-label">points</div>
         <div class="pod-checkins" id="pod-3-ci"></div>
@@ -249,6 +252,16 @@ const TARGET = () => currentBar?.point_target || 200;
 
 function initials(name) { return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 
+const LB_LEVELS = [
+  { level:1, name:'Rookie',    icon:'🌱', min:0,    color:'#888780' },
+  { level:2, name:'Regular',   icon:'🍺', min:100,  color:'#60A5FA' },
+  { level:3, name:'Contender', icon:'⚡', min:300,  color:'#3ECF8E' },
+  { level:4, name:'Veteran',   icon:'🔥', min:600,  color:'#F0A500' },
+  { level:5, name:'Legend',    icon:'👑', min:1000, color:'#F56565' },
+  { level:6, name:'Bar Icon',  icon:'🏆', min:2000, color:'#D4AF37' },
+];
+function getLBLevel(pts) { return LB_LEVELS.slice().reverse().find(l => pts >= l.min) || LB_LEVELS[0]; }
+
 function setPod(num, row, T) {
   if (!row) { document.getElementById('pod-'+num).classList.add('empty'); return; }
   document.getElementById('pod-'+num+'-av').textContent = initials(row.name);
@@ -258,11 +271,15 @@ function setPod(num, row, T) {
   document.getElementById('pod-'+num+'-ci').textContent = row.pending ? 'checking in...' : row.checkins + ' check-in' + (row.checkins!==1?'s':'');
   const pct = Math.min(100, Math.round((displayPts / T) * 100));
   document.getElementById('pod-'+num+'-bar').style.width = pct + '%';
+  // Level badge
+  const lvl = getLBLevel(row.lifetimePts || row.pts);
+  const lvlEl = document.getElementById('pod-'+num+'-level');
+  if (lvlEl) { lvlEl.textContent = lvl.icon + ' ' + lvl.name; lvlEl.style.color = lvl.color; }
 }
 
 async function load() {
   if (!currentBar) return;
-  const { data: scores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', currentBar.id);
+  const { data: scores } = await sb.from('player_bar_scores').select('player_id, total_points, lifetime_points').eq('bar_id', currentBar.id);
   const { data: confirmedCI } = await sb.from('checkins').select('player_id').eq('pending', false).eq('bar_id', currentBar.id);
   const { data: pendingCI } = await sb.from('checkins').select('player_id, points_earned, points_confirm_at').eq('pending', true).eq('bar_id', currentBar.id);
   const { data: profiles } = await sb.from('player_profiles').select('id, name, nickname, phone');
@@ -280,7 +297,8 @@ async function load() {
 
   // Combine confirmed scores with pending players
   const scoreMap = {};
-  (scores||[]).forEach(s => { scoreMap[s.player_id] = s.total_points; });
+  const lifetimeMap = {};
+  (scores||[]).forEach(s => { scoreMap[s.player_id] = s.total_points; lifetimeMap[s.player_id] = s.lifetime_points || 0; });
 
   // Add pending players who have 0 confirmed points
   Object.keys(pendingPts).forEach(pid => {
@@ -295,7 +313,8 @@ async function load() {
       pts: Math.max(0, pts),
       pendingPts: pendingPts[pid] || 0,
       checkins: cins[pid] || 0,
-      pending: pts === 0 && (pendingPts[pid] || 0) > 0
+      pending: pts === 0 && (pendingPts[pid] || 0) > 0,
+      lifetimePts: lifetimeMap[pid] || 0
     }))
     .filter(r => r.pts > 0 || r.pendingPts > 0)
     .sort((a, b) => (b.pts + b.pendingPts) - (a.pts + a.pendingPts));
@@ -339,12 +358,13 @@ async function load() {
       const isMe = myPhone && row.phone === myPhone;
       const displayPts = row.pts + row.pendingPts;
       const pct = Math.min(100, Math.round((displayPts / T) * 100));
+      const lvl = getLBLevel(row.lifetimePts || row.pts);
       return `<div class="lb-row${isMe?' me':''}">
         <div class="lb-rank">${rank}</div>
         <div class="lb-avatar">${initials(row.name)}</div>
         <div style="flex:1">
           <div class="lb-name">${esc(row.name)}${isMe?'<span class="lb-you">(you)</span>':''}${row.pending?'<span style="font-size:11px;color:#f0a500;margin-left:6px">⏳ checking in...</span>':''}</div>
-          <div class="lb-meta">${row.checkins} check-in${row.checkins!==1?'s':''}</div>
+          <div class="lb-meta">${row.checkins} check-in${row.checkins!==1?'s':''} · <span style="color:${lvl.color}">${lvl.icon} ${lvl.name}</span></div>
         </div>
         <div class="lb-right">
           <div class="lb-pts">${row.pts}</div>
