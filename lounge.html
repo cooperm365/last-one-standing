@@ -938,7 +938,7 @@ async function loadChallengeTab() {
   document.getElementById('challenge-form').style.display = 'block';
 
   // Check win cap immediately on tab open
-  const MAX_CHALLENGE_WINS = 3;
+  const MAX_CHALLENGE_WINS = currentBar?.challenge_win_cap ?? 3;
   const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
   const { data: recentWins } = await sb.from('challenges')
     .select('id')
@@ -1133,7 +1133,7 @@ async function doReport(challengeId, result, role) {
       await sb.from('challenges').update({ status: 'completed', winner_id: finalWinnerId }).eq('id', challengeId);
 
       // Check challenge win cap — max 3 wins per 8hr visit window
-      const MAX_CHALLENGE_WINS = 3;
+      const MAX_CHALLENGE_WINS = currentBar?.challenge_win_cap ?? 3;
       const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
       const { data: recentWins } = await sb.from('challenges')
         .select('id')
@@ -1216,7 +1216,7 @@ async function loadPlayerList() {
   }
 
   // Find players who have hit the 3-win cap this visit
-  const MAX_CHALLENGE_WINS = 3;
+  const MAX_CHALLENGE_WINS = currentBar?.challenge_win_cap ?? 3;
   const { data: recentWins } = await sb.from('challenges')
     .select('winner_id')
     .eq('bar_id', barId)
@@ -1292,7 +1292,7 @@ async function sendChallenge() {
   const btn = document.getElementById('send-challenge-btn');
 
   // Check win cap before sending
-  const MAX_CHALLENGE_WINS = 3;
+  const MAX_CHALLENGE_WINS = currentBar?.challenge_win_cap ?? 3;
   const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
   const { data: recentWins } = await sb.from('challenges')
     .select('id')
