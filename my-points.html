@@ -702,6 +702,51 @@ async function lookup() {
   showBottomNav();
 }
 
+// ── LEVEL SYSTEM ────────────────────────────────────────
+const LEVELS = [
+  { level: 1, name: 'Rookie',    icon: '🌱', min: 0,    max: 99,   color: '#888780', border: '#3A3A38' },
+  { level: 2, name: 'Regular',   icon: '🍺', min: 100,  max: 299,  color: '#60A5FA', border: '#2A4A6A' },
+  { level: 3, name: 'Contender', icon: '⚡', min: 300,  max: 599,  color: '#3ECF8E', border: '#1A5A3A' },
+  { level: 4, name: 'Veteran',   icon: '🔥', min: 600,  max: 999,  color: '#F0A500', border: '#5A4000' },
+  { level: 5, name: 'Legend',    icon: '👑', min: 1000, max: 1999, color: '#F56565', border: '#5A2020' },
+  { level: 6, name: 'Bar Icon',  icon: '🏆', min: 2000, max: Infinity, color: '#D4AF37', border: '#8B6914' },
+];
+
+function getLevel(pts) {
+  return LEVELS.slice().reverse().find(l => pts >= l.min) || LEVELS[0];
+}
+
+function applyLevelUI(lifetimePts) {
+  const lvl = getLevel(lifetimePts);
+  const next = LEVELS.find(l => l.level === lvl.level + 1);
+  document.getElementById('level-icon').textContent = lvl.icon;
+  document.getElementById('level-name').textContent = lvl.name;
+  document.getElementById('level-num').textContent = `Lv.${lvl.level}`;
+  const badge = document.getElementById('level-badge');
+  if (badge) {
+    badge.style.borderColor = lvl.border;
+    badge.style.background = lvl.border + '33';
+  }
+  document.getElementById('level-name').style.color = lvl.color;
+  document.getElementById('level-num').style.color = lvl.color;
+  const card = document.getElementById('player-card');
+  if (card) { card.style.borderColor = lvl.border; card.style.borderWidth = '2px'; }
+  const bar = document.getElementById('level-progress-bar');
+  if (bar) {
+    bar.style.background = lvl.color;
+    if (next) {
+      const pct = Math.min(100, Math.round(((lifetimePts - lvl.min) / (next.min - lvl.min)) * 100));
+      bar.style.width = pct + '%';
+      document.getElementById('level-pts-label').textContent = lifetimePts + ' pts';
+      document.getElementById('level-next-label').textContent = (next.min - lifetimePts) + ' pts to ' + next.name;
+    } else {
+      bar.style.width = '100%';
+      document.getElementById('level-pts-label').textContent = lifetimePts + ' pts';
+      document.getElementById('level-next-label').textContent = 'Max level reached 🏆';
+    }
+  }
+}
+
 async function showDashboard(player) {
   currentPlayer = player;
   document.getElementById('lookup-form').style.display = 'none';
