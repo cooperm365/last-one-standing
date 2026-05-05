@@ -769,6 +769,9 @@ function applyLevelUI(lifetimePts) {
   document.getElementById('stat-lifetime').textContent = lifetimePts;
   applyLevelUI(lifetimePts);
 
+  // ── MILESTONE DETECTION ──────────────────────────────
+  await checkMilestones(player, lifetimePts);
+
   // Pending notice
   const old = document.getElementById('pending-notice');
   if (old) old.remove();
@@ -1118,6 +1121,87 @@ function closeWinnerOverlay() {
   document.getElementById('winner-overlay').style.display = 'none';
 }
 </script>
+
+async function checkMilestones(player, lifetimePts) {
+  if (!currentBar || !player) return;
+
+  // Get all milestones for this bar that player qualifies for
+  const { data: milestones } = await sb.from('milestones')
+    .select('*')
+    .eq('bar_id', currentBar.id)
+    .lte('points_required', lifetimePts)
+    .order('points_required', { ascending: true });
+
+  if (!milestones?.length) return;
+
+  // Check which ones already claimed or pending
+  const { data: existingClaims } = await sb.from('milestone_claims')
+    .select('milestone_id, status, claim_code')
+    .eq('player_id', player.id)
+    .eq('bar_id', currentBar.id);
+
+  const claimedIds = new Set((existingClaims||[]).map(c => c.milestone_id));
+
+  // Find first unclaimed milestone
+  const unclaimed = milestones.find(m => !claimedIds.has(m.id));
+  if (!unclaimed) return;
+
+  // Generate claim code and save
+  const claimCode = 'MS-' + Math.random().toString(36).substring(2,5).toUpperCase() + '-' + Math.random().toString(36).substring(2,5).toUpperCase();
+  const { error } = await sb.from('milestone_claims').insert({
+    bar_id: currentBar.id,
+    player_id: player.id,
+    milestone_id: unclaimed.id,
+    claim_code: claimCode
+  });
+
+  if (error) return; // Already exists (unique constraint) — skip
+
+  // Show milestone overlay
+  showMilestoneOverlay(unclaimed, claimCode);
+}
+
+function showMilestoneOverlay(milestone, claimCode) {
+  document.getElementById('milestone-pts-req').textContent = milestone.points_required;
+  document.getElementById('milestone-reward-text').textContent = milestone.reward_text;
+  document.getElementById('milestone-code').textContent = claimCode;
+  document.getElementById('milestone-overlay').style.display = 'block';
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+}
+
+function closeMilestoneOverlay() {
+  document.getElementById('milestone-overlay').style.display = 'none';
+}
+</script>
+
+<!-- Milestone overlay -->
+<div id="milestone-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:301;overflow-y:auto;padding:2rem 1.25rem">
+  <div style="max-width:420px;margin:0 auto">
+    <div style="background:var(--bg2);border-radius:16px;overflow:hidden">
+      <div style="background:linear-gradient(135deg,#1A3A1A,#2A5A2A);padding:2rem 1.5rem;text-align:center">
+        <div style="font-size:56px;margin-bottom:0.5rem">🎯</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#3ECF8E;letter-spacing:2px">MILESTONE UNLOCKED!</div>
+        <div style="font-size:15px;color:#c0bdb8;margin-top:4px"><span id="milestone-pts-req">—</span> lifetime points reached</div>
+      </div>
+      <div style="padding:1.5rem">
+        <div style="text-align:center;margin-bottom:1.5rem">
+          <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Your reward</div>
+          <div style="font-size:22px;font-weight:700" id="milestone-reward-text">—</div>
+        </div>
+        <div style="background:var(--bg3);border:2px dashed #3ECF8E;border-radius:10px;padding:1.25rem;text-align:center;margin-bottom:1.5rem">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Your claim code</div>
+          <div id="milestone-code" style="font-family:monospace;font-size:26px;font-weight:700;color:#3ECF8E;letter-spacing:4px">——</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:8px">Show this to your bartender to claim your reward</div>
+        </div>
+        <div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.2);border-radius:8px;padding:0.75rem 1rem;font-size:13px;color:var(--green);margin-bottom:1.5rem;text-align:center">
+          ✅ This code can only be redeemed once
+        </div>
+        <button onclick="closeMilestoneOverlay()" class="btn btn-primary" style="width:100%;margin-bottom:0.75rem;background:#3ECF8E;color:#111">Got it — I'll claim my reward!</button>
+        <button onclick="closeMilestoneOverlay()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0.5rem">Remind me later</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </div><!-- end page-content -->
 
