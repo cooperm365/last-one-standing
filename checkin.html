@@ -448,6 +448,7 @@ async function doCheckin(player) {
     localStorage.setItem(tutorialKey, '1');
     localStorage.setItem('br_player_id', player.id);
     localStorage.setItem('br_phone', player.phone);
+    localStorage.setItem('br_bar_id', barId);
     const myPointsUrl = `my-points.html?bar=${barSlug}`;
     const charSelectUrl = `character-select.html?bar=${barSlug}&player=${player.id}&return=${encodeURIComponent(myPointsUrl)}`;
     window.location.href = `tutorial.html?bar=${barSlug}&return=${encodeURIComponent(charSelectUrl)}`;
