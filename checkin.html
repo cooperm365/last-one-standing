@@ -228,9 +228,27 @@ input:focus{border-color:var(--gold-dim)}
       </div>
       <div style="font-size:12px;color:var(--dim)" id="success-remaining"></div>
       <hr class="divider"/>
-      <a href="my-points.html" class="btn btn-outline" style="margin-top:0.5rem">View my points & rank</a>
+      <a href="my-points.html" class="btn btn-outline" style="margin-top:0.5rem" id="success-view-btn">View my points & rank</a>
     </div>
   </div>
+  <script>
+    // If no avatar set, success button goes to character select
+    (function() {
+      const avatar = localStorage.getItem('br_avatar');
+      const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
+      const playerId = localStorage.getItem('br_player_id');
+      const btn = document.getElementById('success-view-btn');
+      if (btn && slug) {
+        if (!avatar && playerId) {
+          const myPoints = encodeURIComponent(`my-points.html?bar=${slug}`);
+          btn.href = `character-select.html?bar=${slug}&player=${playerId}&return=${myPoints}`;
+          btn.textContent = 'Pick your character →';
+        } else {
+          btn.href = `my-points.html?bar=${slug}`;
+        }
+      }
+    })();
+  </script>
 
 </div>
 </div>
@@ -496,15 +514,19 @@ async function doCheckin(player) {
   hide('form-new'); hide('form-returning');
 
   // Redirect first-time users at THIS BAR to tutorial
-  // Use bar ID — unique per bar even if slug is reused
   const barSlug = currentBar?.slug || getBarSlug() || 'default';
   const barId = currentBar?.id || barSlug;
   const tutorialKey = `br_tutorial_done_${barId}`;
   const tutorialDone = localStorage.getItem(tutorialKey);
   if (!tutorialDone) {
     localStorage.setItem(tutorialKey, '1');
-    const returnUrl = barSlug !== 'default' ? `checkin.html?bar=${barSlug}&event=${new URLSearchParams(location.search).get('event')||''}` : 'checkin.html';
-    window.location.href = `tutorial.html?bar=${barSlug}&return=${encodeURIComponent(returnUrl)}`;
+    // Save player ID so character-select doesn't need to re-auth
+    localStorage.setItem('br_player_id', player.id);
+    localStorage.setItem('br_phone', player.phone);
+    // After tutorial → character select → my score (never back to checkin)
+    const myPointsUrl = `my-points.html?bar=${barSlug}`;
+    const charSelectUrl = `character-select.html?bar=${barSlug}&player=${player.id}&return=${encodeURIComponent(myPointsUrl)}`;
+    window.location.href = `tutorial.html?bar=${barSlug}&return=${encodeURIComponent(charSelectUrl)}`;
     return;
   }
 
