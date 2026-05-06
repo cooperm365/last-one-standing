@@ -439,7 +439,20 @@ async function doCheckin(player) {
     }
   }
 
-  // Check for existing checkin on this event
+  // ── TUTORIAL CHECK — fires first for any new player at this bar ──
+  const barSlug = currentBar?.slug || getBarSlug() || 'default';
+  const barId = currentBar?.id || barSlug;
+  const tutorialKey = `br_tutorial_done_${barId}`;
+  const tutorialDone = localStorage.getItem(tutorialKey);
+  if (!tutorialDone) {
+    localStorage.setItem(tutorialKey, '1');
+    localStorage.setItem('br_player_id', player.id);
+    localStorage.setItem('br_phone', player.phone);
+    const myPointsUrl = `my-points.html?bar=${barSlug}`;
+    const charSelectUrl = `character-select.html?bar=${barSlug}&player=${player.id}&return=${encodeURIComponent(myPointsUrl)}`;
+    window.location.href = `tutorial.html?bar=${barSlug}&return=${encodeURIComponent(charSelectUrl)}`;
+    return;
+  }
   const { data: existing } = await sb.from('checkins').select('*')
     .eq('player_id', player.id).eq('event_id', eventData.id).single();
 
@@ -512,23 +525,6 @@ async function doCheckin(player) {
 
   localStorage.setItem('br_phone', player.phone);
   hide('form-new'); hide('form-returning');
-
-  // Redirect first-time users at THIS BAR to tutorial
-  const barSlug = currentBar?.slug || getBarSlug() || 'default';
-  const barId = currentBar?.id || barSlug;
-  const tutorialKey = `br_tutorial_done_${barId}`;
-  const tutorialDone = localStorage.getItem(tutorialKey);
-  if (!tutorialDone) {
-    localStorage.setItem(tutorialKey, '1');
-    // Save player ID so character-select doesn't need to re-auth
-    localStorage.setItem('br_player_id', player.id);
-    localStorage.setItem('br_phone', player.phone);
-    // After tutorial → character select → my score (never back to checkin)
-    const myPointsUrl = `my-points.html?bar=${barSlug}`;
-    const charSelectUrl = `character-select.html?bar=${barSlug}&player=${player.id}&return=${encodeURIComponent(myPointsUrl)}`;
-    window.location.href = `tutorial.html?bar=${barSlug}&return=${encodeURIComponent(charSelectUrl)}`;
-    return;
-  }
 
   // Show pending screen
   const pts = eventData.points_value;
