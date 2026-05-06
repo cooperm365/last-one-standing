@@ -444,27 +444,16 @@ async function doCheckin(player) {
   const barId = currentBar?.id || barSlug;
   const tutorialKey = `br_tutorial_done_${barId}`;
   const tutorialDone = localStorage.getItem(tutorialKey);
-  if (!tutorialDone) {
-    localStorage.setItem(tutorialKey, '1');
-    localStorage.setItem('br_player_id', player.id);
-    localStorage.setItem('br_phone', player.phone);
-    localStorage.setItem('br_bar_id', barId);
-    const myPointsUrl = `my-points.html?bar=${barSlug}`;
-    const charSelectUrl = `character-select.html?bar=${barSlug}&player=${player.id}&return=${encodeURIComponent(myPointsUrl)}`;
-    window.location.href = `tutorial.html?bar=${barSlug}&return=${encodeURIComponent(charSelectUrl)}`;
-    return;
-  }
+
   const { data: existing } = await sb.from('checkins').select('*')
     .eq('player_id', player.id).eq('event_id', eventData.id).single();
 
   if (existing) {
     hide('form-new'); hide('form-returning');
     if (!existing.pending) {
-      // Already fully confirmed
       show('already-in');
       return;
     } else {
-      // Pending — resume timer
       const confirmAt = new Date(existing.points_confirm_at);
       const visitScans = await getVisitScans(player.id);
       if (confirmAt - new Date() <= 0) {
@@ -489,13 +478,11 @@ async function doCheckin(player) {
   const visitScans = await getVisitScans(player.id);
   if (visitScans.length >= MAX_SCANS_PER_VISIT) {
     show('cap-reached'); hide('form-new'); hide('form-returning');
-    // Show their current points
     if (barScore) {
       document.getElementById('cap-points-display').innerHTML = `
         <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--gold);line-height:1">${barScore.total_points}</div>
         <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px">your points at ${currentBar?.name||'this bar'}</div>`;
     }
-    // Show reset time — earliest scan + 8hrs
     const earliest = visitScans.sort((a,b) => new Date(a.scanned_at)-new Date(b.scanned_at))[0];
     if (earliest) {
       const resetAt = new Date(new Date(earliest.scanned_at).getTime() + VISIT_WINDOW_HOURS * 60 * 60 * 1000);
@@ -505,7 +492,6 @@ async function doCheckin(player) {
       const resetStr = hrs > 0 ? `${hrs}h ${remainMins}m` : `${remainMins} min`;
       document.getElementById('cap-reset-time').textContent = resetStr;
     }
-    // Fix lounge and score links with bar slug
     const slug = currentBar?.slug || getBarSlug();
     if (slug) {
       document.getElementById('cap-lounge-btn').href = `lounge.html?bar=${slug}`;
@@ -526,6 +512,17 @@ async function doCheckin(player) {
 
   localStorage.setItem('br_phone', player.phone);
   hide('form-new'); hide('form-returning');
+
+  // Now check if tutorial needed — checkin is already saved so points won't be lost
+  if (!tutorialDone) {
+    localStorage.setItem(tutorialKey, '1');
+    localStorage.setItem('br_player_id', player.id);
+    localStorage.setItem('br_bar_id', barId);
+    const myPointsUrl = `my-points.html?bar=${barSlug}`;
+    const charSelectUrl = `character-select.html?bar=${barSlug}&player=${player.id}&return=${encodeURIComponent(myPointsUrl)}`;
+    window.location.href = `tutorial.html?bar=${barSlug}&return=${encodeURIComponent(charSelectUrl)}`;
+    return;
+  }
 
   // Show pending screen
   const pts = eventData.points_value;
