@@ -1255,11 +1255,15 @@ async function loadAvatar(player, lifetimePts) {
     unlockedIds.add('high-roller');
   }
 
-  // If player has no avatar set — redirect to character select
+  // If player has no avatar set — redirect to character select only if not already done this session
   if (!player.avatar) {
-    const slug = currentBar?.slug || '';
-    window.location.href = `character-select.html?bar=${slug}&return=${encodeURIComponent(window.location.href)}`;
-    return unlockedIds;
+    const charSelectDone = localStorage.getItem(`br_char_select_done_${currentBar?.id || ''}`);
+    if (!charSelectDone) {
+      localStorage.setItem(`br_char_select_done_${currentBar?.id || ''}`, '1');
+      const slug = currentBar?.slug || '';
+      window.location.href = `character-select.html?bar=${slug}&player=${player.id}&return=${encodeURIComponent(window.location.href)}`;
+      return unlockedIds;
+    }
   }
 
   // Display current avatar
