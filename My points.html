@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Bar Rank"/>
+  <meta name="theme-color" content="#111110"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+  <title>My Score - Bar Rank</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .history-row { display:flex; align-items:center; gap:10px; padding:0.75rem 0; border-bottom:1px solid var(--border); }
+    .history-row:last-child { border-bottom:none; }
+    .history-icon { width:36px; height:36px; border-radius:8px; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+    .history-pts { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--gold); }
+    .history-bonus { color:var(--green); }
+    .scan-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:1rem; background:var(--gold); color:#111; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:16px; font-weight:600; cursor:pointer; margin-bottom:1.25rem; }
+    .scan-btn:active { opacity:0.9; transform:scale(0.98); }
+
+    /* Bottom navigation */
+    .bottom-nav { position:fixed; bottom:0; left:0; right:0; background:var(--bg2); border-top:1px solid var(--border); display:flex; align-items:stretch; z-index:100; padding-bottom:env(safe-area-inset-bottom); }
+    .bottom-nav a { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 4px 8px; text-decoration:none; color:var(--text-muted); font-size:10px; font-weight:500; gap:4px; transition:color 0.15s; position:relative; }
+    .bottom-nav a.active { color:var(--gold); }
+    .bottom-nav a:active { opacity:0.7; }
+    .bottom-nav .nav-icon { font-size:22px; line-height:1; }
+    .bottom-nav .nav-label { font-size:10px; letter-spacing:0.3px; }
+    .bottom-nav .nav-dot { position:absolute; top:8px; right:calc(50% - 14px); width:8px; height:8px; background:var(--red); border-radius:50%; border:2px solid var(--bg2); display:none; }
+    .bottom-nav .nav-dot.show { display:block; }
+    .scan-tab { background:var(--gold) !important; color:#111 !important; margin:6px 8px; border-radius:12px; font-weight:700 !important; }
+    .scan-tab .nav-icon { font-size:20px; }
+
+    /* Add padding to body so content doesn't hide behind bottom nav */
+    .page-content { padding-bottom: 80px; }
+
+    /* Full-screen panels that slide over the dashboard */
+    .panel { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:50; overflow-y:auto; }
+    .panel.open { display:block; }
+    .panel-header { display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--bg); z-index:1; }
+    .panel-back { background:var(--bg3); border:none; color:var(--text); font-size:20px; width:36px; height:36px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .panel-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; color:var(--gold); }
+    .panel-body { padding:1.25rem; }
+
+    /* Camera scanner */
+    .scanner-wrap { position:relative; width:100%; background:#000; overflow:hidden; }
+    #scanner-video { width:100%; display:block; max-height:60vh; object-fit:cover; }
+    .scanner-frame { position:absolute; top:50%; left:50%; transform:translate(-50%,-55%); width:200px; height:200px; pointer-events:none; }
+    .sf-tl, .sf-tr, .sf-bl, .sf-br { position:absolute; width:36px; height:36px; }
+    .sf-tl { top:0; left:0; border-top:3px solid #f0a500; border-left:3px solid #f0a500; }
+    .sf-tr { top:0; right:0; border-top:3px solid #f0a500; border-right:3px solid #f0a500; }
+    .sf-bl { bottom:0; left:0; border-bottom:3px solid #f0a500; border-left:3px solid #f0a500; }
+    .sf-br { bottom:0; right:0; border-bottom:3px solid #f0a500; border-right:3px solid #f0a500; }
+    .scanner-hint { text-align:center; padding:14px; font-size:13px; color:var(--text-muted); }
+    #scanner-status { text-align:center; padding:8px 16px; font-size:14px; color:var(--gold); min-height:36px; }
+
+    /* Timer */
+    .timer-ring { position:relative; width:120px; height:120px; margin:0 auto 1rem; }
+    .timer-ring svg { transform:rotate(-90deg); }
+    .timer-ring circle { fill:none; stroke-width:6; }
+    .timer-track { stroke:#222220; }
+    .timer-fill { stroke:#f0a500; stroke-linecap:round; transition:stroke-dashoffset 1s linear; }
+    .timer-text { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+    .timer-mins { font-family:'Bebas Neue',sans-serif; font-size:32px; color:#f0a500; line-height:1; }
+    .timer-label { font-size:10px; color:#888780; text-transform:uppercase; letter-spacing:0.5px; }
+    .pending-badge { background:rgba(240,165,0,0.1); border:1px solid rgba(240,165,0,0.3); border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem; }
+  </style>
+</head>
+<body>
+
+<!-- ── SCANNER PANEL ── -->
+<div class="panel" id="panel-scanner">
+  <div class="panel-header">
+    <button class="panel-back" onclick="closePanel('panel-scanner')">←</button>
+    <div class="panel-title">Scan game QR</div>
+  </div>
+  <div class="scanner-wrap">
+    <video id="scanner-video" autoplay playsinline muted></video>
+    <div class="scanner-frame">
+      <div class="sf-tl"></div><div class="sf-tr"></div>
+      <div class="sf-bl"></div><div class="sf-br"></div>
+    </div>
+  </div>
+  <div class="scanner-hint">Point your camera at a game QR code</div>
+  <div id="scanner-status"></div>
+</div>
+
+<!-- ── CHECKIN PANEL ── -->
+<div class="panel" id="panel-checkin">
+  <div class="panel-header">
+    <button class="panel-back" id="checkin-back-btn" onclick="closePanel('panel-checkin')">←</button>
+    <div class="panel-title" id="ci-panel-title">Check in</div>
+  </div>
+  <div class="panel-body">
+
+    <!-- Event info -->
+    <div class="card card-gold" style="text-align:center;margin-bottom:1.5rem">
+      <div id="ci-badge" style="margin-bottom:0.5rem"></div>
+      <div id="ci-event-name" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px"></div>
+      <div style="margin-top:0.75rem">
+        <span class="points-big" id="ci-event-pts"></span>
+        <span class="points-label" style="margin-left:6px">points</span>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:0.25rem">stay and play to earn</div>
+    </div>
+
+    <!-- Already checked in -->
+    <div id="ci-already-in" style="display:none">
+      <div class="card" style="text-align:center">
+        <div style="font-size:32px;margin-bottom:0.5rem">✓</div>
+        <div style="font-weight:600;margin-bottom:0.25rem">Already checked in!</div>
+        <div style="color:var(--text-muted);font-size:14px">You already scanned this event.</div>
+        <hr class="divider"/>
+        <button class="btn btn-outline btn-sm" onclick="closePanel('panel-checkin');refreshDashboard()">Back to my score</button>
+      </div>
+    </div>
+
+    <!-- Cap reached -->
+    <div id="ci-cap-reached" style="display:none">
+      <div class="card" style="text-align:center">
+        <div style="font-size:32px;margin-bottom:0.5rem">🎯</div>
+        <div style="font-weight:600;margin-bottom:0.25rem">3 scans used tonight</div>
+        <div style="color:var(--text-muted);font-size:14px">You've hit the max of 3 check-ins per visit. Come back tomorrow!</div>
+        <hr class="divider"/>
+        <button class="btn btn-outline btn-sm" onclick="closePanel('panel-checkin');refreshDashboard()">Back to my score</button>
+      </div>
+    </div>
+
+    <!-- New player form (only shown if not yet registered) -->
+    <div id="ci-form-new" style="display:none">
+      <div class="card">
+        <p style="font-size:14px;color:var(--text-muted);margin-bottom:1rem">First time? Enter your details to claim your points.</p>
+        <label>Your name</label>
+        <input type="text" id="ci-new-name" placeholder="e.g. Jamie" autocomplete="name"/>
+        <label>Mobile number</label>
+        <input type="tel" id="ci-new-phone" placeholder="e.g. 555-000-0000" autocomplete="tel"/>
+        <div id="ci-new-msg" class="msg"></div>
+        <button class="btn btn-primary" onclick="ciSubmitNew()">Check in — <span id="ci-new-pts"></span> points</button>
+      </div>
+    </div>
+
+    <!-- Pending / countdown -->
+    <div id="ci-pending" style="display:none">
+      <div class="card" style="text-align:center">
+        <div style="font-weight:600;font-size:17px;margin-bottom:0.25rem">You're checked in!</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem">Stay and play — your points land in:</div>
+        <div class="timer-ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle class="timer-track" cx="60" cy="60" r="52"/>
+            <circle class="timer-fill" id="ci-timer-arc" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="0"/>
+          </svg>
+          <div class="timer-text">
+            <div class="timer-mins" id="ci-timer-display">15:00</div>
+            <div class="timer-label">remaining</div>
+          </div>
+        </div>
+        <div class="pending-badge">
+          <div style="font-size:13px;color:var(--gold);font-weight:600"><span id="ci-pending-pts"></span> points pending</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:3px">Confirmed at <span id="ci-confirm-time"></span></div>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Need to step away? No problem — come back to the app and your timer will resume.</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:0.5rem">
+          <span style="font-size:13px;color:var(--text-muted)">Scans used tonight:</span>
+          <div class="scan-dots" id="ci-pending-dots"></div>
+        </div>
+        <hr class="divider"/>
+        <div style="background:var(--gold-bg);border:1px solid rgba(240,165,0,0.25);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;text-align:left">
+          <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:0.25rem">🏆 Want more points?</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Bonus points are awarded for wins and top performances. Play hard!</div>
+        </div>
+        <button class="btn btn-outline" onclick="closePanel('panel-checkin');refreshDashboard()">Back to my score</button>
+      </div>
+    </div>
+
+    <!-- Success -->
+    <div id="ci-success" style="display:none">
+      <div class="card" style="text-align:center">
+        <div style="font-size:40px;margin-bottom:0.5rem">🎉</div>
+        <div style="font-weight:600;font-size:18px;margin-bottom:0.25rem">Points confirmed!</div>
+        <div class="points-big" id="ci-success-pts" style="margin:0.5rem 0"></div>
+        <div class="points-label">points earned</div>
+        <hr class="divider"/>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:0.5rem">
+          <span style="font-size:13px;color:var(--text-muted)">Scans used tonight:</span>
+          <div class="scan-dots" id="ci-success-dots"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:1rem" id="ci-success-remaining"></div>
+        <hr class="divider"/>
+        <button class="btn btn-primary" style="margin-bottom:0.5rem" onclick="openScanner()">Scan another game</button>
+        <button class="btn btn-outline" onclick="closePanel('panel-checkin');refreshDashboard()">Back to my score</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MAIN PAGE ── -->
+<div class="page">
+
+  <div class="header">
+    <div class="logo-mark">BR</div>
+    <div>
+      <div class="site-name">Bar Rank</div>
+      <div class="site-sub" id="header-bar-name">My Score</div>
+    </div>
+    <a href="tutorial.html" id="link-tutorial" style="margin-left:auto;background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:8px;font-size:12px;text-decoration:none">❓ How it works</a>
+    <script>
+      (function() {
+        const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
+        if (slug) document.getElementById('link-tutorial').href = `tutorial.html?bar=${slug}`;
+      })();
+    </script>
+  </div>
+
+  <!-- Phone lookup -->
+  <div class="page-content">
+  <div id="lookup-form">
+    <div class="card">
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:1rem">Enter your mobile number to see your points.</p>
+      <label>Mobile number</label>
+      <input type="tel" id="lookup-phone" placeholder="e.g. 555-000-0000" autocomplete="tel"/>
+      <div id="lookup-msg" class="msg"></div>
+      <button class="btn btn-primary" onclick="lookup()">View my points</button>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" style="display:none">
+
+    <button class="scan-btn" onclick="openScanner()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <rect x="7" y="7" width="10" height="10" rx="1"/>
+      </svg>
+      Scan a game QR code
+    </button>
+
+    <div class="card card-gold" id="player-card" style="text-align:center;margin-bottom:1.5rem;transition:border-color 0.3s">
+      <!-- Level badge -->
+      <div id="level-badge" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:4px 14px;margin-bottom:0.75rem">
+        <span id="level-icon" style="font-size:14px">⭐</span>
+        <span id="level-name" style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted)">Rookie</span>
+        <span id="level-num" style="font-size:11px;color:var(--text-muted)">Lv.1</span>
+      </div>
+      <div id="player-name" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:0.25rem"></div>
+      <div class="points-big" id="player-total"></div>
+      <div class="points-label">season points</div>
+      <!-- Lifetime points -->
+      <div style="margin-top:0.5rem;display:flex;align-items:center;justify-content:center;gap:6px">
+        <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Lifetime:</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text-muted)" id="stat-lifetime">—</span>
+        <span style="font-size:11px;color:var(--text-muted)">pts</span>
+      </div>
+      <!-- Level progress bar -->
+      <div style="margin-top:0.75rem;padding:0 0.25rem">
+        <div style="height:4px;background:var(--bg3);border-radius:999px;overflow:hidden">
+          <div id="level-progress-bar" style="height:100%;border-radius:999px;background:var(--gold);transition:width 0.5s ease;width:0%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-size:10px;color:var(--text-muted)" id="level-pts-label">0 pts</span>
+          <span style="font-size:10px;color:var(--text-muted)" id="level-next-label">100 pts to Local</span>
+        </div>
+      </div>
+      <hr class="divider"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold)" id="stat-rank">—</div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Rank</div>
+        </div>
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold)" id="stat-visits">—</div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Check-ins</div>
+        </div>
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold)" id="stat-bonus">—</div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Bonus pts</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Avatar display + change button -->
+    <div class="card" style="margin-bottom:1.5rem;display:flex;align-items:center;gap:14px" id="avatar-card">
+      <div id="avatar-display" style="width:72px;height:72px;border-radius:50%;background:var(--bg3);border:3px solid var(--border);overflow:hidden;flex-shrink:0">
+        <img id="avatar-img" src="" style="width:100%;height:100%;object-fit:cover;display:none"/>
+        <div id="avatar-emoji-fallback" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px">?</div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:16px;font-weight:700" id="avatar-name">Choose your character</div>
+        <div style="font-size:12px;color:var(--text-muted)" id="avatar-desc">Tap to pick your avatar</div>
+      </div>
+      <button onclick="openAvatarSelect()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer" id="avatar-change-btn">Change</button>
+    </div>
+
+    <div class="card" id="tonight-card" style="margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+        <span style="font-size:14px;font-weight:500">Tonight's scans</span>
+        <span id="tonight-count" style="font-size:13px;color:var(--text-muted)"></span>
+      </div>
+      <div class="scan-dots" id="tonight-dots"></div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:0.5rem" id="tonight-msg"></div>
+    </div>
+
+    <div class="section-title">Point history</div>
+    <div id="history-loading" style="text-align:center;padding:1.5rem;color:var(--text-muted)"><span class="spinner"></span></div>
+    <div id="history-empty" style="display:none" class="card">
+      <p style="color:var(--text-muted);font-size:14px">No check-ins yet — tap Scan above to earn your first points!</p>
+    </div>
+    <div id="history-list" class="card" style="display:none;padding:0.5rem 1rem"></div>
+
+    <!-- other bars section removed -->
+
+    <hr class="divider"/>
+    <button class="btn btn-outline" onclick="switchPlayer()" style="font-size:13px">Switch account</button>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="js/config.js"></script>
+<script>
+const sb = getSupabase();
+const LOCK_MINUTES = 15;
+const typeIcons = { darts:'🎯', pool:'🎱', trivia:'🧠', bingo:'🎰', live_music:'🎵', blackjack:'🃏', other:'⭐' };
+const typeLabels = { darts:'🎯 Darts', pool:'🎱 Pool', trivia:'🧠 Trivia', bingo:'🎰 Bingo', live_music:'🎵 Live Music', blackjack:'🃏 Blackjack', other:'⭐ Event' };
+
+let currentPlayer = null;
+let currentBar = null;
+let scanStream = null;
+let scanInterval = null;
+let ciTimerInterval = null;
+let ciPollInterval = null;
+let ciEventData = null;
+
+// ── CELEBRATION ───────────────────────────────────────
+function playSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (type === 'checkin') {
+      [0, 0.15].forEach((delay, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = i === 0 ? 880 : 1100;
+        o.type = 'sine';
+        g.gain.setValueAtTime(0, ctx.currentTime + delay);
+        g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + delay + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+        o.start(ctx.currentTime + delay); o.stop(ctx.currentTime + delay + 0.3);
+      });
+    } else {
+      [0, 0.12, 0.24, 0.36].forEach((delay, i) => {
+        const freqs = [523, 659, 784, 1047];
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = freqs[i]; o.type = 'triangle';
+        g.gain.setValueAtTime(0, ctx.currentTime + delay);
+        g.gain.linearRampToValueAtTime(0.25, ctx.currentTime + delay + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.35);
+        o.start(ctx.currentTime + delay); o.stop(ctx.currentTime + delay + 0.4);
+      });
+    }
+  } catch(e) {}
+}
+
+function fireConfetti(intensity) {
+  const count = intensity === 'big' ? 180 : 80;
+  confetti({ particleCount: count, spread: intensity === 'big' ? 100 : 60, origin: { y: 0.6 }, colors: ['#f0a500','#ffffff','#3ecf8e','#f0ede8'], scalar: intensity === 'big' ? 1.2 : 0.9, zIndex: 9999 });
+  if (intensity === 'big') {
+    setTimeout(() => confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: ['#f0a500','#ffffff','#3ecf8e'], zIndex: 9999 }), 200);
+    setTimeout(() => confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: ['#f0a500','#ffffff','#3ecf8e'], zIndex: 9999 }), 200);
+  }
+}
+
+function animateCounter(el, targetVal, duration) {
+  if (!el) return;
+  const totalFrames = Math.floor(duration / 16);
+  const spinFrames = Math.floor(totalFrames * 0.7);
+  const settleFrames = totalFrames - spinFrames;
+  let frame = 0;
+  el.style.display = 'inline-block';
+  el.style.transition = 'transform 0.05s ease';
+
+  const interval = setInterval(() => {
+    frame++;
+    if (frame <= spinFrames) {
+      const speed = Math.max(1, Math.floor((spinFrames - frame) / 8));
+      if (frame % speed === 0) {
+        const spread = Math.max(5, Math.round(targetVal * 1.5));
+        el.textContent = Math.floor(Math.random() * spread);
+        el.style.transform = `translateY(${Math.random() > 0.5 ? '-2px' : '2px'})`;
+      }
+    } else {
+      const p = (frame - spinFrames) / settleFrames;
+      el.textContent = Math.round(targetVal * (1 - Math.pow(1-p, 2)));
+      el.style.transform = 'translateY(0)';
+    }
+    if (frame >= totalFrames) {
+      clearInterval(interval);
+      el.textContent = targetVal;
+      el.style.transform = 'translateY(0)';
+      el.style.transition = 'color 0.1s';
+      el.style.color = '#ffffff';
+      setTimeout(() => { el.style.color = ''; el.style.transition = ''; }, 150);
+    }
+  }, 16);
+}
+
+function celebrate(type, pts) {
+  playSound(type);
+  fireConfetti(type === 'confirm' ? 'big' : 'small');
+}
+
+// ── PANELS ───────────────────────────────────────────
+function openPanel(id) { document.getElementById(id).classList.add('open'); }
+function closePanel(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'panel-scanner') stopScanner();
+}
+
+// ── SCANNER ───────────────────────────────────────────
+async function openScanner() {
+  document.getElementById('scanner-status').textContent = '';
+  openPanel('panel-scanner');
+
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 } }
+    });
+    const video = document.getElementById('scanner-video');
+    video.srcObject = scanStream;
+    await video.play();
+    startDetecting(video);
+  } catch(e) {
+    document.getElementById('scanner-status').textContent = 'Camera access denied — please allow camera and try again.';
+  }
+}
+
+function stopScanner() {
+  if (scanInterval) { clearTimeout(scanInterval); scanInterval = null; }
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+  const v = document.getElementById('scanner-video');
+  if (v) v.srcObject = null;
+}
+
+function startDetecting(video) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  function tick() {
+    if (!scanStream) return;
+    if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert'
+      });
+      if (code && code.data) {
+        handleScanResult(code.data);
+        return;
+      }
+    }
+    scanInterval = setTimeout(tick, 200);
+  }
+  tick();
+}
+
+function handleScanResult(url) {
+  try {
+    const parsed = new URL(url);
+    const eventId = parsed.searchParams.get('event');
+    if (!eventId) return;
+    document.getElementById('scanner-status').textContent = 'QR found — loading event...';
+    stopScanner();
+    setTimeout(() => {
+      closePanel('panel-scanner');
+      openCheckinPanel(eventId);
+    }, 400);
+  } catch(e) {}
+}
+
+// ── CHECK-IN PANEL ───────────────────────────────────
+function ciHideAll() {
+  ['ci-already-in','ci-cap-reached','ci-form-new','ci-pending','ci-success'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+}
+
+async function openCheckinPanel(eventId) {
+  ciHideAll();
+  clearInterval(ciTimerInterval);
+  clearInterval(ciPollInterval);
+  ciEventData = null;
+
+  // Show panel immediately with loading state
+  document.getElementById('ci-panel-title').textContent = 'Loading...';
+  openPanel('panel-checkin');
+
+  // Load event
+  const { data: ev, error } = await sb.from('events').select('*').eq('id', eventId).eq('active', true).single();
+  if (error || !ev) {
+    document.getElementById('ci-panel-title').textContent = 'Not found';
+    const errDiv = document.createElement('div');
+    errDiv.className = 'card';
+    errDiv.innerHTML = '<p style="color:var(--red)">Event not found or no longer active.</p><p style="color:var(--text-muted);font-size:14px;margin-top:0.5rem">Ask a staff member for help.</p>';
+    document.querySelector('#panel-checkin .panel-body').prepend(errDiv);
+    return;
+  }
+
+  ciEventData = ev;
+  document.getElementById('ci-event-name').textContent = ev.name;
+  document.getElementById('ci-event-pts').textContent = ev.points_value;
+  document.getElementById('ci-new-pts').textContent = ev.points_value;
+  document.getElementById('ci-badge').innerHTML = `<span class="badge badge-gold">${typeLabels[ev.type] || ev.type}</span>`;
+  document.getElementById('ci-panel-title').textContent = ev.name;
+
+  // If player is already logged in, skip the form and go straight to checkin
+  if (currentPlayer) {
+    await ciDoCheckin(currentPlayer);
+  } else {
+    document.getElementById('ci-form-new').style.display = 'block';
+  }
+}
+
+async function ciSubmitNew() {
+  const name = document.getElementById('ci-new-name').value.trim();
+  const phone = normalizePhone(document.getElementById('ci-new-phone').value.trim());
+  if (!name) { ciShowMsg('ci-new-msg', 'Please enter your name.', 'error'); return; }
+  if (!phone) { ciShowMsg('ci-new-msg', 'Please enter a valid mobile number.', 'error'); return; }
+
+  // Check global profile
+  let { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone).single();
+  if (!profile) {
+    const { data: newProfile, error } = await sb.from('player_profiles').insert({ name, phone }).select().single();
+    if (error) { ciShowMsg('ci-new-msg', 'Could not create account. Try again.', 'error'); return; }
+    profile = newProfile;
+  }
+
+  // Get or create bar score
+  let barScore = null;
+  if (currentBar) {
+    const { data: existing } = await sb.from('player_bar_scores').select('*').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
+    if (existing) { barScore = existing; }
+    else {
+      const { data: created } = await sb.from('player_bar_scores').insert({ player_id: profile.id, bar_id: currentBar.id, total_points: 0 }).select().single();
+      barScore = created;
+    }
+  }
+
+  const player = { ...profile, total_points: barScore?.total_points || 0 };
+  currentPlayer = player;
+  localStorage.setItem('br_phone', phone);
+  await ciDoCheckin(player);
+}
+
+async function ciDoCheckin(player) {
+  ciHideAll();
+
+  // Check for existing checkin on this event
+  const { data: existing } = await sb.from('checkins').select('*')
+    .eq('player_id', player.id).eq('event_id', ciEventData.id).single();
+
+  if (existing) {
+    if (!existing.pending) {
+      // Already fully confirmed
+      document.getElementById('ci-already-in').style.display = 'block';
+      return;
+    } else {
+      // Has pending checkin — resume timer
+      const confirmAt = new Date(existing.points_confirm_at);
+      const visitScans = await getVisitScans(player.id);
+      ciShowPending(existing.points_earned, confirmAt, visitScans.length);
+      ciStartTimer(confirmAt, player, existing.id);
+      return;
+    }
+  }
+
+  // Check visit cap
+  const visitScans = await getVisitScans(player.id);
+  if (visitScans.length >= MAX_SCANS_PER_VISIT) {
+    document.getElementById('ci-cap-reached').style.display = 'block';
+    return;
+  }
+
+  // Create new pending checkin
+  const confirmAt = new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
+  const { data: checkin, error } = await sb.from('checkins').insert({
+    player_id: player.id,
+    event_id: ciEventData.id,
+    points_earned: ciEventData.points_value,
+    pending: true,
+    points_confirm_at: confirmAt.toISOString(),
+    bar_id: currentBar?.id || ciEventData.bar_id
+  }).select().single();
+
+  if (error) { alert('Something went wrong. Please try again.'); return; }
+
+  ciShowPending(ciEventData.points_value, confirmAt, visitScans.length + 1);
+  ciStartTimer(confirmAt, player, checkin.id);
+}
+
+function ciShowPending(pts, confirmAt, scanCount) {
+  document.getElementById('ci-pending-pts').textContent = '0';
+  document.getElementById('ci-confirm-time').textContent = confirmAt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+  const dotsEl = document.getElementById('ci-pending-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < MAX_SCANS_PER_VISIT; i++) {
+    const d = document.createElement('div');
+    d.className = 'scan-dot' + (i < scanCount ? ' used' : '');
+    dotsEl.appendChild(d);
+  }
+  document.getElementById('ci-pending').style.display = 'block';
+  celebrate('checkin', pts);
+  setTimeout(() => animateCounter(document.getElementById('ci-pending-pts'), pts, 700), 200);
+}
+
+function ciShowSuccess(pts, scanCount) {
+  document.getElementById('ci-success-pts').textContent = '0';
+  const rem = MAX_SCANS_PER_VISIT - scanCount;
+  document.getElementById('ci-success-remaining').textContent =
+    rem > 0 ? `${rem} scan${rem !== 1 ? 's' : ''} left tonight` : 'No more scans tonight — come back tomorrow!';
+  const dotsEl = document.getElementById('ci-success-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < MAX_SCANS_PER_VISIT; i++) {
+    const d = document.createElement('div');
+    d.className = 'scan-dot' + (i < scanCount ? ' used' : '');
+    dotsEl.appendChild(d);
+  }
+  document.getElementById('ci-pending').style.display = 'none';
+  document.getElementById('ci-success').style.display = 'block';
+  celebrate('confirm', pts);
+  setTimeout(() => animateCounter(document.getElementById('ci-success-pts'), pts, 900), 200);
+}
+
+function ciStartTimer(confirmAt, player, checkinId) {
+  clearInterval(ciTimerInterval);
+  clearInterval(ciPollInterval);
+  const circumference = 326.7;
+  const arc = document.getElementById('ci-timer-arc');
+  const display = document.getElementById('ci-timer-display');
+  const totalMs = LOCK_MINUTES * 60 * 1000;
+
+  const initialRemaining = confirmAt - new Date();
+  arc.style.strokeDashoffset = circumference * (1 - Math.min(1, initialRemaining / totalMs));
+
+  ciTimerInterval = setInterval(() => {
+    const remaining = confirmAt - new Date();
+    if (remaining <= 0) {
+      arc.style.strokeDashoffset = circumference;
+      display.textContent = '0:00';
+      clearInterval(ciTimerInterval);
+      return;
+    }
+    arc.style.strokeDashoffset = circumference * (1 - remaining / totalMs);
+    display.textContent = `${Math.floor(remaining/60000)}:${String(Math.floor((remaining%60000)/1000)).padStart(2,'0')}`;
+  }, 1000);
+
+  // Poll server every 3 seconds for confirmation
+  ciPollInterval = setInterval(async () => {
+    const { data } = await sb.from('checkins').select('pending').eq('id', checkinId).single();
+    if (data && !data.pending) {
+      clearInterval(ciPollInterval);
+      clearInterval(ciTimerInterval);
+      const visitScans = await getVisitScans(player.id);
+      ciShowSuccess(ciEventData.points_value, visitScans.length);
+    }
+  }, 3000);
+}
+
+// ── DASHBOARD ───────────────────────────────────────
+async function getVisitScans(playerId) {
+  const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+  let query = sb.from('checkins').select('id, scanned_at').eq('player_id', playerId).gte('scanned_at', windowStart);
+  if (currentBar) query = query.eq('bar_id', currentBar.id);
+  const { data } = await query;
+  return data || [];
+}
+
+async function lookup() {
+  const raw = document.getElementById('lookup-phone').value.trim();
+  const phone = raw.replace(/\D/g, '');
+  if (phone.length < 10) { showMsg('lookup-msg', 'Please enter a valid mobile number.', 'error'); return; }
+
+  // Look up global profile
+  const { data: profile } = await sb.from('player_profiles').select('*').eq('phone', phone).single();
+  if (!profile) { showMsg('lookup-msg', "We don't have that number. Have you checked in at an event yet?", 'error'); return; }
+
+  localStorage.setItem('br_phone', phone);
+
+  // Get bar score for current bar
+  let barScore = null;
+  if (currentBar) {
+    const { data: score } = await sb.from('player_bar_scores')
+      .select('*').eq('player_id', profile.id).eq('bar_id', currentBar.id).single();
+    barScore = score;
+  }
+
+  const player = { ...profile, total_points: barScore?.total_points || 0 };
+  currentPlayer = player;
+  await showDashboard(player);
+  showBottomNav();
+}
+
+// ── LEVEL SYSTEM ────────────────────────────────────────
+const LEVELS = [
+  { level: 1, name: 'Rookie',    icon: '🌱', badge: '/Rookie Level.png',    min: 0,    max: 99,   color: '#888780', border: '#3A3A38' },
+  { level: 2, name: 'Local',     icon: '🍺', badge: '/Local Level.png',     min: 100,  max: 299,  color: '#60A5FA', border: '#2A4A6A' },
+  { level: 3, name: 'Contender', icon: '⚡', badge: '/Contender Level.png', min: 300,  max: 599,  color: '#3ECF8E', border: '#1A5A3A' },
+  { level: 4, name: 'Veteran',   icon: '🔥', badge: '/Veteran Level.png',   min: 600,  max: 999,  color: '#F0A500', border: '#5A4000' },
+  { level: 5, name: 'Legend',    icon: '👑', badge: '/Legend Level.png',    min: 1000, max: 1999, color: '#F56565', border: '#5A2020' },
+  { level: 6, name: 'Bar Icon',  icon: '🏆', badge: '/Bar Icon Level.png',  min: 2000, max: Infinity, color: '#D4AF37', border: '#8B6914' },
+];
+
+function getLevel(pts) {
+  return LEVELS.slice().reverse().find(l => pts >= l.min) || LEVELS[0];
+}
+
+function applyLevelUI(lifetimePts) {
+  const lvl = getLevel(lifetimePts);
+  const next = LEVELS.find(l => l.level === lvl.level + 1);
+
+  // Badge image or emoji fallback
+  const iconEl = document.getElementById('level-icon');
+  if (lvl.badge) {
+    const src = lvl.badge.replace(/ /g,'%20');
+    iconEl.innerHTML = `<img src="${src}" style="width:22px;height:22px;object-fit:contain;border-radius:50%" onerror="this.style.display='none';this.insertAdjacentText('afterend','${lvl.icon}')"/>`;
+  } else {
+    iconEl.textContent = lvl.icon;
+  }
+
+  document.getElementById('level-name').textContent = lvl.name;
+  document.getElementById('level-num').textContent = `Lv.${lvl.level}`;
+  const badge = document.getElementById('level-badge');
+  if (badge) {
+    badge.style.borderColor = lvl.border;
+    badge.style.background = lvl.border + '33';
+  }
+  document.getElementById('level-name').style.color = lvl.color;
+  document.getElementById('level-num').style.color = lvl.color;
+  const card = document.getElementById('player-card');
+  if (card) { card.style.borderColor = lvl.border; card.style.borderWidth = '2px'; }
+  const bar = document.getElementById('level-progress-bar');
+  if (bar) {
+    bar.style.background = lvl.color;
+    if (next) {
+      const pct = Math.min(100, Math.round(((lifetimePts - lvl.min) / (next.min - lvl.min)) * 100));
+      bar.style.width = pct + '%';
+      document.getElementById('level-pts-label').textContent = lifetimePts + ' pts';
+      document.getElementById('level-next-label').textContent = (next.min - lifetimePts) + ' pts to ' + next.name;
+    } else {
+      bar.style.width = '100%';
+      document.getElementById('level-pts-label').textContent = lifetimePts + ' pts';
+      document.getElementById('level-next-label').textContent = 'Max level reached 🏆';
+    }
+  }
+}
+
+async function showDashboard(player) {
+  currentPlayer = player;
+  document.getElementById('lookup-form').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('player-name').textContent = player.nickname || player.name.split(' ')[0];
+
+  const { data: checkins } = await sb.from('checkins').select('*, events(name, type)')
+    .eq('player_id', player.id).eq('bar_id', currentBar.id).order('scanned_at', { ascending: false });
+  const { data: bonuses } = await sb.from('bonus_points').select('*, events(name)')
+    .eq('player_id', player.id).eq('bar_id', currentBar.id).order('awarded_at', { ascending: false });
+
+  const checkinPts = (checkins||[]).filter(c=>!c.pending).reduce((s,c)=>s+c.points_earned, 0);
+  const pendingPts = (checkins||[]).filter(c=>c.pending).reduce((s,c)=>s+c.points_earned, 0);
+  const bonusPts   = (bonuses||[]).reduce((s,b)=>s+b.points, 0);
+
+  document.getElementById('player-total').textContent = checkinPts + bonusPts;
+  document.getElementById('stat-visits').textContent = (checkins||[]).filter(c=>!c.pending).length;
+  document.getElementById('stat-bonus').textContent = bonusPts;
+
+  // Lifetime points + level
+  const barId = currentBar?.id || '';
+  const { data: scoreData } = await sb.from('player_bar_scores').select('lifetime_points').eq('player_id', player.id).eq('bar_id', barId).single();
+  const lifetimePts = scoreData?.lifetime_points ?? player.total_points;
+  document.getElementById('stat-lifetime').textContent = lifetimePts;
+  applyLevelUI(lifetimePts);
+
+  // Load avatar
+  currentUnlockedAvatars = await loadAvatar(player, lifetimePts);
+
+  // Milestone detection
+  await checkMilestones(player, lifetimePts);
+
+  // Pending notice
+  const old = document.getElementById('pending-notice');
+  if (old) old.remove();
+  if (pendingPts > 0) {
+    const pendingCheckins = (checkins||[]).filter(c=>c.pending);
+    const earliest = pendingCheckins.reduce((a,b)=>new Date(a.points_confirm_at)<new Date(b.points_confirm_at)?a:b);
+    const confirmsAt = new Date(earliest.points_confirm_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const notice = document.createElement('div');
+    notice.id = 'pending-notice';
+    notice.style.cssText = 'background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.3);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;cursor:pointer';
+    notice.innerHTML = `<div style="font-size:13px;font-weight:600;color:#f0a500">⏱ ${pendingPts} points pending — tap to see timer</div><div style="font-size:12px;color:#888780;margin-top:3px">Confirms at ${confirmsAt}</div>`;
+    notice.onclick = () => openCheckinPanel(earliest.event_id);
+    document.getElementById('tonight-card').insertAdjacentElement('beforebegin', notice);
+  }
+
+  // Rank + change notification
+  const { data: allScores } = await sb.from('player_bar_scores').select('player_id, total_points').eq('bar_id', barId).order('total_points', { ascending: false });
+  const rank = (allScores||[]).findIndex(s => s.player_id === player.id) + 1;
+  document.getElementById('stat-rank').textContent = rank > 0 ? `#${rank}` : '—';
+
+  // Compare to last recorded rank — scoped to this specific bar
+  const rankKey = `br_last_rank_${player.id}_${barId}`;
+  const lastRank = parseInt(localStorage.getItem(rankKey) || '0');
+  const oldNotice = document.getElementById('rank-change-notice');
+  if (oldNotice) oldNotice.remove();
+
+  if (rank > 0 && lastRank > 0 && lastRank !== rank) {
+    const moved = lastRank - rank; // positive = moved up, negative = moved down
+    const notice = document.createElement('div');
+    notice.id = 'rank-change-notice';
+
+    if (moved > 0) {
+      // Moved up
+      notice.style.cssText = 'background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);border-radius:8px;padding:0.85rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px';
+      notice.innerHTML = `
+        <div style="font-size:24px">📈</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#3ecf8e">You moved up ${moved} spot${moved !== 1 ? 's' : ''}!</div>
+          <div style="font-size:12px;color:#888780;margin-top:2px">You went from #${lastRank} to #${rank} since your last visit</div>
+        </div>`;
+    } else {
+      // Moved down
+      const gap = rank > 1 ? (allScores||[])[rank-2]?.total_points - ((checkinPts + bonusPts)) : 0;
+      const dropAmt = Math.abs(moved);
+      notice.style.cssText = 'background:rgba(245,101,101,0.08);border:1px solid rgba(245,101,101,0.25);border-radius:8px;padding:0.85rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px';
+      notice.innerHTML = `
+        <div style="font-size:24px">⚠️</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#f56565">You dropped ${dropAmt} spot${dropAmt !== 1 ? 's' : ''}</div>
+          <div style="font-size:12px;color:#888780;margin-top:2px">#${lastRank} → #${rank}${gap > 0 ? ` · ${gap} pts behind #${rank-1}` : ''}</div>
+        </div>`;
+    }
+    document.getElementById('tonight-card').insertAdjacentElement('beforebegin', notice);
+  } else if (rank > 0 && lastRank === 0) {
+    // First time viewing — show a welcome message with their rank
+    const notice = document.createElement('div');
+    notice.id = 'rank-change-notice';
+    notice.style.cssText = 'background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.25);border-radius:8px;padding:0.85rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px';
+    notice.innerHTML = `
+      <div style="font-size:24px">👋</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#f0a500">You're #${rank} on the board</div>
+        <div style="font-size:12px;color:#888780;margin-top:2px">We'll track your rank every time you check in</div>
+      </div>`;
+    document.getElementById('tonight-card').insertAdjacentElement('beforebegin', notice);
+  }
+
+  // Save current rank for next visit
+  if (rank > 0) localStorage.setItem(rankKey, String(rank));
+
+  // ── WINNER DETECTION ─────────────────────────────────
+  if (rank >= 1 && rank <= 3 && currentBar?.point_target) {
+    const prizes = [currentBar.prize_1, currentBar.prize_2, currentBar.prize_3];
+    const prizeText = prizes[rank - 1];
+    if (prizeText && player.total_points >= currentBar.point_target) {
+      await checkAndShowWinner(player, rank, prizeText);
+    }
+  }
+
+  // Tonight's scans
+  const windowStart = new Date(Date.now() - VISIT_WINDOW_HOURS * 60 * 60 * 1000);
+  const tonightScans = (checkins||[]).filter(c=>new Date(c.scanned_at)>windowStart);
+  const remaining = MAX_SCANS_PER_VISIT - tonightScans.length;
+  document.getElementById('tonight-count').textContent = `${tonightScans.length} / ${MAX_SCANS_PER_VISIT}`;
+  const dotsEl = document.getElementById('tonight-dots');
+  dotsEl.innerHTML = '';
+  for (let i=0; i<MAX_SCANS_PER_VISIT; i++) {
+    const d = document.createElement('div');
+    d.className = 'scan-dot' + (i < tonightScans.length ? ' used' : '');
+    dotsEl.appendChild(d);
+  }
+  document.getElementById('tonight-msg').textContent = remaining > 0
+    ? `${remaining} scan${remaining!==1?'s':''} remaining in the next 8 hours`
+    : 'Max scans reached for this visit window.';
+
+  // History
+  document.getElementById('history-loading').style.display = 'none';
+  const allHistory = [
+    ...(checkins||[]).map(c=>({
+      type: c.pending?'pending':'checkin',
+      label: c.events?.name||'Event',
+      icon: c.pending ? '⏱' : (typeIcons[c.events?.type]||'⭐'),
+      pts: c.points_earned, date: c.scanned_at, pending: c.pending,
+      eventId: c.event_id
+    })),
+    ...(bonuses||[]).map(b=>({
+      type:'bonus', label:b.reason||'Bonus points', icon:'🏆',
+      pts:b.points, date:b.awarded_at, pending:false
+    }))
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  if (!allHistory.length) { document.getElementById('history-empty').style.display='block'; return; }
+
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+  allHistory.forEach(item => {
+    const dateStr = new Date(item.date).toLocaleDateString('en-US',{day:'numeric',month:'short'});
+    const ptsColor = item.pending ? 'color:#888780' : (item.type==='bonus' ? 'color:var(--green)' : '');
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    if (item.pending) row.style.cursor = 'pointer';
+    if (item.pending && item.eventId) row.onclick = () => openCheckinPanel(item.eventId);
+    row.innerHTML = `
+      <div class="history-icon">${item.icon}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:500;${item.pending?'color:#888780':''}">${esc(item.label)}${item.pending?' <span style="font-size:11px;color:#888780">(pending)</span>':''}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${dateStr}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="history-pts ${item.type==='bonus'?'history-bonus':''}" style="${ptsColor}">+${item.pts}</div>
+        ${item.pending?'<div style="font-size:10px;color:#888780">tap to view timer</div>':''}
+      </div>`;
+    list.appendChild(row);
+  });
+  list.style.display = 'block';
+}
+
+async function refreshDashboard() {
+  if (currentPlayer) {
+    const { data: fresh } = await sb.from('player_profiles').select('*').eq('id', currentPlayer.id).single();
+    if (fresh) {
+      let barScore = null;
+      if (currentBar) {
+        const { data: score } = await sb.from('player_bar_scores').select('*').eq('player_id', fresh.id).eq('bar_id', currentBar.id).single();
+        barScore = score;
+      }
+      await showDashboard({ ...fresh, total_points: barScore?.total_points || 0 });
+    }
+  }
+}
+
+async function loadOtherBars(playerId, barId) {
+  const { data: scores } = await sb.from('player_bar_scores')
+    .select('*, bars(id, name, slug, point_target)')
+    .eq('player_id', playerId)
+    .order('total_points', { ascending: false });
+
+  if (!scores?.length) return;
+
+  const others = scores.filter(s => s.bar_id !== barId);
+  if (!others.length) return;
+
+  document.getElementById('other-bars-section').style.display = 'block';
+  document.getElementById('other-bars-list').innerHTML = others.map(s => `
+    <div class="card" style="display:flex;align-items:center;gap:12px;padding:0.85rem 1rem;margin-bottom:0.5rem">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${esc(s.bars?.name || 'Unknown Bar')}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${s.total_points} pts · goal: ${s.bars?.point_target || 200}</div>
+      </div>
+      <a href="my-points.html?bar=${s.bars?.slug}" class="btn btn-outline btn-sm">View →</a>
+    </div>`).join('');
+}
+
+function switchPlayer() {
+  localStorage.removeItem('br_phone');
+  currentPlayer = null;
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('lookup-form').style.display = 'block';
+  document.getElementById('lookup-phone').value = '';
+}
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text; el.className = `msg show msg-${type}`;
+}
+
+function ciShowMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text; el.className = `msg show msg-${type}`;
+}
+
+function normalizePhone(raw) {
+  const digits = raw.replace(/\D/g, '');
+  return digits.length < 10 ? null : digits;
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Auto-load with bar context
+(async () => {
+  // Get slug from URL, fallback to localStorage
+  let slug = getBarSlug();
+  if (!slug) slug = localStorage.getItem('br_bar_slug');
+  
+  if (slug) {
+    localStorage.setItem('br_bar_slug', slug);
+    currentBar = await getBar(sb, slug);
+    applyBarBranding(currentBar);
+    document.getElementById('link-tutorial').href = `tutorial.html?bar=${slug}`;
+    // Fix URL if slug was missing
+    if (!getBarSlug() && slug) {
+      const url = new URL(location.href);
+      url.searchParams.set('bar', slug);
+      history.replaceState({}, '', url.toString());
+    }
+  }
+  const saved = localStorage.getItem('br_phone');
+  if (saved) {
+    document.getElementById('lookup-phone').value = saved;
+    lookup();
+  }
+})();
+
+async function lookupThenCheckin(phone, eventId) {
+  const digits = phone.replace(/\D/g, '');
+  try {
+    let query = sb.from('player_profiles').select('*').eq('phone', digits);
+    const { data: player } = await query.single();
+    const loadingEl = document.getElementById('initial-loading');
+    if (loadingEl) loadingEl.remove();
+    if (!player) {
+      localStorage.removeItem('br_phone');
+      document.getElementById('lookup-form').style.display = 'block';
+      return;
+    }
+    currentPlayer = player;
+    await showDashboard(player);
+    openCheckinPanel(eventId);
+  } catch(e) {
+    const loadingEl = document.getElementById('initial-loading');
+    if (loadingEl) loadingEl.remove();
+    localStorage.removeItem('br_phone');
+    document.getElementById('lookup-form').style.display = 'block';
+  }
+}
+
+// Update bar name in header
+function updateHeaderBarName() {
+  const el = document.getElementById('header-bar-name');
+  if (el && currentBar?.name) el.textContent = currentBar.name;
+}
+</script>
+
+<!-- Winner overlay -->
+<div id="winner-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;overflow-y:auto;padding:2rem 1.25rem">
+  <div style="max-width:420px;margin:0 auto">
+    <div id="winner-card" style="background:var(--bg2);border-radius:16px;overflow:hidden">
+      <!-- Gold header -->
+      <div id="winner-header" style="background:var(--gold);padding:2rem 1.5rem;text-align:center">
+        <div id="winner-trophy" style="font-size:64px;margin-bottom:0.5rem">🏆</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:#111;letter-spacing:2px" id="winner-title">YOU WON!</div>
+        <div style="font-size:15px;color:#333;margin-top:4px" id="winner-placement">1st Place</div>
+      </div>
+      <!-- Prize -->
+      <div style="padding:1.5rem">
+        <div style="text-align:center;margin-bottom:1.5rem">
+          <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Your prize</div>
+          <div style="font-size:22px;font-weight:700;color:var(--text)" id="winner-prize">—</div>
+        </div>
+        <!-- Claim code -->
+        <div style="background:var(--bg3);border:2px dashed var(--gold);border-radius:10px;padding:1.25rem;text-align:center;margin-bottom:1.5rem">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Your claim code</div>
+          <div id="winner-code" style="font-family:monospace;font-size:26px;font-weight:700;color:var(--gold);letter-spacing:4px">——</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:8px">Show this to your bartender to claim your prize</div>
+        </div>
+        <div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.2);border-radius:8px;padding:0.75rem 1rem;font-size:13px;color:var(--green);margin-bottom:1.5rem;text-align:center">
+          ✅ This code is unique to you and can only be redeemed once
+        </div>
+        <button onclick="closeWinnerOverlay()" class="btn btn-primary" style="width:100%;margin-bottom:0.75rem">Got it — I'll claim my prize!</button>
+        <button onclick="closeWinnerOverlay()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0.5rem">Remind me later</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function checkAndShowWinner(player, rank, prizeText) {
+  // Check if they already have an unclaimed prize for this rank/season
+  const { data: existing } = await sb.from('prize_claims')
+    .select('id, claim_code, status')
+    .eq('player_id', player.id)
+    .eq('bar_id', currentBar.id)
+    .eq('placement', rank)
+    .eq('status', 'unclaimed')
+    .single();
+
+  let claimCode;
+  if (existing) {
+    claimCode = existing.claim_code;
+  } else {
+    // Check if already claimed
+    const { data: claimed } = await sb.from('prize_claims')
+      .select('id')
+      .eq('player_id', player.id)
+      .eq('bar_id', currentBar.id)
+      .eq('placement', rank)
+      .eq('status', 'claimed')
+      .single();
+    if (claimed) return; // Already redeemed, don't show again
+
+    // Generate unique claim code
+    claimCode = 'BR-' + Math.random().toString(36).substring(2,5).toUpperCase() + '-' + Math.random().toString(36).substring(2,5).toUpperCase();
+
+    // Save to DB
+    await sb.from('prize_claims').insert({
+      bar_id: currentBar.id,
+      player_id: player.id,
+      placement: rank,
+      prize_text: prizeText,
+      claim_code: claimCode,
+      season_number: 1
+    });
+  }
+
+  // Show overlay
+  const placements = ['', '1st Place 🥇', '2nd Place 🥈', '3rd Place 🥉'];
+  const trophies = ['', '🏆', '🥈', '🥉'];
+  const headers = ['', '#111', '#555', '#6B3A2A'];
+
+  document.getElementById('winner-trophy').textContent = trophies[rank];
+  document.getElementById('winner-title').textContent = rank === 1 ? 'YOU WON!' : 'PRIZE WINNER!';
+  document.getElementById('winner-placement').textContent = placements[rank];
+  document.getElementById('winner-prize').textContent = prizeText;
+  document.getElementById('winner-code').textContent = claimCode;
+
+  // Style header by placement
+  const headerEl = document.getElementById('winner-header');
+  if (rank === 2) headerEl.style.background = '#C0C0C0';
+  else if (rank === 3) headerEl.style.background = '#CD7F32';
+
+  document.getElementById('winner-overlay').style.display = 'block';
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+}
+
+function closeWinnerOverlay() {
+  document.getElementById('winner-overlay').style.display = 'none';
+}
+</script>
+
+<script>
+async function checkMilestones(player, lifetimePts) {
+  if (!currentBar || !player) return;
+
+  // Get all milestones for this bar that player qualifies for
+  const { data: milestones } = await sb.from('milestones')
+    .select('*')
+    .eq('bar_id', currentBar.id)
+    .lte('points_required', lifetimePts)
+    .order('points_required', { ascending: true });
+
+  if (!milestones?.length) return;
+
+  // Check which ones already claimed or pending
+  const { data: existingClaims } = await sb.from('milestone_claims')
+    .select('milestone_id, status, claim_code')
+    .eq('player_id', player.id)
+    .eq('bar_id', currentBar.id);
+
+  const claimedIds = new Set((existingClaims||[]).map(c => c.milestone_id));
+
+  // Find first unclaimed milestone
+  const unclaimed = milestones.find(m => !claimedIds.has(m.id));
+  if (!unclaimed) return;
+
+  // Generate claim code and save
+  const claimCode = 'MS-' + Math.random().toString(36).substring(2,5).toUpperCase() + '-' + Math.random().toString(36).substring(2,5).toUpperCase();
+  const { error } = await sb.from('milestone_claims').insert({
+    bar_id: currentBar.id,
+    player_id: player.id,
+    milestone_id: unclaimed.id,
+    claim_code: claimCode
+  });
+
+  if (error) return; // Already exists (unique constraint) — skip
+
+  // Show milestone overlay
+  showMilestoneOverlay(unclaimed, claimCode);
+}
+
+function showMilestoneOverlay(milestone, claimCode) {
+  document.getElementById('milestone-pts-req').textContent = milestone.points_required;
+  document.getElementById('milestone-reward-text').textContent = milestone.reward_text;
+  document.getElementById('milestone-code').textContent = claimCode;
+  document.getElementById('milestone-overlay').style.display = 'block';
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+}
+
+function closeMilestoneOverlay() {
+  document.getElementById('milestone-overlay').style.display = 'none';
+}
+</script>
+
+<!-- Milestone overlay -->
+<div id="milestone-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:301;overflow-y:auto;padding:2rem 1.25rem">
+  <div style="max-width:420px;margin:0 auto">
+    <div style="background:var(--bg2);border-radius:16px;overflow:hidden">
+      <div style="background:linear-gradient(135deg,#1A3A1A,#2A5A2A);padding:2rem 1.5rem;text-align:center">
+        <div style="font-size:56px;margin-bottom:0.5rem">🎯</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#3ECF8E;letter-spacing:2px">MILESTONE UNLOCKED!</div>
+        <div style="font-size:15px;color:#c0bdb8;margin-top:4px"><span id="milestone-pts-req">—</span> lifetime points reached</div>
+      </div>
+      <div style="padding:1.5rem">
+        <div style="text-align:center;margin-bottom:1.5rem">
+          <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Your reward</div>
+          <div style="font-size:22px;font-weight:700" id="milestone-reward-text">—</div>
+        </div>
+        <div style="background:var(--bg3);border:2px dashed #3ECF8E;border-radius:10px;padding:1.25rem;text-align:center;margin-bottom:1.5rem">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Your claim code</div>
+          <div id="milestone-code" style="font-family:monospace;font-size:26px;font-weight:700;color:#3ECF8E;letter-spacing:4px">——</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:8px">Show this to your bartender to claim your reward</div>
+        </div>
+        <div style="background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.2);border-radius:8px;padding:0.75rem 1rem;font-size:13px;color:var(--green);margin-bottom:1.5rem;text-align:center">
+          ✅ This code can only be redeemed once
+        </div>
+        <button onclick="closeMilestoneOverlay()" class="btn btn-primary" style="width:100%;margin-bottom:0.75rem;background:#3ECF8E;color:#111">Got it — I'll claim my reward!</button>
+        <button onclick="closeMilestoneOverlay()" style="width:100%;background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0.5rem">Remind me later</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── AVATAR SYSTEM ────────────────────────────────────────
+async function loadAvatar(player, lifetimePts) {
+  const { data: unlocks } = await sb.from('avatar_unlocks')
+    .select('avatar').eq('player_id', player.id);
+  const unlockedIds = new Set([
+    ...AVATARS.filter(a => a.unlockType === 'starter').map(a => a.id),
+    ...(unlocks||[]).map(u => u.avatar)
+  ]);
+
+  // Auto-unlock lifetime avatars
+  const lifetimeAvatars = AVATARS.filter(a => a.unlockType === 'lifetime' && lifetimePts >= a.unlockCount);
+  for (const av of lifetimeAvatars) {
+    if (!unlockedIds.has(av.id)) {
+      await sb.from('avatar_unlocks').upsert({ player_id: player.id, avatar: av.id }, { onConflict: 'player_id,avatar', ignoreDuplicates: true });
+      unlockedIds.add(av.id);
+    }
+  }
+
+  // Auto-unlock challenge avatar
+  const { data: wins } = await sb.from('challenges').select('id').eq('winner_id', player.id).eq('status', 'completed');
+  if ((wins||[]).length >= 5 && !unlockedIds.has('gambling-pirate')) {
+    await sb.from('avatar_unlocks').upsert({ player_id: player.id, avatar: 'gambling-pirate' }, { onConflict: 'player_id,avatar', ignoreDuplicates: true });
+    unlockedIds.add('gambling-pirate');
+  }
+
+  // Auto-unlock hunt avatar
+  const { data: hunts } = await sb.from('hunt_submissions').select('id').eq('player_id', player.id).eq('status', 'approved');
+  if ((hunts||[]).length >= 3 && !unlockedIds.has('high-roller')) {
+    await sb.from('avatar_unlocks').upsert({ player_id: player.id, avatar: 'high-roller' }, { onConflict: 'player_id,avatar', ignoreDuplicates: true });
+    unlockedIds.add('high-roller');
+  }
+
+  // Avatar display only - character select is handled by tutorial flow
+  updateAvatarDisplay(player.avatar || 'dart-hustler');
+  return unlockedIds;
+}
+
+function updateAvatarDisplay(avatarId) {
+  const av = getAvatarById(avatarId);
+  const img = document.getElementById('avatar-img');
+  const fallback = document.getElementById('avatar-emoji-fallback');
+  const display = document.getElementById('avatar-display');
+
+  if (av.img) {
+    img.src = av.img;
+    img.style.display = 'block';
+    fallback.style.display = 'none';
+    img.onerror = () => { img.style.display = 'none'; fallback.style.display = 'flex'; };
+  }
+  display.style.borderColor = av.color;
+  document.getElementById('avatar-name').textContent = av.name;
+  document.getElementById('avatar-desc').textContent = av.desc;
+}
+
+let currentUnlockedAvatars = new Set();
+
+async function openAvatarSelect(isFirstTime = false) {
+  const overlay = document.getElementById('avatar-overlay');
+  overlay.style.display = 'block';
+
+  const title = document.getElementById('avatar-select-title');
+  const sub = document.getElementById('avatar-select-sub');
+  if (isFirstTime) {
+    title.textContent = 'Pick your character';
+    sub.textContent = 'Choose who represents you on the leaderboard';
+  } else {
+    title.textContent = 'Change character';
+    sub.textContent = 'Locked avatars unlock by playing';
+  }
+
+  const grid = document.getElementById('avatar-grid');
+  const currentAvatarId = currentPlayer?.avatar || '';
+
+  // Separate starters and unlockables
+  const starters = AVATARS.filter(a => a.unlockType === 'starter');
+  const unlockable = AVATARS.filter(a => a.unlockType !== 'starter');
+
+  grid.innerHTML = `
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px;grid-column:1/-1">Available now</div>
+    ${starters.map(av => avatarCard(av, currentAvatarId, true)).join('')}
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin:12px 0 8px;grid-column:1/-1">Unlock by playing</div>
+    ${unlockable.map(av => avatarCard(av, currentAvatarId, currentUnlockedAvatars.has(av.id))).join('')}
+  `;
+}
+
+function avatarCard(av, currentId, isUnlocked) {
+  const isCurrent = av.id === currentId;
+  return `<div onclick="${isUnlocked ? `selectAvatar('${av.id}')` : ''}"
+    style="background:var(--bg3);border:2px solid ${isCurrent ? av.color : 'var(--border)'};border-radius:12px;padding:10px 8px;text-align:center;cursor:${isUnlocked ? 'pointer' : 'default'};opacity:${isUnlocked ? '1' : '0.4'};transition:all 0.15s;position:relative" id="av-${av.id}">
+    ${isCurrent ? `<div style="position:absolute;top:5px;right:7px;font-size:11px;color:${av.color};font-weight:700">✓</div>` : ''}
+    <div style="width:68px;height:68px;border-radius:50%;overflow:hidden;margin:0 auto 6px;border:2px solid ${isCurrent ? av.color : 'var(--border)'}">
+      <img src="${av.img}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+      <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px;background:var(--bg2)">?</div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:${isUnlocked ? 'var(--text)' : 'var(--text-muted)'};line-height:1.2">${av.name}</div>
+    ${!isUnlocked ? `<div style="font-size:9px;color:var(--text-muted);margin-top:3px;background:var(--bg2);border-radius:999px;padding:1px 6px">🔒 ${av.unlockDesc}</div>` : `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${av.desc}</div>`}
+  </div>`;
+}
+
+async function selectAvatar(avatarId) {
+  if (!currentPlayer) return;
+  await sb.from('player_profiles').update({ avatar: avatarId }).eq('id', currentPlayer.id);
+  currentPlayer.avatar = avatarId;
+  updateAvatarDisplay(avatarId);
+  document.getElementById('avatar-overlay').style.display = 'none';
+}
+
+function closeAvatarOverlay() {
+  // Only allow closing if player has already picked an avatar
+  if (currentPlayer?.avatar) {
+    document.getElementById('avatar-overlay').style.display = 'none';
+  }
+}
+</script>
+
+<!-- Avatar select overlay -->
+<div id="avatar-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:302;overflow-y:auto;padding:1.5rem 1.25rem">
+  <div style="max-width:420px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold)" id="avatar-select-title">Pick your character</div>
+        <div style="font-size:13px;color:var(--text-muted)" id="avatar-select-sub">Choose who represents you on the leaderboard</div>
+      </div>
+      <button onclick="closeAvatarOverlay()" id="avatar-close-btn" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+    <div id="avatar-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px"></div>
+  </div>
+</div>
+
+</div><!-- end page-content -->
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav" id="bottom-nav" style="display:none">
+  <a href="#" id="nav-score" class="active" onclick="return false">
+    <span class="nav-icon">🏅</span>
+    <span class="nav-label">My Score</span>
+  </a>
+  <a href="leaderboard.html" id="nav-leaderboard">
+    <span class="nav-icon">📺</span>
+    <span class="nav-label">Leaderboard</span>
+  </a>
+  <a href="#" id="nav-scan" class="scan-tab" onclick="showScanInstructions(); return false;">
+    <span class="nav-icon">📷</span>
+    <span class="nav-label">Scan</span>
+  </a>
+  <a href="lounge.html" id="nav-lounge">
+    <span class="nav-icon">🎲</span>
+    <span class="nav-label">Lounge</span>
+    <span class="nav-dot" id="lounge-dot"></span>
+  </a>
+  <a href="tutorial.html" id="nav-how">
+    <span class="nav-icon">❓</span>
+    <span class="nav-label">How it works</span>
+  </a>
+</nav>
+
+<script>
+// Set up bottom nav links with bar slug
+(function() {
+  const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
+  if (slug) {
+    document.getElementById('nav-leaderboard').href = `leaderboard.html?bar=${slug}`;
+    document.getElementById('nav-lounge').href = `lounge.html?bar=${slug}`;
+    document.getElementById('nav-how').href = `tutorial.html?bar=${slug}`;
+  }
+})();
+
+function showScanInstructions() {
+  // Show a simple modal telling them to find a QR code
+  const existing = document.getElementById('scan-modal');
+  if (existing) { existing.style.display = 'flex'; return; }
+  const modal = document.createElement('div');
+  modal.id = 'scan-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:400;display:flex;align-items:center;justify-content:center;padding:1.5rem';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2rem 1.5rem;max-width:340px;width:100%;text-align:center">
+      <div style="font-size:48px;margin-bottom:1rem">📷</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);margin-bottom:0.75rem">Scan a QR Code</div>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:1.5rem">Find the gold QR code card on any game table — darts, pool, trivia. Point your phone camera at it and tap the link that appears.</p>
+      <button onclick="document.getElementById('scan-modal').style.display='none'" class="btn btn-primary" style="width:100%">Got it</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+}
+
+// Show bottom nav once player is loaded
+function showBottomNav() {
+  document.getElementById('bottom-nav').style.display = 'flex';
+  updateHeaderBarName();
+  // Show lounge dot if lounge is enabled
+  if (currentBar?.lounge_enabled !== false) {
+    document.getElementById('lounge-dot').classList.add('show');
+  }
+}
+</script>
+<script>
+  // Register service worker for PWA
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }
+
+  // Add to Home Screen prompt
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    setTimeout(() => {
+      const banner = document.getElementById('install-banner');
+      if (banner && !localStorage.getItem('br_dismissed_install')) banner.style.display = 'flex';
+    }, 4000);
+  });
+
+  function installApp() {
+    if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { deferredPrompt = null; }); }
+    document.getElementById('install-banner').style.display = 'none';
+    localStorage.setItem('br_dismissed_install', '1');
+  }
+  function dismissInstall() {
+    document.getElementById('install-banner').style.display = 'none';
+    localStorage.setItem('br_dismissed_install', '1');
+  }
+
+  // Haptic feedback
+  function haptic(pattern = 50) { if (navigator.vibrate) navigator.vibrate(pattern); }
+</script>
+
+<!-- Add to Home Screen banner -->
+<div id="install-banner" style="display:none;position:fixed;bottom:80px;left:12px;right:12px;background:#1A1A18;border:1px solid rgba(240,165,0,0.4);border-radius:12px;padding:12px 14px;z-index:200;align-items:center;gap:12px;box-shadow:0 4px 24px rgba(0,0,0,0.5)">
+  <div style="font-size:28px;flex-shrink:0">📲</div>
+  <div style="flex:1">
+    <div style="font-size:13px;font-weight:600;color:#f0ede8;margin-bottom:2px">Add Bar Rank to your home screen</div>
+    <div style="font-size:11px;color:#888780">Opens like an app — no browser bar</div>
+  </div>
+  <button onclick="installApp()" style="background:#F0A500;color:#111;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Add</button>
+  <button onclick="dismissInstall()" style="background:none;border:none;color:#666663;font-size:18px;cursor:pointer;padding:4px;line-height:1">×</button>
+</div>
+
+</body>
+</html>
