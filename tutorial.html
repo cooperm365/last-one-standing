@@ -361,17 +361,10 @@ function update() {
 function finish() {
   const slug = new URLSearchParams(location.search).get('bar') || localStorage.getItem('br_bar_slug');
   const barKey = slug || 'default';
-  // Save using slug as key (bar ID version handled on checkin side)
   localStorage.setItem(`br_tutorial_done_${barKey}`, '1');
-  const myPointsUrl = slug ? `my-points.html?bar=${slug}` : 'my-points.html';
-  const avatar = localStorage.getItem('br_avatar');
-  if (!avatar && slug) {
-    const returnUrl = new URLSearchParams(location.search).get('return') || myPointsUrl;
-    window.location.href = `character-select.html?bar=${slug}&return=${encodeURIComponent(returnUrl)}`;
-  } else {
-    const returnTo = new URLSearchParams(location.search).get('return') || myPointsUrl;
-    window.location.href = returnTo;
-  }
+  // Just follow the return URL — checkin already set it to character-select
+  const returnTo = new URLSearchParams(location.search).get('return') || (slug ? `my-points.html?bar=${slug}` : 'my-points.html');
+  window.location.href = returnTo;
 }
 
 // Swipe support
