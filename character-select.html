@@ -378,6 +378,8 @@ async function confirm() {
 
   // Store locally too for instant display
   localStorage.setItem('br_avatar', selectedAvatar);
+  // Mark character select as done for this bar so My Score doesn't redirect again
+  if (barSlug) localStorage.setItem(`br_char_select_done_${localStorage.getItem('br_bar_id') || barSlug}`, '1');
 
   // Navigate to My Score
   window.location.href = returnTo;
